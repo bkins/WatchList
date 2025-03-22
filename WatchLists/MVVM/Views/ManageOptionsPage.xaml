@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Class="WatchLists.MVVM.Views.ManageOptionsPage"
+    x:Name="PageReference"
+    Title="{Binding OptionTitle}">
+
+    <Grid RowDefinitions="*,Auto,Auto" Padding="10">
+        <!-- CollectionView for Options with Up/Down buttons -->
+        <CollectionView Grid.Row="0" ItemsSource="{Binding Options}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <!-- Editable Entry for each option -->
+                        <Entry Text="{Binding ., Mode=TwoWay}" Grid.Column="0" />
+                        <!-- Up Button -->
+                        <Button Text="↑"
+                                Grid.Column="1"
+                                Command="{Binding BindingContext.MoveOptionUpCommand, Source={x:Reference PageReference}}"
+                                CommandParameter="{Binding .}" />
+                        <!-- Down Button -->
+                        <Button Text="↓"
+                                Grid.Column="2"
+                                Command="{Binding BindingContext.MoveOptionDownCommand, Source={x:Reference PageReference}}"
+                                CommandParameter="{Binding .}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Entry for adding a new option -->
+        <Grid Grid.Row="1"
+              Padding="10">
+            <Entry Placeholder="Enter new option"
+                   Text="{Binding NewOption, Mode=TwoWay}"
+                   HorizontalOptions="Fill">
+                <Entry.Behaviors>
+                    <toolkit:EventToCommandBehavior
+                        EventName="Completed"
+                        Command="{Binding AddOptionCommand}" />
+                </Entry.Behaviors>
+            </Entry>
+        </Grid>
+
+        <!-- Fixed Save Button -->
+        <Grid Grid.Row="2"
+              Padding="10">
+            <Button Text="Save"
+                    Command="{Binding SaveOptionsCommand}"
+                    HorizontalOptions="Fill" />
+        </Grid>
+    </Grid>
+</ContentPage>

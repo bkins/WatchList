@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    x:Class="WatchLists.MVVM.Views.MainPage"
+
+    x:Name="PageReference"
+
+    BackgroundColor="{StaticResource BackgroundColor}">
+    <!-- Title="Watch List" -->
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add"
+                     Command="{Binding BindingContext.AddItemCommand, Source={x:Reference PageReference}}"
+                     >
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="{StaticResource AddIcon}"
+                                 FontFamily="MaterialIcons"
+                                 Size="24"
+                                 Color="{StaticResource PrimaryColor}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+
+        <ToolbarItem Text="Refresh"
+                     Command="{Binding BindingContext.RefreshItemsCommand, Source={x:Reference PageReference}}"
+                     >
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="{StaticResource RefreshIcon}"
+                                 FontFamily="MaterialIcons"
+                                 Size="24"
+                                 Color="{StaticResource PrimaryColor}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+
+        <ToolbarItem Text="{StaticResource SettingsIcon}"
+                     Command="{Binding BindingContext.NavigateToSettingsCommand, Source={x:Reference PageReference}}"
+                     >
+            <ToolbarItem.IconImageSource>
+                <FontImageSource Glyph="{StaticResource SettingsIcon}"
+                                 FontFamily="MaterialIcons"
+                                 Size="24"
+                                 Color="{StaticResource PrimaryColor}" />
+            </ToolbarItem.IconImageSource>
+        </ToolbarItem>
+        <ToolbarItem Text="API Test"
+                     Command="{Binding BindingContext.NavigateToApiTestCommand, Source={x:Reference PageReference}}"
+                     IconImageSource="apitest_icon.png" />
+        <ToolbarItem Text="Logs"
+                     Command="{Binding BindingContext.NavigateToLogsCommand, Source={x:Reference PageReference}}"
+                     IconImageSource="logs_icon.png" />
+    </ContentPage.ToolbarItems>
+
+    <StackLayout>
+        <!-- Custom Header -->
+
+        <!-- SearchBar for filtering -->
+        <SearchBar Placeholder="Search..."
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   BackgroundColor="{StaticResource CardBackgroundColor}"/>
+
+        <!-- CollectionView bound to filtered groups -->
+        <CollectionView ItemsSource="{Binding FilteredWatchItemGroups}"
+                        VerticalOptions="FillAndExpand"
+                        IsGrouped="True">
+            <CollectionView.GroupHeaderTemplate>
+                <DataTemplate>
+                    <toolkit:Expander IsExpanded="{Binding IsExpanded}">
+                        <toolkit:Expander.Header>
+                            <!-- Use a Frame with CardStyle to give a card-like look -->
+                            <Frame Style="{StaticResource CardStyle}"
+                                   Padding="10"
+                                   HasShadow="False"
+                                   BackgroundColor="Transparent">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- An icon for the category -->
+                                    <Label Grid.Column="0"
+                                           Text="{StaticResource VideoLibraryIcon}"
+                                           FontFamily="MaterialIcons"
+                                           FontSize="24"
+                                           TextColor="{StaticResource PrimaryColor}"
+                                           VerticalOptions="Center"
+                                           Margin="0,0,10,0" />
+
+                                    <!-- Category name -->
+                                    <Label Grid.Column="1"
+                                           Text="{Binding CategoryName}"
+                                           FontSize="Medium"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource TextColor}"
+                                           VerticalOptions="Center" />
+
+                                    <!-- Expand/Collapse icon -->
+                                    <Label Grid.Column="2"
+                                           FontFamily="MaterialIcons"
+                                           FontSize="24"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="End"
+                                           Text="{StaticResource ExpandLessIcon}">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label"
+                                                         Binding="{Binding Source={RelativeSource AncestorType={x:Type toolkit:Expander}}, Path=IsExpanded}"
+                                                         Value="True">
+                                                <Setter Property="Text"
+                                                        Value="{StaticResource ExpandMoreIcon}" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label"
+                                                         Binding="{Binding Source={RelativeSource AncestorType={x:Type toolkit:Expander}}, Path=IsExpanded}"
+                                                         Value="False">
+                                                <Setter Property="Text"
+                                                        Value="{StaticResource ExpandLessIcon}" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Grid>
+                            </Frame>
+                        </toolkit:Expander.Header>
+                        <toolkit:Expander.Content>
+
+                            <CollectionView ItemsSource="{Binding Items}"
+                                            SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <SwipeView>
+                                            <SwipeView.RightItems>
+                                                <SwipeItems Mode="Reveal">
+                                                    <SwipeItem Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                               CommandParameter="{Binding}">
+                                                        <SwipeItem.IconImageSource>
+                                                            <FontImageSource Glyph="{StaticResource EditIcon}"
+                                                                             FontFamily="MaterialIcons"
+                                                                             Size="24"
+                                                                             Color="{StaticResource PrimaryColor}" />
+                                                        </SwipeItem.IconImageSource>
+                                                    </SwipeItem>
+
+                                                    <SwipeItem Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
+                                                               CommandParameter="{Binding}">
+                                                        <SwipeItem.IconImageSource>
+                                                            <FontImageSource Glyph="{StaticResource DeleteIcon}"
+                                                                             FontFamily="MaterialIcons"
+                                                                             Size="24"
+                                                                             Color="{StaticResource PrimaryColor}" />
+                                                        </SwipeItem.IconImageSource>
+                                                    </SwipeItem>
+                                                </SwipeItems>
+                                            </SwipeView.RightItems>
+
+                                            <Grid Padding="10">
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
+                                                        CommandParameter="{Binding}" />
+                                                </Grid.GestureRecognizers>
+                                                <StackLayout Orientation="Vertical">
+                                                    <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding StreamingService}" FontSize="Small"
+                                                           TextColor="Gray" />
+                                                </StackLayout>
+                                            </Grid>
+                                        </SwipeView>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </toolkit:Expander.Content>
+                    </toolkit:Expander>
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

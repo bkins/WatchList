@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="WatchLists.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:WatchLists"
+    xmlns:views="clr-namespace:WatchLists.MVVM.Views"
+    Shell.FlyoutBehavior="Disabled"
+    Title="WatchLists">
+
+    <ShellContent
+        Title="WL"
+        ContentTemplate="{DataTemplate views:MainPage}"
+        Route="MainPage" />
+
+    <!-- MainPage as the starting page -->
+    <ShellContent Title="Watch List"
+                  ContentTemplate="{DataTemplate views:MainPage}" />
+</Shell>

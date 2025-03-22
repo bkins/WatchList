@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="WatchLists.MVVM.Views.SettingsPage"
+             Title="Settings">
+        <StackLayout Padding="10"
+                     Spacing="15">
+                <Label Text="Streaming Services"
+                       FontAttributes="Bold" />
+                <Picker Title="Select a Streaming Service"
+                        ItemsSource="{Binding StreamingServices}"
+                        SelectedItem="{Binding SelectedStreamingService}" />
+                <Button Text="Manage Streaming Services"
+                        Command="{Binding NavigateToManageOptionsCommand}"
+                        CommandParameter="StreamingServices" />
+
+                <Label Text="Categories"
+                       FontAttributes="Bold" />
+                <Picker Title="Select a Category"
+                        ItemsSource="{Binding Categories}"
+                        SelectedItem="{Binding SelectedCategory}" />
+                <Button Text="Manage Categories"
+                        Command="{Binding NavigateToManageOptionsCommand}"
+                        CommandParameter="Categories" />
+
+                <Label Text="Types"
+                       FontAttributes="Bold" />
+                <Picker Title="Select a Type"
+                        ItemsSource="{Binding Types}"
+                        SelectedItem="{Binding SelectedType}" />
+                <Button Text="Manage Types"
+                        Command="{Binding NavigateToManageOptionsCommand}"
+                        CommandParameter="Types" />
+
+                <!--TODO: Consider removing the Save Settings button and save automatically-->
+                <Button Text="Save Settings" Command="{Binding SaveSettingsCommand}" />
+
+                <Button Text="Reorder Categories"
+                        Command="{Binding NavigateToReorderCategoriesCommand}"
+                        CommandParameter="Categories" />
+
+        </StackLayout>
+</ContentPage>

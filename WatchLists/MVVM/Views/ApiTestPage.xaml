@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="WatchLists.MVVM.Views.ApiTestPage"
+             Title="API Tester">
+    <ContentPage.Content>
+        <StackLayout Padding="10" Spacing="10">
+            <!-- Picker to choose API call -->
+            <Label Text="Select API Call:" FontAttributes="Bold" />
+            <Picker ItemsSource="{Binding ApiCallOptions}"
+                    SelectedItem="{Binding SelectedApiCall, Mode=TwoWay}" />
+
+            <!-- Entry for query parameter -->
+            <Label Text="Query Parameter:" FontAttributes="Bold" />
+            <Entry Placeholder="Enter search query or ID"
+                   Text="{Binding QueryParameter, Mode=TwoWay}" />
+
+            <!-- Button to execute the API call -->
+            <Button Text="Execute API Call" Command="{Binding ExecuteApiCallCommand}" />
+
+            <!-- Display the raw JSON result -->
+            <Label Text="Results:" FontAttributes="Bold" />
+            <ScrollView VerticalOptions="FillAndExpand">
+                <Label Text="{Binding ResultJson}"
+                       FontFamily="Courier New"
+                       FontSize="12"
+                       LineBreakMode="WordWrap" />
+            </ScrollView>
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

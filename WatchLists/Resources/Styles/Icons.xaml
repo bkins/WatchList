@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    <!-- Friendly names mapped to Material Icon Unicode -->
+    <x:String x:Key="GearIcon">&#xE8B8;</x:String>
+    <x:String x:Key="ExpandLessIcon">&#xE313;</x:String>
+    <x:String x:Key="ExpandMoreIcon">&#xE316;</x:String>
+    <x:String x:Key="DeleteIcon">&#xE872;</x:String>
+    <x:String x:Key="EditIcon">&#xE150;</x:String>
+    <x:String x:Key="SearchIcon">&#xE8B6;</x:String>
+    <x:String x:Key="HomeIcon">&#xE88A;</x:String>
+    <x:String x:Key="SettingsIcon">&#xE8B8;</x:String>
+    <x:String x:Key="FavoriteIcon">&#xE87D;</x:String>
+    <x:String x:Key="InfoIcon">&#xE88E;</x:String>
+    <x:String x:Key="WarningIcon">&#xE002;</x:String>
+    <x:String x:Key="AddIcon">&#xE145;</x:String>
+    <x:String x:Key="RemoveIcon">&#xE15B;</x:String>
+    <x:String x:Key="ShareIcon">&#xE80D;</x:String>
+    <x:String x:Key="VideoLibraryIcon">&#xE04A;</x:String>
+    <x:String x:Key="MovieIcon">&#xE02C;</x:String>
+    <x:String x:Key="LiveTvIcon">&#xE639;</x:String>
+    <x:String x:Key="PlaylistIcon">&#xE05F;</x:String>
+    <x:String x:Key="QueueIcon">&#xE03D;</x:String>
+    <x:String x:Key="LibraryMusicIcon">&#xE03B;</x:String>
+    <x:String x:Key="CloudIcon">&#xE2BD;</x:String>
+    <x:String x:Key="DownloadIcon">&#xE2C4;</x:String>
+    <x:String x:Key="UploadIcon">&#xE2C6;</x:String>
+    <x:String x:Key="PlayIcon">&#xE037;</x:String>
+    <x:String x:Key="PauseIcon">&#xE034;</x:String>
+    <x:String x:Key="StopIcon">&#xE047;</x:String>
+    <x:String x:Key="VolumeIcon">&#xE04F;</x:String>
+    <x:String x:Key="VideoCallIcon">&#xE04B;</x:String>
+    <x:String x:Key="ListIcon">&#xE896;</x:String>
+    <x:String x:Key="RefreshIcon">&#xE5D5;</x:String>
+
+</ResourceDictionary>

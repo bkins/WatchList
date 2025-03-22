@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="WatchLists.MVVM.Views.EditWatchItemPage">
+
+       <StackLayout Padding="10"
+                    Spacing="12">
+              <Entry Placeholder="Title"
+                     Text="{Binding EditableItem.Title}" />
+              <Picker Title="Streaming Service"
+                      ItemsSource="{Binding StreamingServices}"
+                      SelectedItem="{Binding EditableItem.StreamingService, Mode=TwoWay}" />
+              <Picker ItemsSource="{Binding Categories}"
+                      SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
+                      SelectedIndexChanged="OnCategorySelectionChanged" />
+              <Entry Placeholder="Deep Link"
+                     Text="{Binding EditableItem.DeepLinkUri}" />
+
+              <!-- Type Dropdown -->
+              <Picker Title="Type"
+                      ItemsSource="{Binding AvailableTypes}"
+                      SelectedItem="{Binding EditableItem.Type, Mode=TwoWay}" />
+
+              <!-- IsWatched Checkbox -->
+              <StackLayout Orientation="Horizontal">
+                     <Label Text="Watched:"
+                            VerticalOptions="Center" />
+                     <Switch IsToggled="{Binding IsWatched}" />
+              </StackLayout>
+
+              <!-- Thumbs Up/Down UI -->
+              <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
+                     <Button Text="👍"
+                             Command="{Binding ToggleIsLikedCommand}"
+                             CommandParameter="{StaticResource TrueBoolean}"
+                             BackgroundColor="{Binding IsLiked, Converter={StaticResource BoolToColorConverter}}" />
+                     <Button Text="👎"
+                             Command="{Binding ToggleIsLikedCommand}"
+                             CommandParameter="{StaticResource FalseBoolean}"
+                             BackgroundColor="{Binding IsDisliked, Converter={StaticResource BoolToColorConverter}}" />
+              </StackLayout>
+
+              <Button Text="Search APIs"
+                      Command="{Binding OpenSearchCommand}"
+                      Style="{StaticResource PrimaryButtonStyle}" />
+
+              <Button Text="Save" Command="{Binding SaveCommand}" />
+       </StackLayout>
+</ContentPage>
