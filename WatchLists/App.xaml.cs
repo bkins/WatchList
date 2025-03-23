@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using Microsoft.Maui.Controls;
 
 namespace WatchLists
 {
@@ -9,8 +10,9 @@ namespace WatchLists
         public App (IServiceProvider services)
         {
             InitializeComponent();
-            Services = services;
-            MainPage = new AppShell();
+            Services                         = services;
+            Application.Current.UserAppTheme = AppTheme.Light;
+            MainPage                         = new AppShell();
 
             //Application.Current.UserAppTheme = AppTheme.Dark; // Forces Dark Mode
         }

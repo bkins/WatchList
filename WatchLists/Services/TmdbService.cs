@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using WatchLists.DataAccess.Interfaces;
+using WatchLists.ExtensionMethods;
 using WatchLists.Services.Models;
 
 namespace WatchLists.Services;
@@ -16,7 +17,7 @@ public class TmdbService : IMovieDataProvider
         get => _apiKey;
         set
         {
-                Console.WriteLine($"ApiKey set: {value}");
+            Console.WriteLine($"ApiKey set: {value}");
             _apiKey = value;
         }
     }
@@ -142,9 +143,15 @@ public class TmdbService : IMovieDataProvider
         {
             var countryProviders = entry.Value;
 
-            if ((countryProviders.Flatrate?.Any(p => !string.IsNullOrEmpty(p.ProviderName)) ?? false)
-             || (countryProviders.Rent?.Any(p => !string.IsNullOrEmpty(p.ProviderName)) ?? false)
-             || (countryProviders.Buy?.Any(p => !string.IsNullOrEmpty(p.ProviderName)) ?? false))
+            if ((countryProviders.Flatrate
+                                 ?.Any(watchProviders => watchProviders.ProviderName
+                                                                       .HasValue()) ?? false)
+             || (countryProviders.Rent
+                                 ?.Any(watchProviders => watchProviders.ProviderName
+                                                                       .HasValue()) ?? false)
+             || (countryProviders.Buy
+                                 ?.Any(watchProviders => watchProviders.ProviderName
+                                                                       .HasValue()) ?? false))
             {
                 filteredResults[entry.Key] = countryProviders;
             }

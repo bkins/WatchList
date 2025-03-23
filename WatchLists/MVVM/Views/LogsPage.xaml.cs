@@ -69,4 +69,14 @@ public partial class LogsPage : ContentPage
                          , "Log messages copied to clipboard."
                          , "OK");
     }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (BindingContext is LogsViewModel viewModel)
+        {
+            viewModel.LoadLogs();
+        }
+    }
 }

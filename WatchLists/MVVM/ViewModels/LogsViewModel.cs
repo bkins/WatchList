@@ -19,7 +19,7 @@ public class LogsViewModel : BindableObject
         LoadLogs();
     }
 
-    private async void LoadLogs()
+    public async void LoadLogs()
     {
         var fileContents = await FileLogger.ReadLogAsync();
         var lines = fileContents.Split(Environment.NewLine);
@@ -37,6 +37,19 @@ public class LogsViewModel : BindableObject
             File.Delete(LogConfig.LogFilePath);
         }
 
+        // ✅ Recreate log file to ensure logging continues
+        using (File.Create(LogConfig.LogFilePath))
+        {
+        }
+
         Logs.Clear();
+
+        // ✅ Force logs to reload after clearing
+        await FileLogger.WriteLogAsync("Log file cleared.");
+        LoadLogs();
+
+        System.Diagnostics.Debug.WriteLine($"Log file exists: {File.Exists(LogConfig.LogFilePath)}");
+
     }
+
 }

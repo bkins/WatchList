@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using WatchLists.DataAccess.Interfaces;
+using WatchLists.ExtensionMethods;
 using WatchLists.Services.Models;
 
 namespace WatchLists.Services;
@@ -16,7 +17,8 @@ public class UtellyService : IMovieDataProvider
     {
         _httpClient = httpClient;
 
-        if (!string.IsNullOrEmpty(ApiKey))
+        if (ApiKey != null
+         && ApiKey.HasValue())
         {
             _httpClient.DefaultRequestHeaders.Add("X-RapidAPI-Key", ApiKey);
             _httpClient.DefaultRequestHeaders.Add("X-RapidAPI-Host", "utelly-tv-shows-and-movies-availability-v1.p.rapidapi.com");
@@ -46,10 +48,15 @@ public class UtellyService : IMovieDataProvider
         {
             var response = await FetchFromUtelly<MovieSearchResponse>($"lookup?term={query}&country=US");
 
+            if (response?.Results is null)
+            {
+                throw new NullReferenceException($"{nameof(response)} is null");
+            }
+
             result.Data = response;
-            result.Diagnostics[GetType().Name] = response != null && response.Results.Count > 0
-                ? "Data returned successfully."
-                : "No data found.";
+            result.Diagnostics[GetType().Name] = response.Results.Count > 0
+                                                    ? "Data returned successfully."
+                                                    : "No data found.";
         }
         catch (Exception ex)
         {

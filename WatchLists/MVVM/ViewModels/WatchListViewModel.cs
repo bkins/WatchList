@@ -54,9 +54,21 @@ public partial class WatchListViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task NavigateToLogs()
+    {
+        await Shell.Current.GoToAsync(nameof(LogsPage));
+    }
+
+    [RelayCommand]
+    private async Task NavigateToApiTest()
+    {
+        await Shell.Current.GoToAsync(nameof(ApiTestPage));
+    }
+
+    [RelayCommand]
     public async Task OpenDeepLink(WatchItem item)
     {
-        if (string.IsNullOrWhiteSpace(item.DeepLinkUri))
+        if (item.DeepLinkUri.IsEmpytNullOrWhiteSpace())
             return;
 
         try
@@ -89,12 +101,6 @@ public partial class WatchListViewModel : ObservableObject
     public async Task EditItem(WatchItem item)
     {
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
-    }
-
-    [RelayCommand]
-    private async Task NavigateToLogs()
-    {
-        await Shell.Current.GoToAsync(nameof(LogsPage));
     }
 
     private async Task LoadGroupedWatchItemsAsync()
@@ -132,12 +138,11 @@ public partial class WatchListViewModel : ObservableObject
         FilterGroups();
         UpdateVisibleItems();
         await FileLogger.WriteLogAsync($"Loaded {groupedItems.Count} watch items");
-        // Debug.WriteLine($"Loaded {groupedItems.Count} watch items");
     }
 
     private void FilterGroups()
     {
-        if (string.IsNullOrWhiteSpace(SearchText))
+        if (SearchText.IsEmpytNullOrWhiteSpace())
         {
             FilteredWatchItemGroups.Clear();
             foreach (var group in WatchItemGroups)

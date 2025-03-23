@@ -12,8 +12,7 @@
     <!-- Title="Watch List" -->
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Add"
-                     Command="{Binding BindingContext.AddItemCommand, Source={x:Reference PageReference}}"
-                     >
+                     Command="{Binding BindingContext.AddItemCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource AddIcon}"
                                  FontFamily="MaterialIcons"
@@ -23,8 +22,7 @@
         </ToolbarItem>
 
         <ToolbarItem Text="Refresh"
-                     Command="{Binding BindingContext.RefreshItemsCommand, Source={x:Reference PageReference}}"
-                     >
+                     Command="{Binding BindingContext.RefreshItemsCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource RefreshIcon}"
                                  FontFamily="MaterialIcons"
@@ -34,8 +32,7 @@
         </ToolbarItem>
 
         <ToolbarItem Text="{StaticResource SettingsIcon}"
-                     Command="{Binding BindingContext.NavigateToSettingsCommand, Source={x:Reference PageReference}}"
-                     >
+                     Command="{Binding BindingContext.NavigateToSettingsCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource SettingsIcon}"
                                  FontFamily="MaterialIcons"
@@ -57,7 +54,7 @@
         <!-- SearchBar for filtering -->
         <SearchBar Placeholder="Search..."
                    Text="{Binding SearchText, Mode=TwoWay}"
-                   BackgroundColor="{StaticResource CardBackgroundColor}"/>
+                   BackgroundColor="{StaticResource CardBackgroundColor}" />
 
         <!-- CollectionView bound to filtered groups -->
         <CollectionView ItemsSource="{Binding FilteredWatchItemGroups}"
@@ -130,8 +127,9 @@
                                         <SwipeView>
                                             <SwipeView.RightItems>
                                                 <SwipeItems Mode="Reveal">
-                                                    <SwipeItem Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
-                                                               CommandParameter="{Binding}">
+                                                    <SwipeItem
+                                                        Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                        CommandParameter="{Binding}">
                                                         <SwipeItem.IconImageSource>
                                                             <FontImageSource Glyph="{StaticResource EditIcon}"
                                                                              FontFamily="MaterialIcons"
@@ -139,9 +137,9 @@
                                                                              Color="{StaticResource PrimaryColor}" />
                                                         </SwipeItem.IconImageSource>
                                                     </SwipeItem>
-
-                                                    <SwipeItem Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
-                                                               CommandParameter="{Binding}">
+                                                    <SwipeItem
+                                                        Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
+                                                        CommandParameter="{Binding}">
                                                         <SwipeItem.IconImageSource>
                                                             <FontImageSource Glyph="{StaticResource DeleteIcon}"
                                                                              FontFamily="MaterialIcons"
@@ -158,13 +156,37 @@
                                                         Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
                                                         CommandParameter="{Binding}" />
                                                 </Grid.GestureRecognizers>
-                                                <StackLayout Orientation="Vertical">
-                                                    <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                                    <Label Text="{Binding StreamingService}" FontSize="Small"
-                                                           TextColor="Gray" />
+                                                <StackLayout Orientation="Horizontal" Spacing="10"
+                                                             VerticalOptions="Center">
+                                                    <StackLayout Orientation="Vertical"
+                                                                 HorizontalOptions="FillAndExpand">
+                                                        <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                                        <Label Text="{Binding StreamingService}" FontSize="Small"
+                                                               TextColor="Gray" />
+                                                    </StackLayout>
+                                                    <!-- Heart Icon to indicate "Liked" status -->
+                                                    <Image WidthRequest="24" HeightRequest="24"
+                                                           VerticalOptions="Center" HorizontalOptions="End">
+                                                        <Image.Source>
+                                                            <FileImageSource File="heart_outline.png" />
+                                                        </Image.Source>
+                                                        <Image.Triggers>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding IsLiked}"
+                                                                         Value="True">
+                                                                <Setter Property="Source" Value="heart_filled.png" />
+                                                            </DataTrigger>
+                                                            <DataTrigger TargetType="Image"
+                                                                         Binding="{Binding IsLiked}"
+                                                                         Value="False">
+                                                                <Setter Property="Source" Value="heart_outline.png" />
+                                                            </DataTrigger>
+                                                        </Image.Triggers>
+                                                    </Image>
                                                 </StackLayout>
                                             </Grid>
                                         </SwipeView>
+
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>

@@ -15,7 +15,7 @@ namespace WatchLists.MVVM.Views
             InitializeComponent();
             BindingContext = App.Current.Services.GetRequiredService<WatchListViewModel>();
 
-            _ = FileLogger.WriteLogAsync("🔥 Test log message at {DateTime.Now}");
+            _ = FileLogger.WriteLogAsync($"🔥 Test log message at {DateTime.Now}");
         }
 
         protected override void OnAppearing()

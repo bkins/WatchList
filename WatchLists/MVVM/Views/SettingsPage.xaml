@@ -36,9 +36,5 @@
                 <!--TODO: Consider removing the Save Settings button and save automatically-->
                 <Button Text="Save Settings" Command="{Binding SaveSettingsCommand}" />
 
-                <Button Text="Reorder Categories"
-                        Command="{Binding NavigateToReorderCategoriesCommand}"
-                        CommandParameter="Categories" />
-
         </StackLayout>
 </ContentPage>
