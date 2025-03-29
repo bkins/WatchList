@@ -7,6 +7,7 @@ using WatchLists.Logger;
 using WatchLists.MVVM.Models;
 using WatchLists.MVVM.Views;
 using WatchLists.Services;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -105,8 +106,9 @@ public partial class WatchListViewModel : ObservableObject
 
     private async Task LoadGroupedWatchItemsAsync()
     {
-        var managedCategories = await _settingsService.LoadOptionsAsync("Categories.json",
-                                                    "Currently Watching,Finished Watching,Consider Watching");
+        // var managedCategories = await _settingsService.LoadOptionsAsync("Categories.json",
+        //                                             "Currently Watching,Finished Watching,Consider Watching");
+        var managedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
 
         WatchItemGroups.Clear();
         var groupedItems = _watchListService.GetWatchItems().GroupBy(item => item.Category).ToList();

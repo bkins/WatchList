@@ -20,6 +20,15 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
                                : null); // No ID means we're adding a new item
     }
 
+    private async void OnStreamingServiceSelectionChanged (object    sender
+                                                         , EventArgs eventArgs)
+    {
+        if (sender is not Picker { SelectedItem: string selectedStreamingService }) return;
+
+        var editWatchItemVm = BindingContext as EditWatchItemViewModel;
+        await (editWatchItemVm?.OnStreamingServiceSelectedAsync(selectedStreamingService)).ConfigureAwait(false);
+    }
+
     private async void OnCategorySelectionChanged(object    sender
                                                 , EventArgs eventArgs)
     {
@@ -29,4 +38,12 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
         await (editWatchItemVm?.OnCategorySelectedAsync(selectedCategory)).ConfigureAwait(false);
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (BindingContext is not EditWatchItemViewModel viewModel) return;
+
+        await viewModel.InitializeAsync();
+    }
 }

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -26,16 +27,9 @@ public partial class SettingsViewModel : ObservableObject
 
     public async Task LoadSettingsAsync()
     {
-        var defaultStreaming  = "Netflix,Prime Video,Disney+,Hulu,Max";
-        var defaultCategories = "Currently Watching,Finished Watching,Consider Watching";
-        var defaultTypes      = "Show,Movie,Mini-Series";
-
-        var streaming = await _settingsService.LoadOptionsAsync("StreamingServices.json"
-                                                              , defaultStreaming);
-        var categories = await _settingsService.LoadOptionsAsync("Categories.json"
-                                                               , defaultCategories);
-        var types = await _settingsService.LoadOptionsAsync("Types.json"
-                                                          , defaultTypes);
+        var streaming = await _settingsService.GetOptionsAsync(SettingType.StreamingServices);
+        var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
+        var types = await _settingsService.GetOptionsAsync(SettingType.Types);
 
         StreamingServices.Clear();
         foreach (var item in streaming)
@@ -55,23 +49,23 @@ public partial class SettingsViewModel : ObservableObject
             Types.Add(item);
         }
 
-        if (StreamingServices.Count > 0
-         && SelectedStreamingService.IsEmpytNullOrWhiteSpace())
-        {
-            SelectedStreamingService = StreamingServices[0];
-        }
-
-        if (Categories.Count > 0
-         && SelectedCategory.IsEmpytNullOrWhiteSpace())
-        {
-            SelectedCategory = Categories[0];
-        }
-
-        if (Types.Count > 0
-         && SelectedType.IsEmpytNullOrWhiteSpace())
-        {
-            SelectedType = Types[0];
-        }
+        // if (StreamingServices.Count > 0
+        //  && SelectedStreamingService.IsEmpytNullOrWhiteSpace())
+        // {
+        //     SelectedStreamingService = StreamingServices[0];
+        // }
+        //
+        // if (Categories.Count > 0
+        //  && SelectedCategory.IsEmpytNullOrWhiteSpace())
+        // {
+        //     SelectedCategory = Categories[0];
+        // }
+        //
+        // if (Types.Count > 0
+        //  && SelectedType.IsEmpytNullOrWhiteSpace())
+        // {
+        //     SelectedType = Types[0];
+        // }
     }
 
     [RelayCommand]

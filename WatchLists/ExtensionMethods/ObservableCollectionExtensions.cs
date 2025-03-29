@@ -5,7 +5,7 @@ namespace WatchLists.ExtensionMethods;
 
 public static class ObservableCollectionExtensions
 {
-    public static bool NotContains<T> (this IEnumerable<T> source
+    public static bool DoesNotContains<T> (this IEnumerable<T> source
                                      , T                   searchItem)
     {
         return ! source.Contains(searchItem);

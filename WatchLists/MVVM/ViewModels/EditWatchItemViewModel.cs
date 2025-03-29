@@ -8,6 +8,7 @@ using WatchLists.Messaging;
 using WatchLists.MVVM.Models;
 using WatchLists.MVVM.Views;
 using WatchLists.Services;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -22,9 +23,10 @@ public partial class EditWatchItemViewModel : ObservableObject
     private readonly WatchListService _watchListService;
     private readonly SettingsService  _settingsService;
 
-    public WatchItem                    OriginalItem     { get; set; } = new();
-    public ObservableCollection<string> Categories       { get; set; }
-    public string                       SelectedCategory { get; set; } = string.Empty;
+    public WatchItem                    OriginalItem             { get; set; } = new();
+    public ObservableCollection<string> Categories               { get; set; }
+    public string                       SelectedCategory         { get; set; } = string.Empty;
+    public string                       SelectedStreamingService { get; set; } = string.Empty;
 
     public ObservableCollection<string> StreamingServices { get; set; }
 
@@ -41,16 +43,17 @@ public partial class EditWatchItemViewModel : ObservableObject
         _settingsService  = settingsService;
         _watchListService = watchListService;
 
-        Categories = new ObservableCollection<string>(_settingsService.GetCategories());
+        Categories        = new ObservableCollection<string>();
+        StreamingServices = new ObservableCollection<string>();
 
-        StreamingServices = new ObservableCollection<string>
-                            {
-                                    "Netflix"
-                                  , "Prime Video"
-                                  , "Disney+"
-                                  , "Hulu"
-                                  , "Max"
-                            };
+        // StreamingServices = new ObservableCollection<string>
+        //                     {
+        //                             "Netflix"
+        //                           , "Prime Video"
+        //                           , "Disney+"
+        //                           , "Hulu"
+        //                           , "Max"
+        //                     };
 
         // Subscribe to movie selection messages
         MessagingCenter.Subscribe<SearchPage, MovieSelectedMessage>(this
@@ -65,10 +68,28 @@ public partial class EditWatchItemViewModel : ObservableObject
                                                                     });
     }
 
+    public async Task InitializeAsync()
+    {
+        // Load settings asynchronously.
+        var categoriesList = await _settingsService.GetOptionsAsync(SettingType.Categories);
+        Categories.Clear();
+        foreach (var item in categoriesList)
+        {
+            Categories.Add(item);
+        }
+
+        var streamingList = await _settingsService.GetOptionsAsync(SettingType.StreamingServices);
+        StreamingServices.Clear();
+        foreach (var item in streamingList)
+        {
+            StreamingServices.Add(item);
+        }
+    }
+
     [RelayCommand]
     public async Task Save()
     {
-        FileLogger.WriteLogAsync("Save command invoked.");
+        await FileLogger.WriteLogAsync("Save command invoked.");
         //Debug.WriteLine("Save command invoked.");
 
         OriginalItem.Title            = EditableItem.Title;
@@ -81,11 +102,11 @@ public partial class EditWatchItemViewModel : ObservableObject
         OriginalItem.Type             = EditableItem.Type;
 
         _watchListService.UpdateWatchItem(OriginalItem);
-        _ = FileLogger.WriteLogAsync("Save command: UpdateWatchItem executed.");
+        await FileLogger.WriteLogAsync("Save command: UpdateWatchItem executed.");
         // Debug.WriteLine("Save command: UpdateWatchItem executed.");
 
         await Shell.Current.GoToAsync("..");
-        _ = FileLogger.WriteLogAsync("Save command: Navigation complete.");
+        await FileLogger.WriteLogAsync("Save command: Navigation complete.");
         //Debug.WriteLine("Save command: Navigation complete.");
     }
 
@@ -103,21 +124,47 @@ public partial class EditWatchItemViewModel : ObservableObject
         await Shell.Current.GoToAsync(nameof(SearchPage));
     }
 
+    public async Task OnStreamingServiceSelectedAsync (string streamingService)
+    {
+        if (streamingService.HasValue()
+            && StreamingServices.DoesNotContains(streamingService))
+        {
+            StreamingServices.Add(streamingService);
+            await _settingsService.AddOptionAsync(SettingType.StreamingServices
+                                                , streamingService);
+        }
+        SelectedStreamingService = streamingService;
+    }
+
     public async Task OnCategorySelectedAsync (string category)
     {
+        // If the category doesn't exist yet, add it and persist in settings.
         if (category.HasValue()
-         && Categories.NotContains(category))
+         && Categories.DoesNotContains(category))
         {
             Categories.Add(category);
-            await _settingsService.AddCategoryAsync(category);
+            await _settingsService.AddOptionAsync(SettingType.Categories
+                                                , category);
         }
 
         SelectedCategory = category;
+
+
+        // if (category.HasValue()
+        //  && Categories.NotContains(category))
+        // {
+        //     Categories.Add(category);
+        //     await _settingsService.AddCategoryAsync(category);
+        // }
+
+        // SelectedCategory = category;
     }
 
-    public void LoadItem (string? watchItemId)
+    public async Task LoadItem (string? watchItemId)
     {
-        if (watchItemId.IsEmpytNullOrWhiteSpace())
+        await InitializeAsync(); // Ensure categories and streaming services are loaded first
+
+        if (watchItemId?.IsEmpytNullOrWhiteSpace() ?? true)
         {
             // New item mode: initialize a new WatchItem.
             EditableItem = new WatchItem
@@ -127,36 +174,111 @@ public partial class EditWatchItemViewModel : ObservableObject
                                  , Type             = AvailableTypes.FirstOrDefault() ?? ""
                            };
 
-            OriginalItem = EditableItem;
+            OriginalItem = new WatchItem
+                           {
+                                   Category         = EditableItem.Category
+                                 , StreamingService = EditableItem.StreamingService
+                                 , Type             = EditableItem.Type
+                           };
 
-            return;
+            Debug.WriteLine($"New Item Mode - Category: {EditableItem.Category}, StreamingService: {EditableItem.StreamingService}");
+        }
+        else
+        {
+            var item = _watchListService.GetWatchItems()
+                                        .FirstOrDefault(watchItem => watchItem.Id
+                                                                              .ToString() == watchItemId);
+
+            if (item == null) return;
+
+            OriginalItem = new WatchItem
+                           {
+                                   Id               = item.Id
+                                 , Title            = item.Title
+                                 , StreamingService = item.StreamingService
+                                 , Category         = item.Category
+                                 , DeepLinkUri      = item.DeepLinkUri
+                                 , LastUpdated      = item.LastUpdated
+                                 , IsWatched        = item.IsWatched
+                                 , IsLiked          = item.IsLiked
+                                 , Type             = item.Type
+                           };
+
+            EditableItem = new WatchItem
+                           {
+                                   Id               = OriginalItem.Id
+                                 , Title            = OriginalItem.Title
+                                 , StreamingService = OriginalItem.StreamingService
+                                 , Category         = OriginalItem.Category
+                                 , DeepLinkUri      = OriginalItem.DeepLinkUri
+                                 , LastUpdated      = OriginalItem.LastUpdated
+                                 , IsWatched        = OriginalItem.IsWatched
+                                 , IsLiked          = OriginalItem.IsLiked
+                                 , Type             = OriginalItem.Type
+                           };
+
+            // Sync VM properties
+            IsWatched                = EditableItem.IsWatched;
+            IsLiked                  = EditableItem.IsLiked;
+            SelectedType             = EditableItem.Type;
+            SelectedCategory         = EditableItem.Category;
+            SelectedStreamingService = EditableItem.StreamingService;
+
+            Debug.WriteLine($"Loaded Item - Category: {EditableItem.Category}, StreamingService: {EditableItem.StreamingService}");
         }
 
-        var item = _watchListService.GetWatchItems()
-                                    .FirstOrDefault(watchItem => watchItem.Id
-                                                                          .ToString()
-                                                              == watchItemId);
+        // Ensure UI updates properly
+        Debug.WriteLine($"EditableItem.StreamingService BEFORE PropertyChanged: {EditableItem.StreamingService}");
+        OnPropertyChanged(nameof(EditableItem));
+        OnPropertyChanged(nameof(EditableItem.StreamingService));
+        Debug.WriteLine($"EditableItem.StreamingService AFTER PropertyChanged: {EditableItem.StreamingService}");
 
-        if (item == null) return;
+//        OnPropertyChanged(nameof(EditableItem));
+        OnPropertyChanged(nameof(EditableItem.Category));
+//        OnPropertyChanged(nameof(EditableItem.StreamingService));
 
-        OriginalItem = item;
-        EditableItem = new WatchItem
-                       {
-                               Id               = item.Id
-                             , Title            = item.Title
-                             , StreamingService = item.StreamingService
-                             , Category         = item.Category
-                             , DeepLinkUri      = item.DeepLinkUri
-                             , LastUpdated      = item.LastUpdated
-                             , IsWatched        = item.IsWatched
-                             , IsLiked          = item.IsLiked
-                             , Type             = item.Type
-                       };
-
-        // Sync VM properties
-        IsWatched        = item.IsWatched;
-        IsLiked          = item.IsLiked;
-        SelectedType     = item.Type;
-        SelectedCategory = item.Category;
+        // await InitializeAsync();
+        //
+        // if (watchItemId?.IsEmpytNullOrWhiteSpace() ?? true)
+        // {
+        //     // New item mode: initialize a new WatchItem.
+        //     EditableItem = new WatchItem
+        //                    {
+        //                            Category         = Categories.FirstOrDefault() ?? ""
+        //                          , StreamingService = StreamingServices.FirstOrDefault() ?? ""
+        //                          , Type             = AvailableTypes.FirstOrDefault() ?? ""
+        //                    };
+        //
+        //     OriginalItem = EditableItem;
+        //
+        //     return;
+        // }
+        //
+        // var item = _watchListService.GetWatchItems()
+        //                             .FirstOrDefault(watchItem => watchItem.Id
+        //                                                                   .ToString()
+        //                                                       == watchItemId);
+        //
+        // if (item == null) return;
+        //
+        // OriginalItem = item;
+        // EditableItem = new WatchItem
+        //                {
+        //                        Id               = item.Id
+        //                      , Title            = item.Title
+        //                      , StreamingService = item.StreamingService
+        //                      , Category         = item.Category
+        //                      , DeepLinkUri      = item.DeepLinkUri
+        //                      , LastUpdated      = item.LastUpdated
+        //                      , IsWatched        = item.IsWatched
+        //                      , IsLiked          = item.IsLiked
+        //                      , Type             = item.Type
+        //                };
+        //
+        // // Sync VM properties
+        // IsWatched        = item.IsWatched;
+        // IsLiked          = item.IsLiked;
+        // SelectedType     = item.Type;
+        // SelectedCategory = item.Category;
     }
 }

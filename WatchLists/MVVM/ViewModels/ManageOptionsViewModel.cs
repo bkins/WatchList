@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -11,7 +12,9 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         private readonly SettingsService  _settingsService;
         private readonly WatchListService _watchListService;
 
-        public string OptionKey { get; set; }
+        public SettingType OptionSetting { get; set; }
+
+        public string      OptionKey     { get; set; }
 
         [ObservableProperty] private string _optionTitle;
         [ObservableProperty] private string _newOption;
@@ -30,28 +33,50 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
             if (! query.TryGetValue("optionKey"
                                   , out object key)) return;
 
-            OptionKey   = key?.ToString();
-            OptionTitle = $"Manage {OptionKey}";
+            var keyStr = key.ToString() ?? "";
+            if (! Enum.TryParse<SettingType>(keyStr
+                                           , out var setting))
+            {
+                // If parsing fails, default to Categories.
+                setting = SettingType.Categories;
+            }
 
+            OptionSetting = setting;
+            OptionTitle   = $"Manage {OptionSetting}";
             await LoadOptionsAsync();
+            //
+            // if (! query.TryGetValue("optionKey"
+            //                       , out object key)) return;
+            //
+            // OptionKey   = key?.ToString();
+            // OptionTitle = $"Manage {OptionKey}";
+            //
+            // await LoadOptionsAsync();
         }
 
         private async Task LoadOptionsAsync()
         {
-            string defaultValue = OptionKey switch
-                                  {
-                                          "StreamingServices" => "Netflix,Prime Video,Disney+,Hulu,Max"
-                                        , "Categories"        => "Currently Watching,Finished Watching,Consider Watching"
-                                        , "Types"             => "Show,Movie,Mini-Series"
-                                        , _                   => ""
-                                  };
-
-            var optionsList = await _settingsService.LoadOptionsAsync($"{OptionKey}.json", defaultValue);
+            var optionsList = await _settingsService.GetOptionsAsync(OptionSetting);
             Options.Clear();
             foreach (string item in optionsList)
             {
                 Options.Add(item);
             }
+            //
+            // string defaultValue = OptionKey switch
+            //                       {
+            //                               "StreamingServices" => "Netflix,Prime Video,Disney+,Hulu,Max"
+            //                             , "Categories"        => "Currently Watching,Finished Watching,Consider Watching"
+            //                             , "Types"             => "Show,Movie,Mini-Series"
+            //                             , _                   => ""
+            //                       };
+            //
+            // var optionsList = await _settingsService.LoadOptionsAsync($"{OptionKey}.json", defaultValue);
+            // Options.Clear();
+            // foreach (string item in optionsList)
+            // {
+            //     Options.Add(item);
+            // }
         }
 
         [RelayCommand]
@@ -95,8 +120,11 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         [RelayCommand]
         private async Task SaveOptions()
         {
-            await _settingsService.SaveOptionsAsync($"{OptionKey}.json"
+            await _settingsService.SaveOptionsAsync(OptionSetting
                                                   , Options.ToList());
             await Shell.Current.GoToAsync("..");
+            // await _settingsService.SaveOptionsAsync($"{OptionKey}.json"
+            //                                       , Options.ToList());
+            // await Shell.Current.GoToAsync("..");
         }
     }

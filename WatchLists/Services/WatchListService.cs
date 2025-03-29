@@ -1,7 +1,9 @@
 ﻿using System.Text.Json;
 using WatchLists.MVVM.Models;
 using Microsoft.Extensions.Logging;
+using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.Services;
 
@@ -74,24 +76,23 @@ public class WatchListService
         var watchItems = GetWatchItems(); // Get existing items
 
         // Check if the category exists in JSON
-        var savedCategories = await _settingsService.LoadOptionsAsync(CategoriesFileName
-                                                                    , "");
+        var savedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
 
-        if (! savedCategories.Contains(item.Category))
+        if (savedCategories.DoesNotContain(item.Category))
         {
             savedCategories.Add(item.Category);
-            await _settingsService.SaveOptionsAsync(CategoriesFileName
+            await _settingsService.SaveOptionsAsync(SettingType.Categories
                                                   , savedCategories);
         }
 
         // Save or update the WatchItem
-        if (watchItems.All(w => w.Id != item.Id))
+        if (watchItems.All(watchItem => watchItem.Id != item.Id))
         {
             watchItems.Add(item);
         }
         else
         {
-            var existingItem = watchItems.First(w => w.Id == item.Id);
+            var existingItem = watchItems.First(watchItem => watchItem.Id == item.Id);
             existingItem.Title       = item.Title;
             existingItem.Category    = item.Category;
             existingItem.DeepLinkUri = item.DeepLinkUri;

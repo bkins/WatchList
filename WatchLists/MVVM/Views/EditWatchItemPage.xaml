@@ -11,7 +11,8 @@
               <Picker Title="Streaming Service"
                       ItemsSource="{Binding StreamingServices}"
                       SelectedItem="{Binding EditableItem.StreamingService, Mode=TwoWay}" />
-              <Picker ItemsSource="{Binding Categories}"
+              <Picker Title="Category"
+                      ItemsSource="{Binding Categories}"
                       SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
                       SelectedIndexChanged="OnCategorySelectionChanged" />
               <Entry Placeholder="Deep Link"
