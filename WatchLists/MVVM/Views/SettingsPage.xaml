@@ -2,6 +2,8 @@
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:converters="clr-namespace:WatchLists.Converters"
              x:Class="WatchLists.MVVM.Views.SettingsPage"
              Title="Settings">
         <StackLayout Padding="10"
@@ -23,6 +25,10 @@
                 <Button Text="Manage Categories"
                         Command="{Binding NavigateToManageOptionsCommand}"
                         CommandParameter="Categories" />
+
+                <Picker Title="Select Watched Category"
+                        ItemsSource="{Binding Categories}"
+                        SelectedItem="{Binding SelectedWatchedCategory, Mode=TwoWay}" />
 
                 <Label Text="Types"
                        FontAttributes="Bold" />

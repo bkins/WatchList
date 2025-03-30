@@ -46,4 +46,11 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
 
         await viewModel.InitializeAsync();
     }
+
+    private void Switch_Toggled (object?          sender
+                               , ToggledEventArgs e)
+    {
+        var vm = BindingContext as EditWatchItemViewModel;
+        vm?.ToggleWatchedCommand.Execute(e.Value);
+    }
 }

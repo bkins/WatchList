@@ -10,13 +10,54 @@ public class SettingsService
 {
     private readonly string _folder;
 
-    private const string CategoriesFile = "Categories.json";
-    private const string StreamingFile  = "StreamingServices.json";
-    private const string TypesFile      = "Types.json";
+    private const string CategoriesFile      = "Categories.json";
+    private const string StreamingFile       = "StreamingServices.json";
+    private const string TypesFile           = "Types.json";
+    private const string WatchedCategoryFile = "WatchedCategory.json";
+
+    public Task<string> WatchedCategory { get; set; }
 
     public SettingsService()
     {
-        _folder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        _folder         = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        WatchedCategory = GetWatchedCategoryAsync();
+    }
+
+    public async Task<string> GetWatchedCategoryAsync()
+    {
+        var filePath = Path.Combine(_folder
+                                  , WatchedCategoryFile);
+        if (Avails.FileDoesNotExist(filePath))
+        {
+            // If it doesn't exist, return an empty string (or a default like "Watched")
+            await File.WriteAllTextAsync(filePath
+                                       , string.Empty);
+
+            await FileLogger.WriteLogAsync($"Watched Category file {WatchedCategoryFile} was not found. It was created without any contents.");
+
+            return string.Empty;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(filePath);
+
+            return JsonSerializer.Deserialize<string>(json) ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    public async Task SaveWatchedCategoryAsync (string watchedCategory)
+    {
+        var filePath = Path.Combine(_folder
+                                  , WatchedCategoryFile);
+        var json = JsonSerializer.Serialize(watchedCategory
+                                          , new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath
+                                   , json);
     }
 
     private async Task<List<string>> LoadOptionsAsync(string fileName)
@@ -35,7 +76,7 @@ public class SettingsService
         try
         {
             var json    = await File.ReadAllTextAsync(filePath);
-            if (json.IsEmpytNullOrWhiteSpace())
+            if (json.IsEmptyNullOrWhiteSpace())
             {
                 await FileLogger.WriteLogAsync($"The file {filePath} was empty");
                 return new List<string>();

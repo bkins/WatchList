@@ -6,13 +6,17 @@
              x:Class="WatchLists.App">
     <Application.Resources>
         <ResourceDictionary>
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Icons.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
             <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
             <converters:ImageConverter x:Key="ImageConverter" />
+            <converters:ToggledEventArgsConverter x:Key="ToggledEventArgsConverter" />
+
             <x:Boolean x:Key="TrueBoolean">True</x:Boolean>
             <x:Boolean x:Key="FalseBoolean">False</x:Boolean>
         </ResourceDictionary>

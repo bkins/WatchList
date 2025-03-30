@@ -8,14 +8,12 @@ namespace WatchLists.MVVM.Views
 {
     public partial class MainPage : ContentPage
     {
-        private WatchListViewModel WatchListVm => BindingContext as WatchListViewModel ?? throw new InvalidOperationException();
+        //private WatchListViewModel WatchListVm => BindingContext as WatchListViewModel ?? throw new InvalidOperationException();
 
         public MainPage()
         {
             InitializeComponent();
             BindingContext = App.Current.Services.GetRequiredService<WatchListViewModel>();
-
-            _ = FileLogger.WriteLogAsync($"🔥 Test log message at {DateTime.Now}");
         }
 
         protected override void OnAppearing()

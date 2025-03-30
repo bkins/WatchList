@@ -69,7 +69,7 @@ public partial class WatchListViewModel : ObservableObject
     [RelayCommand]
     public async Task OpenDeepLink(WatchItem item)
     {
-        if (item.DeepLinkUri.IsEmpytNullOrWhiteSpace())
+        if (item.DeepLinkUri.IsEmptyNullOrWhiteSpace())
             return;
 
         try
@@ -101,6 +101,11 @@ public partial class WatchListViewModel : ObservableObject
     [RelayCommand]
     public async Task EditItem(WatchItem item)
     {
+        if (! item.IsWatched)
+        {
+            item.PreviousCategory = item.Category;
+        }
+
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
     }
 
@@ -144,7 +149,7 @@ public partial class WatchListViewModel : ObservableObject
 
     private void FilterGroups()
     {
-        if (SearchText.IsEmpytNullOrWhiteSpace())
+        if (SearchText.IsEmptyNullOrWhiteSpace())
         {
             FilteredWatchItemGroups.Clear();
             foreach (var group in WatchItemGroups)

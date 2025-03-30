@@ -82,7 +82,7 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         [RelayCommand]
         private void AddOption()
         {
-            if (NewOption.IsEmpytNullOrWhiteSpace()) return;
+            if (NewOption.IsEmptyNullOrWhiteSpace()) return;
 
             Options.Add(NewOption.Trim());
 

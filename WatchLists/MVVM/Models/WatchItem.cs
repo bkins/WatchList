@@ -11,4 +11,5 @@ public class WatchItem
     public string   DeepLinkUri      { get; set; } // URL/URI to open the streaming service app
     public DateTime LastUpdated      { get; set; } = DateTime.Now;
     public string   Type             { get; set; } // e.g., "Show", "Movie", "Mini-Series"
+    public string   PreviousCategory { get; set; }
 }

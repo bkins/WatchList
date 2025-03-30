@@ -15,7 +15,6 @@ public class WatchListService
     private          List<WatchItem>           _watchItems;
 
     private const string WatchListFileName  = "watchlist.json";
-    private const string CategoriesFileName = "Categories.json";
 
     // For example, a simple getter for testing:
     public List<WatchItem> GetCurrentWatchItems() => _watchItems;

@@ -20,13 +20,16 @@ public partial class EditWatchItemViewModel : ObservableObject
     [ObservableProperty] private string    _selectedType = string.Empty;
     [ObservableProperty] private WatchItem _editableItem = new();
 
+    private string _previousCategory = string.Empty;
+
     private readonly WatchListService _watchListService;
     private readonly SettingsService  _settingsService;
 
-    public WatchItem                    OriginalItem             { get; set; } = new();
-    public ObservableCollection<string> Categories               { get; set; }
-    public string                       SelectedCategory         { get; set; } = string.Empty;
-    public string                       SelectedStreamingService { get; set; } = string.Empty;
+    public WatchItem                    OriginalItem     { get; set; } = new();
+    public ObservableCollection<string> Categories       { get; set; }
+    public string                       SelectedCategory { get; set; } = string.Empty;
+
+    public string SelectedStreamingService { get; set; } = string.Empty;
 
     public ObservableCollection<string> StreamingServices { get; set; }
 
@@ -45,15 +48,6 @@ public partial class EditWatchItemViewModel : ObservableObject
 
         Categories        = new ObservableCollection<string>();
         StreamingServices = new ObservableCollection<string>();
-
-        // StreamingServices = new ObservableCollection<string>
-        //                     {
-        //                             "Netflix"
-        //                           , "Prime Video"
-        //                           , "Disney+"
-        //                           , "Hulu"
-        //                           , "Max"
-        //                     };
 
         // Subscribe to movie selection messages
         MessagingCenter.Subscribe<SearchPage, MovieSelectedMessage>(this
@@ -87,6 +81,50 @@ public partial class EditWatchItemViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public async Task ToggleWatched (bool isNowWatched)
+    {
+        // Get the watched category from settings
+        var watchedCategory = await _settingsService.GetWatchedCategoryAsync();
+
+        if (isNowWatched)
+        {
+            SetCategoryToWatchedAndBackup(watchedCategory);
+        }
+        else
+        {
+            RevertToPreviousCategory();
+        }
+
+        // Update the isWatched property
+        IsWatched = isNowWatched;
+    }
+
+    private void RevertToPreviousCategory()
+    {
+        // If unmarking as watched and we have a previous category, revert:
+        if (EditableItem.PreviousCategory.IsEmptyNullOrWhiteSpace()) return;
+
+        EditableItem.Category = _previousCategory;
+        _previousCategory     = string.Empty;
+
+        OnPropertyChanged(nameof(EditableItem.Category));
+    }
+
+    private void SetCategoryToWatchedAndBackup (string watchedCategory)
+    {
+
+        // If marking as watched, and if the current category isn't the watched one:
+        if (EditableItem.Category
+                        .IsEqualTo(watchedCategory
+                                 , StringComparison.OrdinalIgnoreCase)) return;
+
+        EditableItem.PreviousCategory = EditableItem.Category; // backup the current category
+        EditableItem.Category         = watchedCategory;
+
+        OnPropertyChanged(nameof(EditableItem.Category));
+    }
+
+    [RelayCommand]
     public async Task Save()
     {
         await FileLogger.WriteLogAsync("Save command invoked.");
@@ -102,12 +140,8 @@ public partial class EditWatchItemViewModel : ObservableObject
         OriginalItem.Type             = EditableItem.Type;
 
         _watchListService.UpdateWatchItem(OriginalItem);
-        await FileLogger.WriteLogAsync("Save command: UpdateWatchItem executed.");
-        // Debug.WriteLine("Save command: UpdateWatchItem executed.");
 
         await Shell.Current.GoToAsync("..");
-        await FileLogger.WriteLogAsync("Save command: Navigation complete.");
-        //Debug.WriteLine("Save command: Navigation complete.");
     }
 
     [RelayCommand]
@@ -164,7 +198,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         await InitializeAsync(); // Ensure categories and streaming services are loaded first
 
-        if (watchItemId?.IsEmpytNullOrWhiteSpace() ?? true)
+        if (watchItemId?.IsEmptyNullOrWhiteSpace() ?? true)
         {
             // New item mode: initialize a new WatchItem.
             EditableItem = new WatchItem
@@ -218,11 +252,10 @@ public partial class EditWatchItemViewModel : ObservableObject
                            };
 
             // Sync VM properties
-            IsWatched                = EditableItem.IsWatched;
-            IsLiked                  = EditableItem.IsLiked;
-            SelectedType             = EditableItem.Type;
-            SelectedCategory         = EditableItem.Category;
-            SelectedStreamingService = EditableItem.StreamingService;
+            IsWatched        = EditableItem.IsWatched;
+            IsLiked          = EditableItem.IsLiked;
+            SelectedType     = EditableItem.Type;
+            SelectedCategory = EditableItem.Category;
 
             Debug.WriteLine($"Loaded Item - Category: {EditableItem.Category}, StreamingService: {EditableItem.StreamingService}");
         }
@@ -239,7 +272,7 @@ public partial class EditWatchItemViewModel : ObservableObject
 
         // await InitializeAsync();
         //
-        // if (watchItemId?.IsEmpytNullOrWhiteSpace() ?? true)
+        // if (watchItemId?.IsEmptyNullOrWhiteSpace() ?? true)
         // {
         //     // New item mode: initialize a new WatchItem.
         //     EditableItem = new WatchItem

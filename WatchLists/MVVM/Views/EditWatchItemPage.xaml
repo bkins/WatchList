@@ -27,7 +27,8 @@
               <StackLayout Orientation="Horizontal">
                      <Label Text="Watched:"
                             VerticalOptions="Center" />
-                     <Switch IsToggled="{Binding IsWatched}" />
+                     <Switch IsToggled="{Binding IsWatched}"
+                             Toggled="Switch_Toggled" />
               </StackLayout>
 
               <!-- Thumbs Up/Down UI -->

@@ -55,7 +55,7 @@ public partial class LogsPage : ContentPage
 
         var content = await File.ReadAllTextAsync(LogConfig.LogFilePath);
 
-        if (content.IsEmpytNullOrWhiteSpace())
+        if (content.IsEmptyNullOrWhiteSpace())
         {
             await DisplayAlert("Empty"
                              , "No log messages to copy."
