@@ -1,4 +1,4 @@
-﻿using WatchLists.MVVM.Views;
+using WatchLists.MVVM.Views;
 
 namespace WatchLists
 {
@@ -13,9 +13,6 @@ namespace WatchLists
 
             Routing.RegisterRoute(nameof(SettingsPage)
                                 , typeof(SettingsPage));
-
-            Routing.RegisterRoute(nameof(ManageOptionsPage)
-                                , typeof(ManageOptionsPage));
 
             Routing.RegisterRoute(nameof(ManageOptionsPage)
                                 , typeof(ManageOptionsPage));

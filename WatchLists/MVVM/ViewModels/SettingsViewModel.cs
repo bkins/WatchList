@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 // For Preferences
 using System.Collections.ObjectModel;
@@ -22,11 +22,7 @@ public partial class SettingsViewModel : ObservableObject
     public ObservableCollection<string> Categories        { get; } = new();
     public ObservableCollection<string> Types             { get; } = new();
 
-    public  string? WatchedCategory { get; set; }
-    private string  _selectedWatchedCategory;
-
-    private readonly string _settingsFilePath = Path.Combine(FileSystem.AppDataDirectory
-                                                           , "settings.json");
+    private string _selectedWatchedCategory;
 
     public string SelectedWatchedCategory
     {
@@ -43,7 +39,6 @@ public partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(SettingsService settingsService)
     {
         _settingsService = settingsService;
-        WatchedCategory  = _settingsService.WatchedCategory.ToString();
     }
 
     public async Task LoadSettingsAsync()
@@ -70,26 +65,15 @@ public partial class SettingsViewModel : ObservableObject
             Types.Add(item);
         }
 
-        // if (StreamingServices.Count > 0
-        //  && SelectedStreamingService.IsEmptyNullOrWhiteSpace())
-        // {
-        //     SelectedStreamingService = StreamingServices[0];
-        // }
-        //
-        // if (Categories.Count > 0
-        //  && SelectedCategory.IsEmptyNullOrWhiteSpace())
-        // {
-        //     SelectedCategory = Categories[0];
-        // }
-        //
-        // if (Types.Count > 0
-        //  && SelectedType.IsEmptyNullOrWhiteSpace())
-        // {
-        //     SelectedType = Types[0];
-        // }
+        SelectedWatchedCategory = await _settingsService.GetWatchedCategoryAsync();
     }
 
-
+    [RelayCommand]
+    public async Task SaveSettings()
+    {
+        await _settingsService.SaveWatchedCategoryAsync(SelectedWatchedCategory);
+        await Shell.Current.GoToAsync("..");
+    }
 
     [RelayCommand]
     public async Task NavigateToManageOptions(string optionKey)

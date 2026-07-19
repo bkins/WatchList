@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Services.Enums;
@@ -15,12 +15,9 @@ public class SettingsService
     private const string TypesFile           = "Types.json";
     private const string WatchedCategoryFile = "WatchedCategory.json";
 
-    public Task<string> WatchedCategory { get; set; }
-
     public SettingsService()
     {
-        _folder         = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        WatchedCategory = GetWatchedCategoryAsync();
+        _folder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     }
 
     public async Task<string> GetWatchedCategoryAsync()

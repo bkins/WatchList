@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services.Models;
@@ -24,11 +25,12 @@ public class TmdbService : IMovieDataProvider
 
     public bool IsEnabled { get; private set; } = true;
 
-    public TmdbService(HttpClient httpClient)
+    public TmdbService(HttpClient httpClient, IConfiguration configuration)
     {
+        _httpClient = httpClient;
+        ApiKey      = configuration["TMDb:ApiKey"];
         Console.WriteLine($"API Key: {ApiKey}");
         Console.WriteLine($"TmdbService Instance: {this.GetHashCode()} - ApiKey: {ApiKey}");
-        _httpClient = httpClient;
     }
 
     #region Common API Methods

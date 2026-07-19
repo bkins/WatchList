@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using WatchLists.MVVM.ViewModels;
 using WatchLists.Services;
 using CommunityToolkit.Maui;
@@ -86,11 +86,6 @@ public static class MauiProgram
 
         // Build the app to resolve services
         var app = builder.Build();
-
-        // 🔥 **Retrieve services from DI and manually set API keys**
-        app.Services.GetRequiredService<TmdbService>().ApiKey      = config["TMDb:ApiKey"];
-        app.Services.GetRequiredService<JustWatchService>().ApiKey = config["JustWatchLists:ApiKey"];
-        app.Services.GetRequiredService<UtellyService>().ApiKey    = config["Utelly:ApiKey"];
 
         return app;
     }

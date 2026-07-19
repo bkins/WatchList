@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.Services.Models;
 
@@ -12,9 +13,10 @@ public class JustWatchService : IMovieDataProvider
     public string ApiKey { get; set; }
     public bool IsEnabled { get; private set; } = true;
 
-    public JustWatchService(HttpClient httpClient)
+    public JustWatchService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
+        ApiKey      = configuration["JustWatchLists:ApiKey"];
     }
 
     public async Task<AggregatedResult<MovieDetail>> GetMovieDetailsAsync(int movieId)

@@ -1,4 +1,4 @@
-﻿using WatchLists.DataAccess.Interfaces;
+using WatchLists.DataAccess.Interfaces;
 using WatchLists.Services.Interfaces;
 using WatchLists.Services.Models;
 
@@ -68,8 +68,8 @@ public class MovieDataAggregator : IMovieDataAggregator
 
             return new AggregatedResult<MovieSearchResult>
                    {
-                           Data        = searchResponse.Data?.Results.Values.FirstOrDefault(), // Extract only the MovieSearchResult
-                           Diagnostics = searchResponse.Diagnostics
+                       Data        = searchResponse.Data?.Results?.FirstOrDefault()
+                     , Diagnostics = searchResponse.Diagnostics
                    };
         });
     }

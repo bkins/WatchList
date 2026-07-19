@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services.Models;
@@ -13,9 +14,10 @@ public class UtellyService : IMovieDataProvider
     public string ApiKey { get; set; }
     public bool IsEnabled { get; private set; } = true;
 
-    public UtellyService(HttpClient httpClient)
+    public UtellyService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
+        ApiKey      = configuration["Utelly:ApiKey"];
 
         if (ApiKey != null
          && ApiKey.HasValue())
