@@ -1,22 +1,51 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Class="WatchLists.MVVM.Views.MovieDetailsPage"
     Title="{Binding MovieDetail.Title}"
-    Padding="10">
+    Padding="15"
+    BackgroundColor="{AppThemeBinding Light=White, Dark=#121212}">
     <ScrollView>
-        <StackLayout Spacing="15">
-            <!-- Poster Image: Optionally, use a converter if you need to prepend a base URL -->
-            <Image Source="{Binding MovieDetail.PosterPath, Converter={StaticResource TmDbImageConverter}}"
+        <StackLayout Spacing="15" HorizontalOptions="FillAndExpand">
+            <!-- Poster Image -->
+            <Image Source="{Binding MovieDetail.PosterPath, Converter={StaticResource ImageConverter}}"
                    WidthRequest="200"
-                   HeightRequest="300" />
+                   HeightRequest="300"
+                   HorizontalOptions="Center"
+                   Margin="0,10" />
+
+            <!-- Title -->
+            <Label Text="{Binding MovieDetail.Title}"
+                   FontSize="Large"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+
+            <!-- Release Date -->
+            <Label Text="{Binding MovieDetail.ReleaseDate, StringFormat='Released: {0}'}"
+                   FontSize="Small"
+                   HorizontalTextAlignment="Center"
+                   TextColor="Gray" />
+
+            <!-- Select Movie Button -->
+            <Button Text="Select Movie"
+                    Command="{Binding SelectMovieCommand}"
+                    BackgroundColor="{StaticResource PrimaryColor}"
+                    TextColor="White"
+                    CornerRadius="5"
+                    HeightRequest="44"
+                    Margin="20,10"
+                    HorizontalOptions="Center"
+                    WidthRequest="200" />
 
             <!-- Overview -->
             <Label Text="{Binding MovieDetail.Overview}"
                    FontSize="Medium"
-                   TextColor="Black" />
+                   TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                   LineBreakMode="WordWrap"
+                   Margin="5,15,5,5" />
 
         </StackLayout>
     </ScrollView>

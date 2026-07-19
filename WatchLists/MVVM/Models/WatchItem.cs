@@ -1,7 +1,11 @@
-﻿namespace WatchLists.MVVM.Models;
+using SQLite;
 
+namespace WatchLists.MVVM.Models;
+
+[Table("WatchItems")]
 public class WatchItem
 {
+    [PrimaryKey]
     public Guid     Id               { get; set; } = Guid.NewGuid();
     public string   Title            { get; set; }
     public string   StreamingService { get; set; } // e.g., Netflix, Prime Video

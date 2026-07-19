@@ -17,7 +17,7 @@ public class SettingsService
 
     public SettingsService()
     {
-        _folder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        _folder = FileSystem.AppDataDirectory;
     }
 
     public async Task<string> GetWatchedCategoryAsync()
@@ -26,24 +26,23 @@ public class SettingsService
                                   , WatchedCategoryFile);
         if (Avails.FileDoesNotExist(filePath))
         {
-            // If it doesn't exist, return an empty string (or a default like "Watched")
-            await File.WriteAllTextAsync(filePath
-                                       , string.Empty);
+            var defaultWatched = "Finished Watching";
+            await SaveWatchedCategoryAsync(defaultWatched);
 
-            await FileLogger.WriteLogAsync($"Watched Category file {WatchedCategoryFile} was not found. It was created without any contents.");
+            await FileLogger.WriteLogAsync($"Watched Category file {WatchedCategoryFile} was not found. It was created with default: {defaultWatched}.");
 
-            return string.Empty;
+            return defaultWatched;
         }
 
         try
         {
             var json = await File.ReadAllTextAsync(filePath);
-
-            return JsonSerializer.Deserialize<string>(json) ?? string.Empty;
+            var val  = JsonSerializer.Deserialize<string>(json);
+            return string.IsNullOrWhiteSpace(val) ? "Finished Watching" : val;
         }
         catch
         {
-            return string.Empty;
+            return "Finished Watching";
         }
     }
 
@@ -63,11 +62,11 @@ public class SettingsService
                                   , fileName);
         if (Avails.FileDoesNotExist(filePath))
         {
-            var emptyList = new List<string>();
+            var defaultOptions = GetDefaultOptions(fileName);
             await SaveOptionsAsync(fileName
-                                 , emptyList);
+                                 , defaultOptions);
 
-            return emptyList;
+            return defaultOptions;
         }
 
         try
@@ -75,18 +74,57 @@ public class SettingsService
             var json    = await File.ReadAllTextAsync(filePath);
             if (json.IsEmptyNullOrWhiteSpace())
             {
-                await FileLogger.WriteLogAsync($"The file {filePath} was empty");
-                return new List<string>();
+                await FileLogger.WriteLogAsync($"The file {filePath} was empty. Initializing defaults.");
+                var defaultOptions = GetDefaultOptions(fileName);
+                await SaveOptionsAsync(fileName
+                                     , defaultOptions);
+                return defaultOptions;
             }
             var options = JsonSerializer.Deserialize<List<string>>(json);
+            if (options == null || options.Count == 0)
+            {
+                await FileLogger.WriteLogAsync($"The file {filePath} was empty or contained no elements. Initializing defaults.");
+                var defaultOptions = GetDefaultOptions(fileName);
+                await SaveOptionsAsync(fileName
+                                     , defaultOptions);
+                return defaultOptions;
+            }
 
-            return options ?? new List<string>();
+            return options;
         }
         catch (Exception e)
         {
-            await FileLogger.WriteLogAsync($"The file {filePath} was could not be read: {e}");
-            return new List<string>();
+            await FileLogger.WriteLogAsync($"The file {filePath} could not be read: {e}. Returning defaults.");
+            return GetDefaultOptions(fileName);
         }
+    }
+
+    private List<string> GetDefaultOptions(string fileName)
+    {
+        return fileName switch
+        {
+            CategoriesFile => new List<string>
+                              {
+                                  "Currently Watching"
+                                , "Finished Watching"
+                                , "Consider Watching"
+                              },
+            StreamingFile  => new List<string>
+                              {
+                                  "Netflix"
+                                , "Prime Video"
+                                , "Disney+"
+                                , "Hulu"
+                                , "Max"
+                              },
+            TypesFile      => new List<string>
+                              {
+                                  "Show"
+                                , "Movie"
+                                , "Mini-Series"
+                              },
+            _              => new List<string>()
+        };
     }
 
     // public List<string> GetCategories()

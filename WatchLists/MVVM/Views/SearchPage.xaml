@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -6,14 +6,29 @@
              x:Name="SearchPageReference"
              Title="Search Movies">
     <StackLayout Padding="10" Spacing="10">
-        <!-- SearchBar: When the user types and hits the search key, it triggers SearchCommand -->
-        <SearchBar Placeholder="Search for movies..."
-                   Text="{Binding SearchQuery, Mode=TwoWay}"
-                   SearchCommand="{Binding SearchCommand}" />
+        <!-- Search Controls -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <SearchBar Placeholder="Search for movies..."
+                       Text="{Binding SearchQuery, Mode=TwoWay}"
+                       SearchCommand="{Binding SearchCommand}"
+                       Grid.Column="0" />
+            <Button Text="Search"
+                    Command="{Binding SearchCommand}"
+                    Grid.Column="1"
+                    VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Error Feedback Label -->
+        <Label Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               HorizontalOptions="Center"
+               IsVisible="{Binding HasError}"
+               LineBreakMode="WordWrap"
+               Margin="10" />
 
         <!-- CollectionView to display search results -->
         <CollectionView ItemsSource="{Binding Movies}"
-                        SelectionChanged="OnMovieSelected">
+                        SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Grid Padding="10"

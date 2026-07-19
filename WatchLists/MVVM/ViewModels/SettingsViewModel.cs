@@ -33,6 +33,11 @@ public partial class SettingsViewModel : ObservableObject
 
             _selectedWatchedCategory = value;
             OnPropertyChanged();
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                _ = _settingsService.SaveWatchedCategoryAsync(value);
+            }
         }
     }
 
@@ -66,13 +71,6 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         SelectedWatchedCategory = await _settingsService.GetWatchedCategoryAsync();
-    }
-
-    [RelayCommand]
-    public async Task SaveSettings()
-    {
-        await _settingsService.SaveWatchedCategoryAsync(SelectedWatchedCategory);
-        await Shell.Current.GoToAsync("..");
     }
 
     [RelayCommand]

@@ -1,7 +1,8 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Messaging;
@@ -21,6 +22,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     [ObservableProperty] private WatchItem _editableItem = new();
 
     private string _previousCategory = string.Empty;
+    private bool   _isLoaded         = false;
 
     private readonly WatchListService _watchListService;
     private readonly SettingsService  _settingsService;
@@ -49,21 +51,33 @@ public partial class EditWatchItemViewModel : ObservableObject
         Categories        = new ObservableCollection<string>();
         StreamingServices = new ObservableCollection<string>();
 
-        // Subscribe to movie selection messages
-        MessagingCenter.Subscribe<SearchPage, MovieSelectedMessage>(this
-                                                                  , "MovieSelected"
-                                                                  , (_
-                                                                   , message) =>
-                                                                    {
-                                                                        var movie = message.SelectedMovie;
-                                                                        EditableItem.Title = movie.Title;
-                                                                        EditableItem.DeepLinkUri =
-                                                                                $"https://www.themoviedb.org/movie/{movie.Id}";
-                                                                    });
+        // Register for movie selection messages using modern WeakReferenceMessenger
+        WeakReferenceMessenger.Default.Register<MovieSelectedMessage>(this, (recipient, message) =>
+        {
+            var movie = message.SelectedMovie;
+            _ = FileLogger.WriteLogAsync($"[Subscription] MovieSelectedMessage received! Title: '{movie?.Title}', Id: {movie?.Id}");
+            var item = new WatchItem
+            {
+                Id               = EditableItem.Id,
+                Title            = movie.Title,
+                StreamingService = EditableItem.StreamingService,
+                Category         = EditableItem.Category,
+                IsWatched        = EditableItem.IsWatched,
+                IsLiked          = EditableItem.IsLiked,
+                DeepLinkUri      = $"https://www.themoviedb.org/movie/{movie.Id}",
+                Type             = "Movie",
+                PreviousCategory = EditableItem.PreviousCategory
+            };
+            EditableItem = item;
+            SelectedType = "Movie";
+            _ = FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{EditableItem.Title}', Type='{SelectedType}'");
+        });
     }
 
     public async Task InitializeAsync()
     {
+        if (Categories.Count > 0 || StreamingServices.Count > 0) return;
+
         // Load settings asynchronously.
         var categoriesList = await _settingsService.GetOptionsAsync(SettingType.Categories);
         Categories.Clear();
@@ -196,6 +210,9 @@ public partial class EditWatchItemViewModel : ObservableObject
 
     public async Task LoadItem (string? watchItemId)
     {
+        if (_isLoaded) return;
+        _isLoaded = true;
+
         await InitializeAsync(); // Ensure categories and streaming services are loaded first
 
         if (watchItemId?.IsEmptyNullOrWhiteSpace() ?? true)

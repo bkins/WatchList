@@ -1,31 +1,34 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.MVVM.Models;
 
 namespace WatchLists.MVVM.ViewModels;
 
-public class WatchItemGroup : ObservableObject
+public class WatchItemGroup : ObservableCollection<WatchItem>
 {
-    public string                          CategoryName        { get; private set; }
-    public ObservableCollection<WatchItem> Items               { get; private set; }
-    public ICommand                        ToggleExpandCommand { get; set; }
+    public string CategoryName { get; private set; }
+    public ICommand ToggleExpandCommand { get; set; }
 
+    public ObservableCollection<WatchItem> Items => this;
 
     private bool _isExpanded = true;
 
     public bool IsExpanded
     {
         get => _isExpanded;
-        set => SetProperty(ref _isExpanded
-                         , value);
+        set
+        {
+            if (_isExpanded == value) return;
+
+            _isExpanded = value;
+            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
+        }
     }
 
-    public WatchItemGroup(string categoryName)
+    public WatchItemGroup(string categoryName) : base()
     {
         CategoryName        = categoryName;
-        Items               = new ObservableCollection<WatchItem>();
         ToggleExpandCommand = new RelayCommand<WatchItemGroup>(ExecuteToggleExpandCommand);
     }
 

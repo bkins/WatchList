@@ -1,119 +1,68 @@
-﻿using System.Text.Json;
-using WatchLists.MVVM.Models;
-using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using SQLite;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
+using WatchLists.MVVM.Models;
 using WatchLists.Services.Enums;
 
 namespace WatchLists.Services;
 
 public class WatchListService
 {
-    private readonly SettingsService           _settingsService;
-    // private readonly ILogger<WatchListService> _logger;
-    private static   WatchListService?         _instance;
-    private          List<WatchItem>           _watchItems;
+    private readonly SettingsService _settingsService;
+    private readonly SQLiteConnection _dbConnection;
 
-    private const string WatchListFileName  = "watchlist.json";
-
-    // For example, a simple getter for testing:
-    public List<WatchItem> GetCurrentWatchItems() => _watchItems;
-
-    public WatchListService(SettingsService settingsService/*, ILogger<WatchListService> logger*/)
+    public WatchListService (SettingsService settingsService)
     {
         _settingsService = settingsService;
 
         _ = FileLogger.WriteLogAsync("WatchListService constructor invoked");
-        LoadData();
+
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "watchlist.db");
+        _dbConnection = new SQLiteConnection(dbPath);
+        _dbConnection.CreateTable<WatchItem>();
+
+        MigrateJsonData();
     }
 
-    private void LoadData()
+    private void MigrateJsonData()
     {
-        var filePath = GetWatchListFilePath();
-
-        if (File.Exists(filePath))
+        var jsonPath = Path.Combine(FileSystem.AppDataDirectory, "watchlist.json");
+        if (File.Exists(jsonPath))
         {
-            var json = File.ReadAllText(GetWatchListFilePath());
-            _watchItems = JsonSerializer.Deserialize<List<WatchItem>>(json) ?? new List<WatchItem>();
-
-            _ = FileLogger.WriteLogAsync($"Loaded {_watchItems.Count} watch items");
-        }
-        else
-        {
-            _ = FileLogger.WriteLogAsync($"File path not found: {filePath}");
-            _watchItems = new List<WatchItem>();
-        }
-    }
-
-    private string GetWatchListFilePath()
-    {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder
-                                                                 .LocalApplicationData)
-                          , WatchListFileName);
-    }
-
-    private void SaveData()
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(_watchItems
-                                              , new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(GetWatchListFilePath()
-                            , json);
-            _ = FileLogger.WriteLogAsync($"Saved {_watchItems.Count} watch items");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            _ = FileLogger.WriteLogAsync($"SaveData: Failed to save data: {e.Message}");
-            throw;
+            try
+            {
+                var json = File.ReadAllText(jsonPath);
+                var jsonItems = JsonSerializer.Deserialize<List<WatchItem>>(json);
+                if (jsonItems != null && jsonItems.Count > 0)
+                {
+                    _dbConnection.InsertAll(jsonItems);
+                    _ = FileLogger.WriteLogAsync($"Migrated {jsonItems.Count} items from watchlist.json to watchlist.db");
+                }
+                
+                File.Move(jsonPath, jsonPath + ".bak", true);
+                _ = FileLogger.WriteLogAsync($"Renamed {jsonPath} to {jsonPath}.bak");
+            }
+            catch (Exception ex)
+            {
+                _ = FileLogger.WriteLogAsync($"Error migrating JSON data to SQLite: {ex.Message}");
+            }
         }
     }
 
-    public async Task SaveWatchItemAsync(WatchItem item)
-    {
-        var watchItems = GetWatchItems(); // Get existing items
-
-        // Check if the category exists in JSON
-        var savedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
-
-        if (savedCategories.DoesNotContain(item.Category))
-        {
-            savedCategories.Add(item.Category);
-            await _settingsService.SaveOptionsAsync(SettingType.Categories
-                                                  , savedCategories);
-        }
-
-        // Save or update the WatchItem
-        if (watchItems.All(watchItem => watchItem.Id != item.Id))
-        {
-            watchItems.Add(item);
-        }
-        else
-        {
-            var existingItem = watchItems.First(watchItem => watchItem.Id == item.Id);
-            existingItem.Title       = item.Title;
-            existingItem.Category    = item.Category;
-            existingItem.DeepLinkUri = item.DeepLinkUri;
-        }
-
-        await SaveWatchItems(watchItems); // Your existing method to persist items
-    }
-
-    private async Task SaveWatchItems(List<WatchItem> watchItems)
-    {
-        var filePath = GetWatchListFilePath();
-        var json     = JsonSerializer.Serialize(watchItems);
-        await File.WriteAllTextAsync(filePath
-                                   , json);
-    }
+    public List<WatchItem> GetCurrentWatchItems() => GetWatchItems();
 
     public List<WatchItem> GetWatchItems()
     {
-        // Reload data to ensure fresh read from file
-        LoadData();
-
-        return _watchItems;
+        try
+        {
+            return _dbConnection.Table<WatchItem>().ToList();
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"GetWatchItems: Failed to retrieve: {ex.Message}");
+            return new List<WatchItem>();
+        }
     }
 
     public void AddWatchItem (WatchItem item)
@@ -121,47 +70,40 @@ public class WatchListService
         if (item.Id == Guid.Empty)
         {
             item.Id = Guid.NewGuid();
-
             _ = FileLogger.WriteLogAsync($"Assigned new ID: {item.Id} to new WatchItem");
         }
 
-        _watchItems.Add(item);
-        _ = FileLogger.WriteLogAsync($"Added new WatchItem with ID: {item.Id}");
-
-        SaveData();
+        _dbConnection.Insert(item);
+        _ = FileLogger.WriteLogAsync($"Added new WatchItem with ID: {item.Id} via SQLite");
     }
-
 
     public void UpdateWatchItem (WatchItem updatedItem)
     {
-        var existingItem = _watchItems.FirstOrDefault(w => w.Id == updatedItem.Id);
-
-        if (existingItem != null)
-        {
-            // Update fields
-            existingItem.Title            = updatedItem.Title;
-            existingItem.StreamingService = updatedItem.StreamingService;
-            existingItem.Category         = updatedItem.Category;
-            existingItem.DeepLinkUri      = updatedItem.DeepLinkUri;
-            existingItem.LastUpdated      = DateTime.Now;
-            existingItem.IsWatched        = updatedItem.IsWatched;
-            existingItem.IsLiked          = updatedItem.IsLiked;
-            existingItem.Type             = updatedItem.Type;
-
-            _ = FileLogger.WriteLogAsync($"Updated WatchItem with ID: {updatedItem.Id}");
-        }
-        else
-        {
-            AddWatchItem(updatedItem);
-        }
-
-        SaveData();
+        updatedItem.LastUpdated = DateTime.Now;
+        _dbConnection.InsertOrReplace(updatedItem);
+        _ = FileLogger.WriteLogAsync($"Updated WatchItem with ID: {updatedItem.Id} via SQLite");
     }
 
-
-    public void DeleteWatchItem(Guid id)
+    public void DeleteWatchItem (Guid id)
     {
-        _watchItems.RemoveAll(x => x.Id == id);
-        SaveData();
+        _dbConnection.Delete<WatchItem>(id);
+        _ = FileLogger.WriteLogAsync($"Deleted WatchItem with ID: {id} via SQLite");
+    }
+
+    public async Task SaveWatchItemAsync (WatchItem item)
+    {
+        // Check if the category exists in settings options
+        var savedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
+
+        if (savedCategories.DoesNotContain(item.Category))
+        {
+            savedCategories.Add(item.Category);
+            await _settingsService.SaveOptionsAsync(SettingType.Categories
+                                                 , savedCategories);
+        }
+
+        item.LastUpdated = DateTime.Now;
+        _dbConnection.InsertOrReplace(item);
+        _ = FileLogger.WriteLogAsync($"Saved WatchItem with ID: {item.Id} via SQLite");
     }
 }

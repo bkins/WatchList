@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using WatchLists.Logger;
@@ -21,12 +21,16 @@ public class LogsViewModel : BindableObject
 
     public async void LoadLogs()
     {
+        Logs.Clear();
         var fileContents = await FileLogger.ReadLogAsync();
         var lines = fileContents.Split(Environment.NewLine);
 
         foreach (var line in lines)
         {
-            Logs.Add(line);
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                Logs.Add(line);
+            }
         }
     }
 

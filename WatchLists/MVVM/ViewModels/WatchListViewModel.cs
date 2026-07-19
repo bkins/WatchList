@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -145,6 +145,17 @@ public partial class WatchListViewModel : ObservableObject
         FilterGroups();
         UpdateVisibleItems();
         await FileLogger.WriteLogAsync($"Loaded {groupedItems.Count} watch items");
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        FilterGroups();
+    }
+
+    [RelayCommand]
+    private void FilterItems()
+    {
+        FilterGroups();
     }
 
     private void FilterGroups()

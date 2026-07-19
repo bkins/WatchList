@@ -1,9 +1,8 @@
-﻿namespace WatchLists.Utilities;
+namespace WatchLists.Utilities;
 
 public static class LogConfig
 {
-    private static readonly string Directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder
-                                                                                                 .LocalApplicationData));
+    private static readonly string Directory = FileSystem.AppDataDirectory;
 
     public static readonly string LogFilePath = Path.Combine(Directory, "app_logs.txt");
 

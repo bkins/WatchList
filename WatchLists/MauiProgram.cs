@@ -68,6 +68,8 @@ public static class MauiProgram
         builder.Services.AddTransient<MovieDetailsPage>();
         builder.Services.AddTransient<MovieDetailsViewModel>();
         builder.Services.AddSingleton<LogsViewModel>();
+        builder.Services.AddTransient<SearchPage>();
+        builder.Services.AddTransient<SearchViewModel>();
 
 
         // Register HTTP Clients (but without API keys yet)

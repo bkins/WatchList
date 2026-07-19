@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -58,9 +58,8 @@
 
         <!-- CollectionView bound to filtered groups -->
         <CollectionView ItemsSource="{Binding FilteredWatchItemGroups}"
-                        VerticalOptions="FillAndExpand"
-                        IsGrouped="True">
-            <CollectionView.GroupHeaderTemplate>
+                        VerticalOptions="FillAndExpand">
+            <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <toolkit:Expander IsExpanded="{Binding IsExpanded}">
                         <toolkit:Expander.Header>
@@ -151,39 +150,74 @@
                                             </SwipeView.RightItems>
 
                                             <Grid Padding="10">
-                                                <Grid.GestureRecognizers>
-                                                    <TapGestureRecognizer
-                                                        Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
-                                                        CommandParameter="{Binding}" />
-                                                </Grid.GestureRecognizers>
-                                                <StackLayout Orientation="Horizontal" Spacing="10"
-                                                             VerticalOptions="Center">
-                                                    <StackLayout Orientation="Vertical"
-                                                                 HorizontalOptions="FillAndExpand">
-                                                        <Label Text="{Binding Title}" FontAttributes="Bold" />
-                                                        <Label Text="{Binding StreamingService}" FontSize="Small"
-                                                               TextColor="Gray" />
-                                                    </StackLayout>
-                                                    <!-- Heart Icon to indicate "Liked" status -->
-                                                    <Image WidthRequest="24" HeightRequest="24"
-                                                           VerticalOptions="Center" HorizontalOptions="End">
-                                                        <Image.Source>
-                                                            <FileImageSource File="heart_outline.png" />
-                                                        </Image.Source>
-                                                        <Image.Triggers>
-                                                            <DataTrigger TargetType="Image"
-                                                                         Binding="{Binding IsLiked}"
-                                                                         Value="True">
-                                                                <Setter Property="Source" Value="heart_filled.png" />
-                                                            </DataTrigger>
-                                                            <DataTrigger TargetType="Image"
-                                                                         Binding="{Binding IsLiked}"
-                                                                         Value="False">
-                                                                <Setter Property="Source" Value="heart_outline.png" />
-                                                            </DataTrigger>
-                                                        </Image.Triggers>
-                                                    </Image>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <FlyoutBase.ContextFlyout>
+                                                    <MenuFlyout>
+                                                        <MenuFlyoutItem Text="Edit"
+                                                                        Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                                        CommandParameter="{Binding}" />
+                                                        <MenuFlyoutItem Text="Delete"
+                                                                        Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
+                                                                        CommandParameter="{Binding}" />
+                                                    </MenuFlyout>
+                                                </FlyoutBase.ContextFlyout>
+
+                                                <!-- Movie Info (Tapping this opens deep link) -->
+                                                <StackLayout Grid.Column="0" Orientation="Vertical" VerticalOptions="Center">
+                                                    <StackLayout.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
+                                                            CommandParameter="{Binding}" />
+                                                    </StackLayout.GestureRecognizers>
+                                                    <Label Text="{Binding Title}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding StreamingService}" FontSize="Small"
+                                                           TextColor="Gray" />
                                                 </StackLayout>
+
+                                                <!-- Edit Button -->
+                                                <ImageButton Grid.Column="1"
+                                                             WidthRequest="32"
+                                                             HeightRequest="32"
+                                                             Padding="4"
+                                                             BackgroundColor="Transparent"
+                                                             Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                             CommandParameter="{Binding}"
+                                                             VerticalOptions="Center"
+                                                             Margin="0,0,10,0">
+                                                    <ImageButton.Source>
+                                                        <FontImageSource Glyph="{StaticResource EditIcon}"
+                                                                         FontFamily="MaterialIcons"
+                                                                         Size="20"
+                                                                         Color="Gray" />
+                                                    </ImageButton.Source>
+                                                </ImageButton>
+
+                                                <!-- Heart Icon to indicate "Liked" status -->
+                                                <Image Grid.Column="2"
+                                                       WidthRequest="24"
+                                                       HeightRequest="24"
+                                                       VerticalOptions="Center"
+                                                       HorizontalOptions="End">
+                                                    <Image.Source>
+                                                        <FileImageSource File="heart_outline.png" />
+                                                    </Image.Source>
+                                                    <Image.Triggers>
+                                                        <DataTrigger TargetType="Image"
+                                                                     Binding="{Binding IsLiked}"
+                                                                     Value="True">
+                                                            <Setter Property="Source" Value="heart_filled.png" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Image"
+                                                                     Binding="{Binding IsLiked}"
+                                                                     Value="False">
+                                                            <Setter Property="Source" Value="heart_outline.png" />
+                                                        </DataTrigger>
+                                                    </Image.Triggers>
+                                                </Image>
                                             </Grid>
                                         </SwipeView>
 
@@ -193,7 +227,7 @@
                         </toolkit:Expander.Content>
                     </toolkit:Expander>
                 </DataTemplate>
-            </CollectionView.GroupHeaderTemplate>
+            </CollectionView.ItemTemplate>
         </CollectionView>
     </StackLayout>
 </ContentPage>

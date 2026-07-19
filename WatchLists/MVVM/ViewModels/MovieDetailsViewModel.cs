@@ -1,4 +1,9 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using WatchLists.Logger;
+using WatchLists.Messaging;
+using WatchLists.MVVM.Views;
 using WatchLists.Services;
 using WatchLists.Services.Models;
 using WatchLists.Utilities;
@@ -42,5 +47,33 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 // For example: MovieDetail = new MovieDetail { Title = result.Diagnostics["ApiTestViewModel"] };
             }
         }
+    }
+
+    [RelayCommand]
+    private async Task SelectMovie()
+    {
+        if (MovieDetail == null)
+        {
+            await FileLogger.WriteLogAsync("[SelectMovie] MovieDetail is null, aborting.");
+            return;
+        }
+
+        var movie = new Movie
+        {
+            Id         = MovieDetail.Id,
+            Title      = MovieDetail.Title,
+            Overview   = MovieDetail.Overview,
+            PosterPath = MovieDetail.PosterPath ?? string.Empty
+        };
+
+        await FileLogger.WriteLogAsync($"[SelectMovie] Invoked. Selected Title: '{movie.Title}', Id: {movie.Id}");
+
+        // Send the message to populated fields in EditWatchItemViewModel using modern WeakReferenceMessenger
+        WeakReferenceMessenger.Default.Send(new MovieSelectedMessage(movie));
+
+        await FileLogger.WriteLogAsync("[SelectMovie] Message sent. Navigating back...");
+
+        // Go back two levels to EditWatchItemPage (from MovieDetailsPage -> SearchPage -> EditWatchItemPage)
+        await Shell.Current.GoToAsync("../..");
     }
 }
