@@ -1,9 +1,10 @@
 using SQLite;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace WatchLists.MVVM.Models;
 
 [Table("WatchItems")]
-public class WatchItem
+public class WatchItem : ObservableObject
 {
     [PrimaryKey]
     public Guid     Id               { get; set; } = Guid.NewGuid();

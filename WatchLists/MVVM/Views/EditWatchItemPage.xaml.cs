@@ -1,4 +1,4 @@
-﻿using WatchLists.MVVM.ViewModels;
+using WatchLists.MVVM.ViewModels;
 
 namespace WatchLists.MVVM.Views;
 
@@ -8,6 +8,7 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
     {
         InitializeComponent();
         BindingContext = App.Current.Services.GetService<EditWatchItemViewModel>();
+        _ = WatchLists.Logger.FileLogger.WriteLogAsync($"[EditWatchItemPage] Constructor. viewModel: {BindingContext?.GetHashCode()}");
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object?> query)

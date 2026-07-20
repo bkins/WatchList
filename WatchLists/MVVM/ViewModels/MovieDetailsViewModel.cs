@@ -8,17 +8,19 @@ using WatchLists.Services;
 using WatchLists.Services.Models;
 using WatchLists.Utilities;
 
+using WatchLists.Services.Interfaces;
+
 namespace WatchLists.MVVM.ViewModels;
 
 public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributable
 {
-    private readonly TmdbService _tmdbService;
+    private readonly IMovieDataAggregator _movieDataAggregator;
 
     [ObservableProperty] private MovieDetail? movieDetail;
 
-    public MovieDetailsViewModel (TmdbService tmdbService)
+    public MovieDetailsViewModel (IMovieDataAggregator movieDataAggregator)
     {
-        _tmdbService = tmdbService;
+        _movieDataAggregator = movieDataAggregator;
     }
 
     // This method is called when the page is navigated to with query parameters.
@@ -33,7 +35,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
             // Use the ApiUtility to validate and execute the API call.
             var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
                     movieIdStr
-                  , _tmdbService.GetMovieDetailsAsync
+                  , _movieDataAggregator.GetMovieDetailsAsync
                   , "Movie ID");
 
             // If data is returned, assign it; otherwise, handle error/diagnostics as needed.

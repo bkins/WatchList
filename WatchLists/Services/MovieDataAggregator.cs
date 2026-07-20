@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.Services.Interfaces;
 using WatchLists.Services.Models;
@@ -47,7 +51,115 @@ public class MovieDataAggregator : IMovieDataAggregator
 
     public async Task<AggregatedResult<MovieSearchResponse>> SearchMoviesAsync(string query)
     {
-        return await ExecuteWithDiagnosticsAsync(provider => provider.SearchMoviesAsync(query));
+        var aggregatedResult = new AggregatedResult<MovieSearchResponse>
+                               {
+                                   Data = new MovieSearchResponse
+                                          {
+                                              Results = new List<MovieSearchResult>()
+                                          }
+                               };
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return aggregatedResult;
+        }
+
+        // Run queries concurrently across all active providers
+        var searchTasks = _providers.Select(async provider =>
+        {
+            try
+            {
+                var result = await provider.SearchMoviesAsync(query);
+                return (ProviderName: provider.GetType().Name, Result: result);
+            }
+            catch (Exception ex)
+            {
+                var errorResult = new AggregatedResult<MovieSearchResponse?>();
+                errorResult.Diagnostics[provider.GetType().Name] = $"Exception: {ex.Message}";
+                return (ProviderName: provider.GetType().Name, Result: errorResult);
+            }
+        }).ToList();
+
+        var completedResults = await Task.WhenAll(searchTasks);
+
+        var allResults = new List<(string ProviderName, MovieSearchResult Item)>();
+
+        foreach (var completed in completedResults)
+        {
+            // Merge diagnostics
+            if (completed.Result?.Diagnostics != null)
+            {
+                foreach (var diag in completed.Result.Diagnostics)
+                {
+                    aggregatedResult.Diagnostics[diag.Key] = diag.Value;
+                }
+            }
+
+            if (completed.Result?.Data?.Results != null)
+            {
+                foreach (var item in completed.Result.Data.Results)
+                {
+                    if (item != null)
+                    {
+                        allResults.Add((completed.ProviderName, item));
+                    }
+                }
+            }
+        }
+
+        // Group by normalized title to deduplicate
+        var groupedResults = allResults.GroupBy(result => NormalizeTitle(result.Item.Title))
+                                       .Where(group => !string.IsNullOrEmpty(group.Key));
+
+        var mergedResults = new List<MovieSearchResult>();
+
+        foreach (var group in groupedResults)
+        {
+            // Prefer TMDB first, then JustWatch, then Utelly for the primary representative
+            var primaryRepresentative = group.OrderBy(result => result.ProviderName == "TmdbService" ? 0 
+                                                              : result.ProviderName == "JustWatchService" ? 1 
+                                                              : 2)
+                                             .Select(result => result.Item)
+                                             .FirstOrDefault();
+
+            if (primaryRepresentative != null)
+            {
+                // Merge streaming providers from all items in this group
+                var allProvidersForGroup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var result in group)
+                {
+                    if (result.Item.StreamingProviders != null)
+                    {
+                        foreach (var providerName in result.Item.StreamingProviders)
+                        {
+                            if (!string.IsNullOrWhiteSpace(providerName))
+                            {
+                                allProvidersForGroup.Add(providerName);
+                            }
+                        }
+                    }
+                }
+
+                primaryRepresentative.StreamingProviders = allProvidersForGroup.ToList();
+                mergedResults.Add(primaryRepresentative);
+            }
+        }
+
+        aggregatedResult.Data.Results = mergedResults;
+        return aggregatedResult;
+    }
+
+    private string NormalizeTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return string.Empty;
+        }
+
+        var normalized = title.ToLowerInvariant();
+        var chars = normalized.Where(c => char.IsLetterOrDigit(c)).ToArray();
+        return new string(chars);
     }
 
     public async Task<AggregatedResult<WatchProvidersResponse>> GetWatchProvidersAsync(int movieId)

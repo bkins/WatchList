@@ -10,6 +10,9 @@ using WatchLists.MVVM.Models;
 using WatchLists.MVVM.Views;
 using WatchLists.Services;
 using WatchLists.Services.Enums;
+using WatchLists.Services.Interfaces;
+using WatchLists.Utilities;
+using WatchLists.Services.Models;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -20,18 +23,34 @@ public partial class EditWatchItemViewModel : ObservableObject
     [ObservableProperty] private bool      _isDisliked;
     [ObservableProperty] private string    _selectedType = string.Empty;
     [ObservableProperty] private WatchItem _editableItem = new();
+    [ObservableProperty] private string    _movieTitle = string.Empty;
+    [ObservableProperty] private string    _movieDeepLinkUri = string.Empty;
 
     private string _previousCategory = string.Empty;
     private bool   _isLoaded         = false;
 
     private readonly WatchListService _watchListService;
     private readonly SettingsService  _settingsService;
+    private readonly IMovieDataAggregator _movieDataAggregator;
+    private readonly Dictionary<string, string> _providerLinks = new(StringComparer.OrdinalIgnoreCase);
 
     public WatchItem                    OriginalItem     { get; set; } = new();
     public ObservableCollection<string> Categories       { get; set; }
     public string                       SelectedCategory { get; set; } = string.Empty;
 
-    public string SelectedStreamingService { get; set; } = string.Empty;
+    public string SelectedStreamingService
+    {
+        get => EditableItem?.StreamingService ?? string.Empty;
+        set
+        {
+            if (EditableItem != null && EditableItem.StreamingService != value)
+            {
+                EditableItem.StreamingService = value;
+                OnPropertyChanged();
+                UpdateDeepLinkForSelectedService(value);
+            }
+        }
+    }
 
     public ObservableCollection<string> StreamingServices { get; set; }
 
@@ -43,34 +62,86 @@ public partial class EditWatchItemViewModel : ObservableObject
                                                   };
 
     public EditWatchItemViewModel (WatchListService watchListService
-                                 , SettingsService  settingsService)
+                                 , SettingsService  settingsService
+                                 , IMovieDataAggregator movieDataAggregator)
     {
-        _settingsService  = settingsService;
-        _watchListService = watchListService;
+        _settingsService      = settingsService;
+        _watchListService     = watchListService;
+        _movieDataAggregator  = movieDataAggregator;
 
         Categories        = new ObservableCollection<string>();
         StreamingServices = new ObservableCollection<string>();
 
+        _ = FileLogger.WriteLogAsync($"[EditWatchItemViewModel] Constructor. Instance: {GetHashCode()}");
+
         // Register for movie selection messages using modern WeakReferenceMessenger
-        WeakReferenceMessenger.Default.Register<MovieSelectedMessage>(this, (recipient, message) =>
+        WeakReferenceMessenger.Default.Register<MovieSelectedMessage>(this, async (recipient, message) =>
         {
             var movie = message.SelectedMovie;
-            _ = FileLogger.WriteLogAsync($"[Subscription] MovieSelectedMessage received! Title: '{movie?.Title}', Id: {movie?.Id}");
-            var item = new WatchItem
+            await FileLogger.WriteLogAsync($"[Subscription] MovieSelectedMessage received! Title: '{movie?.Title}', Id: {movie?.Id}");
+
+            _providerLinks.Clear();
+
+            if (movie != null)
             {
-                Id               = EditableItem.Id,
-                Title            = movie.Title,
-                StreamingService = EditableItem.StreamingService,
-                Category         = EditableItem.Category,
-                IsWatched        = EditableItem.IsWatched,
-                IsLiked          = EditableItem.IsLiked,
-                DeepLinkUri      = $"https://www.themoviedb.org/movie/{movie.Id}",
-                Type             = "Movie",
-                PreviousCategory = EditableItem.PreviousCategory
-            };
-            EditableItem = item;
-            SelectedType = "Movie";
-            _ = FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{EditableItem.Title}', Type='{SelectedType}'");
+                try
+                {
+                    var providersResult = await _movieDataAggregator.GetWatchProvidersAsync(movie.Id);
+                    if (providersResult?.Data?.Results != null)
+                    {
+                        var regions = new[] { "US", "CA", "GB" };
+                        foreach (var region in regions)
+                        {
+                            if (providersResult.Data.Results.TryGetValue(region, out var countryProviders))
+                            {
+                                AddProvidersToDictionary(countryProviders.Flatrate);
+                                AddProvidersToDictionary(countryProviders.Rent);
+                                AddProvidersToDictionary(countryProviders.Buy);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await FileLogger.WriteLogAsync($"[Subscription] Error fetching watch providers: {ex.Message}");
+                }
+            }
+
+            var defaultDeepLink = movie != null ? $"https://www.themoviedb.org/movie/{movie.Id}" : string.Empty;
+            var finalDeepLink   = defaultDeepLink;
+
+            var currentService = SelectedStreamingService;
+            if (!string.IsNullOrWhiteSpace(currentService) && _providerLinks.TryGetValue(currentService, out var matchedUrl) && !string.IsNullOrWhiteSpace(matchedUrl))
+            {
+                finalDeepLink = DeepLinkUtility.GenerateDeepLink(currentService, movie?.Title ?? string.Empty, matchedUrl);
+            }
+            else if (!string.IsNullOrWhiteSpace(currentService))
+            {
+                finalDeepLink = DeepLinkUtility.GenerateDeepLink(currentService, movie?.Title ?? string.Empty);
+            }
+
+            var item = new WatchItem
+                       {
+                           Id               = EditableItem.Id
+                         , Title            = movie?.Title ?? string.Empty
+                         , StreamingService = EditableItem.StreamingService
+                         , Category         = EditableItem.Category
+                         , IsWatched        = EditableItem.IsWatched
+                         , IsLiked          = EditableItem.IsLiked
+                         , DeepLinkUri      = finalDeepLink
+                         , Type             = "Movie"
+                         , PreviousCategory = EditableItem.PreviousCategory
+                       };
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                EditableItem = item;
+                SelectedType = "Movie";
+                MovieTitle = item.Title;
+                MovieDeepLinkUri = item.DeepLinkUri;
+                OnPropertyChanged(string.Empty);
+            });
+            await FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{item.Title}', Type='Movie', DeepLink='{item.DeepLinkUri}'");
         });
     }
 
@@ -144,10 +215,10 @@ public partial class EditWatchItemViewModel : ObservableObject
         await FileLogger.WriteLogAsync("Save command invoked.");
         //Debug.WriteLine("Save command invoked.");
 
-        OriginalItem.Title            = EditableItem.Title;
+        OriginalItem.Title            = MovieTitle;
         OriginalItem.StreamingService = EditableItem.StreamingService;
         OriginalItem.Category         = EditableItem.Category;
-        OriginalItem.DeepLinkUri      = EditableItem.DeepLinkUri;
+        OriginalItem.DeepLinkUri      = MovieDeepLinkUri;
         OriginalItem.LastUpdated      = DateTime.Now;
         OriginalItem.IsWatched        = IsWatched;
         OriginalItem.IsLiked          = EditableItem.IsLiked;
@@ -277,6 +348,9 @@ public partial class EditWatchItemViewModel : ObservableObject
             Debug.WriteLine($"Loaded Item - Category: {EditableItem.Category}, StreamingService: {EditableItem.StreamingService}");
         }
 
+        MovieTitle = EditableItem.Title ?? string.Empty;
+        MovieDeepLinkUri = EditableItem.DeepLinkUri ?? string.Empty;
+
         // Ensure UI updates properly
         Debug.WriteLine($"EditableItem.StreamingService BEFORE PropertyChanged: {EditableItem.StreamingService}");
         OnPropertyChanged(nameof(EditableItem));
@@ -330,5 +404,41 @@ public partial class EditWatchItemViewModel : ObservableObject
         // IsLiked          = item.IsLiked;
         // SelectedType     = item.Type;
         // SelectedCategory = item.Category;
+    }
+
+    private void AddProvidersToDictionary(List<WatchProviders>? providers)
+    {
+        if (providers == null) return;
+        foreach (var provider in providers)
+        {
+            if (provider != null && !string.IsNullOrWhiteSpace(provider.ProviderName))
+            {
+                _providerLinks[provider.ProviderName] = provider.Url ?? string.Empty;
+            }
+        }
+    }
+
+    private void UpdateDeepLinkForSelectedService(string serviceName)
+    {
+        if (EditableItem == null || string.IsNullOrWhiteSpace(MovieTitle)) return;
+
+        string finalDeepLink;
+        if (!string.IsNullOrWhiteSpace(serviceName) && _providerLinks.TryGetValue(serviceName, out var matchedUrl) && !string.IsNullOrWhiteSpace(matchedUrl))
+        {
+            finalDeepLink = DeepLinkUtility.GenerateDeepLink(serviceName, MovieTitle, matchedUrl);
+        }
+        else
+        {
+            finalDeepLink = DeepLinkUtility.GenerateDeepLink(serviceName, MovieTitle);
+        }
+
+        if (string.IsNullOrWhiteSpace(finalDeepLink))
+        {
+            return;
+        }
+
+        EditableItem.DeepLinkUri = finalDeepLink;
+        MovieDeepLinkUri = finalDeepLink;
+        OnPropertyChanged(nameof(EditableItem));
     }
 }

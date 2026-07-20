@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -7,16 +7,16 @@
        <StackLayout Padding="10"
                     Spacing="12">
               <Entry Placeholder="Title"
-                     Text="{Binding EditableItem.Title}" />
+                     Text="{Binding MovieTitle}" />
               <Picker Title="Streaming Service"
                       ItemsSource="{Binding StreamingServices}"
-                      SelectedItem="{Binding EditableItem.StreamingService, Mode=TwoWay}" />
+                      SelectedItem="{Binding SelectedStreamingService, Mode=TwoWay}" />
               <Picker Title="Category"
                       ItemsSource="{Binding Categories}"
                       SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
                       SelectedIndexChanged="OnCategorySelectionChanged" />
               <Entry Placeholder="Deep Link"
-                     Text="{Binding EditableItem.DeepLinkUri}" />
+                     Text="{Binding MovieDeepLinkUri}" />
 
               <!-- Type Dropdown -->
               <Picker Title="Type"

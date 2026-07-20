@@ -48,15 +48,39 @@ public class UtellyService : IMovieDataProvider
 
         try
         {
-            var response = await FetchFromUtelly<MovieSearchResponse>($"lookup?term={query}&country=US");
+            var response = await FetchFromUtelly<UtellySearchResponse>($"lookup?term={Uri.EscapeDataString(query)}&country=US");
 
-            if (response?.Results is null)
+            if (response?.Results == null)
             {
                 throw new NullReferenceException($"{nameof(response)} is null");
             }
 
-            result.Data = response;
-            result.Diagnostics[GetType().Name] = response.Results.Count > 0
+            var movieResults = new List<MovieSearchResult>();
+            foreach (var utellyResult in response.Results)
+            {
+                var providerNames = utellyResult.Providers?
+                                                .Select(provider => provider.ProviderName)
+                                                .Where(name => !string.IsNullOrWhiteSpace(name))
+                                                .ToList() ?? new List<string>();
+
+                var movieSearchResult = new MovieSearchResult
+                                        {
+                                            Id                 = utellyResult.Title.GetHashCode()
+                                          , Title              = utellyResult.Title
+                                          , PosterPath         = string.Empty
+                                          , Overview           = providerNames.Any()
+                                                                    ? $"Available on: {string.Join(", ", providerNames)}"
+                                                                    : "Streaming availability unknown."
+                                          , StreamingProviders = providerNames
+                                        };
+                movieResults.Add(movieSearchResult);
+            }
+
+            result.Data = new MovieSearchResponse
+                          {
+                              Results = movieResults
+                          };
+            result.Diagnostics[GetType().Name] = movieResults.Count > 0
                                                     ? "Data returned successfully."
                                                     : "No data found.";
         }

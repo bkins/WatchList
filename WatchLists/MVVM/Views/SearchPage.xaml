@@ -57,6 +57,11 @@
                                    LineBreakMode="TailTruncation"
                                    MaxLines="3"
                                    FontSize="Small" />
+                            <Label Text="{Binding StreamingProvidersDisplay}"
+                                   TextColor="Gray"
+                                   FontSize="Micro"
+                                   FontAttributes="Italic"
+                                   IsVisible="{Binding HasStreamingProviders}" />
                         </StackLayout>
                     </Grid>
                 </DataTemplate>
