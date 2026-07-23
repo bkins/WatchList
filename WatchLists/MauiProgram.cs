@@ -76,6 +76,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient<TmdbService>();
         builder.Services.AddHttpClient<JustWatchService>();
         builder.Services.AddHttpClient<UtellyService>();
+        builder.Services.AddHttpClient<Imdb236Service>();
 
         // Register services
         builder.Services.AddSingleton<WatchListService>();
@@ -85,6 +86,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IMovieDataProvider, TmdbService>();
         builder.Services.AddSingleton<IMovieDataProvider, JustWatchService>();
         builder.Services.AddSingleton<IMovieDataProvider, UtellyService>();
+        builder.Services.AddSingleton<IMovieDataProvider, Imdb236Service>();
 
         // Build the app to resolve services
         var app = builder.Build();
