@@ -10,32 +10,39 @@
                      Spacing="15">
                 <Label Text="Streaming Services"
                        FontAttributes="Bold" />
-                <Picker Title="Select a Streaming Service"
+                <Picker AutomationId="StreamingServicePicker"
+                        Title="Select a Streaming Service"
                         ItemsSource="{Binding StreamingServices}"
                         SelectedItem="{Binding SelectedStreamingService}" />
-                <Button Text="Manage Streaming Services"
+                <Button AutomationId="ManageStreamingServicesButton"
+                        Text="Manage Streaming Services"
                         Command="{Binding NavigateToManageOptionsCommand}"
                         CommandParameter="StreamingServices" />
 
                 <Label Text="Categories"
                        FontAttributes="Bold" />
-                <Picker Title="Select a Category"
+                <Picker AutomationId="CategoryPicker"
+                        Title="Select a Category"
                         ItemsSource="{Binding Categories}"
                         SelectedItem="{Binding SelectedCategory}" />
-                <Button Text="Manage Categories"
+                <Button AutomationId="ManageCategoriesButton"
+                        Text="Manage Categories"
                         Command="{Binding NavigateToManageOptionsCommand}"
                         CommandParameter="Categories" />
 
-                <Picker Title="Select Watched Category"
+                <Picker AutomationId="WatchedCategoryPicker"
+                        Title="Select Watched Category"
                         ItemsSource="{Binding Categories}"
                         SelectedItem="{Binding SelectedWatchedCategory, Mode=TwoWay}" />
 
                 <Label Text="Types"
                        FontAttributes="Bold" />
-                <Picker Title="Select a Type"
+                <Picker AutomationId="TypePicker"
+                        Title="Select a Type"
                         ItemsSource="{Binding Types}"
                         SelectedItem="{Binding SelectedType}" />
-                <Button Text="Manage Types"
+                <Button AutomationId="ManageTypesButton"
+                        Text="Manage Types"
                         Command="{Binding NavigateToManageOptionsCommand}"
                         CommandParameter="Types" />
 

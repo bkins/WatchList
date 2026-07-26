@@ -8,11 +8,13 @@
     <StackLayout Padding="10" Spacing="10">
         <!-- Search Controls -->
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <SearchBar Placeholder="Search for movies..."
+            <SearchBar AutomationId="MovieSearchBar"
+                       Placeholder="Search for movies..."
                        Text="{Binding SearchQuery, Mode=TwoWay}"
                        SearchCommand="{Binding SearchCommand}"
                        Grid.Column="0" />
-            <Button Text="Search"
+            <Button AutomationId="SearchMovieButton"
+                    Text="Search"
                     Command="{Binding SearchCommand}"
                     Grid.Column="1"
                     VerticalOptions="Center" />
@@ -27,7 +29,8 @@
                Margin="10" />
 
         <!-- CollectionView to display search results -->
-        <CollectionView ItemsSource="{Binding Movies}"
+        <CollectionView AutomationId="SearchResultsCollectionView"
+                        ItemsSource="{Binding Movies}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate>

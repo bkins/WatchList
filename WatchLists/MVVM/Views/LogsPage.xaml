@@ -5,8 +5,9 @@
              x:Class="WatchLists.MVVM.Views.LogsPage"
              Title="Logs">
     <StackLayout Padding="10">
-        <Button Text="Copy Logs" Clicked="OnCopyLogsClicked" />
-        <ListView x:Name="LogsListView"
+        <Button AutomationId="CopyLogsButton" Text="Copy Logs" Clicked="OnCopyLogsClicked" />
+        <ListView AutomationId="LogsListView"
+                  x:Name="LogsListView"
                   ItemsSource="{Binding Logs}"
                   HasUnevenRows="True">
             <ListView.ItemTemplate>
@@ -20,6 +21,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button Text="Clear Logs" Command="{Binding ClearLogsCommand}" />
+        <Button AutomationId="ClearLogsButton" Text="Clear Logs" Command="{Binding ClearLogsCommand}" />
     </StackLayout>
 </ContentPage>

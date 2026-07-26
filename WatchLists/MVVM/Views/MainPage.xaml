@@ -12,6 +12,7 @@
     <!-- Title="Watch List" -->
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Add"
+                     AutomationId="AddToolbarItem"
                      Command="{Binding BindingContext.AddItemCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource AddIcon}"
@@ -22,6 +23,7 @@
         </ToolbarItem>
 
         <ToolbarItem Text="Refresh"
+                     AutomationId="RefreshToolbarItem"
                      Command="{Binding BindingContext.RefreshItemsCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource RefreshIcon}"
@@ -32,6 +34,7 @@
         </ToolbarItem>
 
         <ToolbarItem Text="{StaticResource SettingsIcon}"
+                     AutomationId="SettingsToolbarItem"
                      Command="{Binding BindingContext.NavigateToSettingsCommand, Source={x:Reference PageReference}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource SettingsIcon}"
@@ -41,9 +44,11 @@
             </ToolbarItem.IconImageSource>
         </ToolbarItem>
         <ToolbarItem Text="API Test"
+                     AutomationId="ApiTestToolbarItem"
                      Command="{Binding BindingContext.NavigateToApiTestCommand, Source={x:Reference PageReference}}"
                      IconImageSource="apitest_icon.png" />
         <ToolbarItem Text="Logs"
+                     AutomationId="LogsToolbarItem"
                      Command="{Binding BindingContext.NavigateToLogsCommand, Source={x:Reference PageReference}}"
                      IconImageSource="logs_icon.png" />
     </ContentPage.ToolbarItems>
@@ -52,12 +57,14 @@
         <!-- Custom Header -->
 
         <!-- SearchBar for filtering -->
-        <SearchBar Placeholder="Search..."
+        <SearchBar AutomationId="WatchListSearchBar"
+                   Placeholder="Search..."
                    Text="{Binding SearchText, Mode=TwoWay}"
                    BackgroundColor="{StaticResource CardBackgroundColor}" />
 
         <!-- CollectionView bound to filtered groups -->
-        <CollectionView ItemsSource="{Binding FilteredWatchItemGroups}"
+        <CollectionView AutomationId="WatchItemCollectionView"
+                        ItemsSource="{Binding FilteredWatchItemGroups}"
                         VerticalOptions="FillAndExpand">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
