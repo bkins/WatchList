@@ -169,15 +169,41 @@ public class TmdbService : IMovieDataProvider
         {
             var url = $"{BaseUrl}/movie/{movieId}/watch/providers?api_key={ApiKey}";
             var response = await _httpClient.GetFromJsonAsync<WatchProvidersResponse>(url);
+            var filtered = FilterEmptyProviders(response);
 
-            result.Data = FilterEmptyProviders(response);
-            result.Diagnostics[GetType().Name] = result.Data?.Results?.Count > 0
-                ? "Data returned successfully."
-                : "No streaming providers found.";
+            if (filtered.Results != null && filtered.Results.Count > 0)
+            {
+                result.Data = filtered;
+                result.Diagnostics[GetType().Name] = "Data returned successfully from movie watch providers.";
+            }
         }
-        catch (Exception ex)
+        catch
         {
-            result.Diagnostics[GetType().Name] = $"Error: {ex.Message}";
+            // /movie/ endpoint failed, proceed to /tv/ fallback
+        }
+
+        if (result.Data == null || result.Data.Results == null || result.Data.Results.Count == 0)
+        {
+            try
+            {
+                var tvUrl = $"{BaseUrl}/tv/{movieId}/watch/providers?api_key={ApiKey}";
+                var tvResponse = await _httpClient.GetFromJsonAsync<WatchProvidersResponse>(tvUrl);
+                var filteredTv = FilterEmptyProviders(tvResponse);
+
+                if (filteredTv.Results != null && filteredTv.Results.Count > 0)
+                {
+                    result.Data = filteredTv;
+                    result.Diagnostics[GetType().Name] = "Data returned successfully from TV watch providers.";
+                }
+                else
+                {
+                    result.Diagnostics[GetType().Name] = "No streaming providers found.";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Diagnostics[GetType().Name] = $"Error: {ex.Message}";
+            }
         }
 
         return result;

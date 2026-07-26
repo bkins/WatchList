@@ -84,6 +84,17 @@ public partial class EditWatchItemViewModel : ObservableObject
 
             if (movie != null)
             {
+                if (movie.StreamingProviders != null && movie.StreamingProviders.Count > 0)
+                {
+                    foreach (var providerName in movie.StreamingProviders)
+                    {
+                        if (providerName.HasValue())
+                        {
+                            _providerLinks[providerName] = string.Empty;
+                        }
+                    }
+                }
+
                 try
                 {
                     var providersResult = await _movieDataAggregator.GetWatchProvidersAsync(movie.Id);
@@ -154,9 +165,42 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         if (EditableItem == null) return;
 
-        await FileLogger.WriteLogAsync($"[RefreshStreamingServices] Refreshing for item ID: {EditableItem.Id}, MovieId: {EditableItem.MovieId}");
+        var titleToSearch = MovieTitle.HasValue() ? MovieTitle : EditableItem.Title;
+
+        await FileLogger.WriteLogAsync($"[RefreshStreamingServices] Refreshing for item ID: {EditableItem.Id}, MovieId: {EditableItem.MovieId}, Title: '{titleToSearch}'");
 
         _providerLinks.Clear();
+
+        // If MovieId is 0, attempt search by title to resolve MovieId and streaming options
+        if (EditableItem.MovieId == 0 && titleToSearch.HasValue())
+        {
+            try
+            {
+                var searchResult = await _movieDataAggregator.SearchMoviesAsync(titleToSearch);
+                var firstMatch = searchResult?.Data?.Results?.FirstOrDefault();
+                if (firstMatch != null)
+                {
+                    EditableItem.MovieId = firstMatch.Id;
+                    if (EditableItem.Overview.HasNoValue()) EditableItem.Overview = firstMatch.Overview;
+                    if (EditableItem.PosterUrl.HasNoValue()) EditableItem.PosterUrl = firstMatch.PosterUrl;
+
+                    if (firstMatch.StreamingProviders != null && firstMatch.StreamingProviders.Count > 0)
+                    {
+                        foreach (var providerName in firstMatch.StreamingProviders)
+                        {
+                            if (providerName.HasValue())
+                            {
+                                _providerLinks[providerName] = string.Empty;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await FileLogger.WriteLogAsync($"[RefreshStreamingServices] Error resolving movie ID by title: {ex.Message}");
+            }
+        }
 
         if (EditableItem.MovieId > 0)
         {
@@ -187,11 +231,15 @@ public partial class EditWatchItemViewModel : ObservableObject
         {
             EditableItem.AvailableStreamingServices = string.Join(", ", _providerLinks.Keys);
         }
+        else
+        {
+            EditableItem.AvailableStreamingServices = "None found";
+        }
 
         var currentService = SelectedStreamingService;
         if (currentService.HasValue() && _providerLinks.TryGetValue(currentService, out var matchedUrl) && matchedUrl.HasValue())
         {
-            EditableItem.DeepLinkUri = DeepLinkUtility.GenerateDeepLink(currentService, EditableItem.Title, matchedUrl);
+            EditableItem.DeepLinkUri = DeepLinkUtility.GenerateDeepLink(currentService, titleToSearch, matchedUrl);
             MovieDeepLinkUri = EditableItem.DeepLinkUri;
         }
 

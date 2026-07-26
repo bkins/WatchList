@@ -28,5 +28,5 @@ public class WatchItem : ObservableObject
     [Ignore]
     public string AvailableStreamingServicesDisplay => HasAvailableStreamingServices
         ? "Available on: " + AvailableStreamingServices
-        : string.Empty;
+        : "Streaming: Not checked (tap Refresh)";
 }

@@ -15,7 +15,7 @@
                      </Grid>
 
                      <!-- Streaming Availability & Refresh Button -->
-                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding EditableItem.HasAvailableStreamingServices}">
+                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4">
                             <Label Text="{Binding EditableItem.AvailableStreamingServicesDisplay}"
                                    Grid.Column="0"
                                    VerticalOptions="Center"

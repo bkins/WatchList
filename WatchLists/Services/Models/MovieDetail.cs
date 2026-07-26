@@ -21,4 +21,7 @@ public class MovieDetail
 
     [JsonPropertyName("release_date")]
     public string?     ReleaseDate { get; set; }
+
+    [JsonIgnore]
+    public List<string> StreamingProviders { get; set; } = new();
 }

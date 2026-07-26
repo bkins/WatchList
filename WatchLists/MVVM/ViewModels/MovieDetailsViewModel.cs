@@ -32,10 +32,11 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
         {
             MovieDetail = new MovieDetail
             {
-                Id         = searchResult.Id,
-                Title      = searchResult.Title,
-                Overview   = searchResult.Overview,
-                PosterPath = searchResult.PosterPath
+                Id                 = searchResult.Id,
+                Title              = searchResult.Title,
+                Overview           = searchResult.Overview,
+                PosterPath         = searchResult.PosterPath,
+                StreamingProviders = searchResult.StreamingProviders
             };
 
             var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
@@ -43,8 +44,11 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                   , _movieDataAggregator.GetMovieDetailsAsync
                   , "Movie ID");
 
-            if (result.Data != null && result.Data.Title.HasValue() && result.Data.Title.EqualsIgnoreCase(searchResult.Title))
+            if (result.Data != null
+             && result.Data.Title.HasValue()
+             && result.Data.Title.EqualsIgnoreCase(searchResult.Title))
             {
+                result.Data.StreamingProviders = searchResult.StreamingProviders;
                 MovieDetail = result.Data;
             }
         }
@@ -52,10 +56,9 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
         {
             string movieIdStr = movieIdObj?.ToString() ?? "";
 
-            var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
-                    movieIdStr
-                  , _movieDataAggregator.GetMovieDetailsAsync
-                  , "Movie ID");
+            var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(movieIdStr
+                                                                             , _movieDataAggregator.GetMovieDetailsAsync
+                                                                             , "Movie ID");
 
             if (result.Data != null)
             {
@@ -81,10 +84,11 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
 
         var movie = new Movie
                     {
-                        Id         = MovieDetail.Id
-                      , Title      = MovieDetail.Title
-                      , Overview   = MovieDetail.Overview
-                      , PosterPath = posterUrl
+                        Id                 = MovieDetail.Id
+                      , Title              = MovieDetail.Title
+                      , Overview           = MovieDetail.Overview
+                      , PosterPath         = posterUrl
+                      , StreamingProviders = MovieDetail.StreamingProviders
                     };
 
         await FileLogger.WriteLogAsync($"[SelectMovie] Invoked. Selected Title: '{movie.Title}', Id: {movie.Id}");
