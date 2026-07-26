@@ -122,15 +122,19 @@ public partial class EditWatchItemViewModel : ObservableObject
 
             var item = new WatchItem
                        {
-                           Id               = EditableItem.Id
-                         , Title            = movie?.Title ?? string.Empty
-                         , StreamingService = EditableItem.StreamingService
-                         , Category         = EditableItem.Category
-                         , IsWatched        = EditableItem.IsWatched
-                         , IsLiked          = EditableItem.IsLiked
-                         , DeepLinkUri      = finalDeepLink
-                         , Type             = "Movie"
-                         , PreviousCategory = EditableItem.PreviousCategory
+                           Id                         = EditableItem.Id
+                         , MovieId                    = movie?.Id ?? 0
+                         , Title                      = movie?.Title ?? string.Empty
+                         , Overview                   = movie?.Overview ?? string.Empty
+                         , PosterUrl                  = movie?.PosterPath ?? string.Empty
+                         , AvailableStreamingServices = string.Join(", ", _providerLinks.Keys)
+                         , StreamingService           = EditableItem.StreamingService
+                         , Category                   = EditableItem.Category
+                         , IsWatched                  = EditableItem.IsWatched
+                         , IsLiked                    = EditableItem.IsLiked
+                         , DeepLinkUri                = finalDeepLink
+                         , Type                       = "Movie"
+                         , PreviousCategory           = EditableItem.PreviousCategory
                        };
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -143,6 +147,56 @@ public partial class EditWatchItemViewModel : ObservableObject
             });
             await FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{item.Title}', Type='Movie', DeepLink='{item.DeepLinkUri}'");
         });
+    }
+
+    [RelayCommand]
+    public async Task RefreshStreamingServices()
+    {
+        if (EditableItem == null) return;
+
+        await FileLogger.WriteLogAsync($"[RefreshStreamingServices] Refreshing for item ID: {EditableItem.Id}, MovieId: {EditableItem.MovieId}");
+
+        _providerLinks.Clear();
+
+        if (EditableItem.MovieId > 0)
+        {
+            try
+            {
+                var providersResult = await _movieDataAggregator.GetWatchProvidersAsync(EditableItem.MovieId);
+                if (providersResult?.Data?.Results != null)
+                {
+                    var regions = new[] { "US", "CA", "GB" };
+                    foreach (var region in regions)
+                    {
+                        if (providersResult.Data.Results.TryGetValue(region, out var countryProviders))
+                        {
+                            AddProvidersToDictionary(countryProviders.Flatrate);
+                            AddProvidersToDictionary(countryProviders.Rent);
+                            AddProvidersToDictionary(countryProviders.Buy);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await FileLogger.WriteLogAsync($"[RefreshStreamingServices] Error fetching watch providers: {ex.Message}");
+            }
+        }
+
+        if (_providerLinks.Count > 0)
+        {
+            EditableItem.AvailableStreamingServices = string.Join(", ", _providerLinks.Keys);
+        }
+
+        var currentService = SelectedStreamingService;
+        if (currentService.HasValue() && _providerLinks.TryGetValue(currentService, out var matchedUrl) && matchedUrl.HasValue())
+        {
+            EditableItem.DeepLinkUri = DeepLinkUtility.GenerateDeepLink(currentService, EditableItem.Title, matchedUrl);
+            MovieDeepLinkUri = EditableItem.DeepLinkUri;
+        }
+
+        await _watchListService.SaveWatchItemAsync(EditableItem);
+        OnPropertyChanged(nameof(EditableItem));
     }
 
     public async Task InitializeAsync()
@@ -213,16 +267,19 @@ public partial class EditWatchItemViewModel : ObservableObject
     public async Task Save()
     {
         await FileLogger.WriteLogAsync("Save command invoked.");
-        //Debug.WriteLine("Save command invoked.");
 
-        OriginalItem.Title            = MovieTitle;
-        OriginalItem.StreamingService = EditableItem.StreamingService;
-        OriginalItem.Category         = EditableItem.Category;
-        OriginalItem.DeepLinkUri      = MovieDeepLinkUri;
-        OriginalItem.LastUpdated      = DateTime.Now;
-        OriginalItem.IsWatched        = IsWatched;
-        OriginalItem.IsLiked          = EditableItem.IsLiked;
-        OriginalItem.Type             = EditableItem.Type;
+        OriginalItem.MovieId                    = EditableItem.MovieId;
+        OriginalItem.Overview                   = EditableItem.Overview;
+        OriginalItem.PosterUrl                  = EditableItem.PosterUrl;
+        OriginalItem.AvailableStreamingServices = EditableItem.AvailableStreamingServices;
+        OriginalItem.Title                      = MovieTitle;
+        OriginalItem.StreamingService           = EditableItem.StreamingService;
+        OriginalItem.Category                   = EditableItem.Category;
+        OriginalItem.DeepLinkUri                = MovieDeepLinkUri;
+        OriginalItem.LastUpdated                = DateTime.Now;
+        OriginalItem.IsWatched                  = IsWatched;
+        OriginalItem.IsLiked                    = EditableItem.IsLiked;
+        OriginalItem.Type                       = EditableItem.Type;
 
         _watchListService.UpdateWatchItem(OriginalItem);
 
@@ -315,28 +372,36 @@ public partial class EditWatchItemViewModel : ObservableObject
 
             OriginalItem = new WatchItem
                            {
-                                   Id               = item.Id
-                                 , Title            = item.Title
-                                 , StreamingService = item.StreamingService
-                                 , Category         = item.Category
-                                 , DeepLinkUri      = item.DeepLinkUri
-                                 , LastUpdated      = item.LastUpdated
-                                 , IsWatched        = item.IsWatched
-                                 , IsLiked          = item.IsLiked
-                                 , Type             = item.Type
+                                   Id                         = item.Id
+                                 , MovieId                    = item.MovieId
+                                 , Overview                   = item.Overview
+                                 , PosterUrl                  = item.PosterUrl
+                                 , AvailableStreamingServices = item.AvailableStreamingServices
+                                 , Title                      = item.Title
+                                 , StreamingService           = item.StreamingService
+                                 , Category                   = item.Category
+                                 , DeepLinkUri                = item.DeepLinkUri
+                                 , LastUpdated                = item.LastUpdated
+                                 , IsWatched                  = item.IsWatched
+                                 , IsLiked                    = item.IsLiked
+                                 , Type                       = item.Type
                            };
 
             EditableItem = new WatchItem
                            {
-                                   Id               = OriginalItem.Id
-                                 , Title            = OriginalItem.Title
-                                 , StreamingService = OriginalItem.StreamingService
-                                 , Category         = OriginalItem.Category
-                                 , DeepLinkUri      = OriginalItem.DeepLinkUri
-                                 , LastUpdated      = OriginalItem.LastUpdated
-                                 , IsWatched        = OriginalItem.IsWatched
-                                 , IsLiked          = OriginalItem.IsLiked
-                                 , Type             = OriginalItem.Type
+                                   Id                         = OriginalItem.Id
+                                 , MovieId                    = OriginalItem.MovieId
+                                 , Overview                   = OriginalItem.Overview
+                                 , PosterUrl                  = OriginalItem.PosterUrl
+                                 , AvailableStreamingServices = OriginalItem.AvailableStreamingServices
+                                 , Title                      = OriginalItem.Title
+                                 , StreamingService           = OriginalItem.StreamingService
+                                 , Category                   = OriginalItem.Category
+                                 , DeepLinkUri                = OriginalItem.DeepLinkUri
+                                 , LastUpdated                = OriginalItem.LastUpdated
+                                 , IsWatched                  = OriginalItem.IsWatched
+                                 , IsLiked                    = OriginalItem.IsLiked
+                                 , Type                       = OriginalItem.Type
                            };
 
             // Sync VM properties

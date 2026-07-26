@@ -100,8 +100,20 @@ public partial class SearchViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task NavigateToDetails(int movieId)
+    private async Task NavigateToDetails(object param)
     {
-        await Shell.Current.GoToAsync($"MovieDetailsPage?movieId={movieId}");
+        if (param is MovieSearchResult searchResult)
+        {
+            var navParams = new Dictionary<string, object>
+            {
+                { "SearchResult", searchResult },
+                { "movieId", searchResult.Id }
+            };
+            await Shell.Current.GoToAsync(nameof(WatchLists.MVVM.Views.MovieDetailsPage), navParams);
+        }
+        else if (param is int movieId)
+        {
+            await Shell.Current.GoToAsync($"MovieDetailsPage?movieId={movieId}");
+        }
     }
 }

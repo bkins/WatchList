@@ -5,9 +5,9 @@
              x:Class="WatchLists.MVVM.Views.SearchPage"
              x:Name="SearchPageReference"
              Title="Search Movies">
-    <StackLayout Padding="10" Spacing="10">
+    <Grid Padding="10" RowSpacing="10" RowDefinitions="Auto,Auto,*">
         <!-- Search Controls -->
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
             <SearchBar AutomationId="MovieSearchBar"
                        Placeholder="Search for movies..."
                        Text="{Binding SearchQuery, Mode=TwoWay}"
@@ -21,7 +21,8 @@
         </Grid>
 
         <!-- Error Feedback Label -->
-        <Label Text="{Binding ErrorMessage}"
+        <Label Grid.Row="1"
+               Text="{Binding ErrorMessage}"
                TextColor="Red"
                HorizontalOptions="Center"
                IsVisible="{Binding HasError}"
@@ -29,7 +30,8 @@
                Margin="10" />
 
         <!-- CollectionView to display search results -->
-        <CollectionView AutomationId="SearchResultsCollectionView"
+        <CollectionView Grid.Row="2"
+                        AutomationId="SearchResultsCollectionView"
                         ItemsSource="{Binding Movies}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
@@ -39,7 +41,7 @@
                         <Grid.GestureRecognizers>
                             <TapGestureRecognizer
                                 Command="{Binding BindingContext.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}}"
-                                CommandParameter="{Binding Id}" />
+                                CommandParameter="{Binding}" />
                         </Grid.GestureRecognizers>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="80" />
@@ -70,5 +72,5 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-    </StackLayout>
+    </Grid>
 </ContentPage>

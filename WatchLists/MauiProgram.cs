@@ -77,6 +77,9 @@ public static class MauiProgram
         builder.Services.AddHttpClient<JustWatchService>();
         builder.Services.AddHttpClient<UtellyService>();
         builder.Services.AddHttpClient<Imdb236Service>();
+        builder.Services.AddHttpClient<WatchmodeService>();
+        builder.Services.AddHttpClient<StreamingAvailabilityService>();
+        builder.Services.AddHttpClient<TvMazeService>();
 
         // Register services
         builder.Services.AddSingleton<WatchListService>();
@@ -87,6 +90,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<IMovieDataProvider, JustWatchService>();
         builder.Services.AddSingleton<IMovieDataProvider, UtellyService>();
         builder.Services.AddSingleton<IMovieDataProvider, Imdb236Service>();
+        builder.Services.AddSingleton<IMovieDataProvider, WatchmodeService>();
+        builder.Services.AddSingleton<IMovieDataProvider, StreamingAvailabilityService>();
+        builder.Services.AddSingleton<IMovieDataProvider, TvMazeService>();
 
         // Build the app to resolve services
         var app = builder.Build();

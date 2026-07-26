@@ -44,19 +44,44 @@ public class TmdbService : IMovieDataProvider
             var url = $"{BaseUrl}/movie/{movieId}?api_key={ApiKey}";
             var response = await _httpClient.GetFromJsonAsync<MovieDetail>(url);
 
-            if (response != null)
+            if (response != null && response.Title.HasValue())
             {
                 result.Data = response;
-                result.Diagnostics[GetType().Name] = "Data returned successfully.";
-            }
-            else
-            {
-                result.Diagnostics[GetType().Name] = "No data returned.";
+                result.Diagnostics[GetType().Name] = "Data returned successfully from movie endpoint.";
             }
         }
-        catch (Exception ex)
+        catch
         {
-            result.Diagnostics[GetType().Name] = $"Error: {ex.Message}";
+            // /movie/ endpoint failed, proceed to /tv/ fallback
+        }
+
+        if (result.Data == null || result.Data.Title.HasNoValue())
+        {
+            try
+            {
+                var tvUrl = $"{BaseUrl}/tv/{movieId}?api_key={ApiKey}";
+                var tvResponse = await _httpClient.GetFromJsonAsync<TmdbTvDetail>(tvUrl);
+
+                if (tvResponse != null && tvResponse.Name.HasValue())
+                {
+                    result.Data = new MovieDetail
+                    {
+                        Id         = tvResponse.Id,
+                        Title      = tvResponse.Name,
+                        Overview   = tvResponse.Overview,
+                        PosterPath = tvResponse.PosterPath
+                    };
+                    result.Diagnostics[GetType().Name] = "Data returned successfully from TV endpoint.";
+                }
+                else
+                {
+                    result.Diagnostics[GetType().Name] = "No data returned from movie or TV endpoints.";
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Diagnostics[GetType().Name] = $"Error: {ex.Message}";
+            }
         }
 
         return result;
@@ -74,6 +99,30 @@ public class TmdbService : IMovieDataProvider
         {
             var url = $"{BaseUrl}/search/movie?api_key={ApiKey}&query={Uri.EscapeDataString(query)}";
             var response = await _httpClient.GetFromJsonAsync<MovieSearchResponse>(url);
+
+            if (response?.Results != null && response.Results.Count > 0)
+            {
+                var providerTasks = response.Results.Select(async movie =>
+                {
+                    var providersResult = await GetWatchProvidersAsync(movie.Id);
+                    if (providersResult.Data?.Results != null
+                     && providersResult.Data.Results.TryGetValue("US", out var usProviders))
+                    {
+                        var streamingNames = usProviders.Flatrate
+                                                        ?.Where(watchProvider => watchProvider.ProviderName.HasValue())
+                                                        .Select(watchProvider => watchProvider.ProviderName)
+                                                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                                                        .ToList();
+
+                        if (streamingNames != null && streamingNames.Count > 0)
+                        {
+                            movie.StreamingProviders = streamingNames;
+                        }
+                    }
+                }).ToList();
+
+                await Task.WhenAll(providerTasks);
+            }
 
             result.Data = response;
             result.Diagnostics[GetType().Name] = response != null && response.Results.Count > 0

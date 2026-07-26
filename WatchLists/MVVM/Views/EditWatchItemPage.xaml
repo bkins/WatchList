@@ -4,58 +4,82 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="WatchLists.MVVM.Views.EditWatchItemPage">
 
-       <StackLayout Padding="10"
-                    Spacing="12">
-              <Entry AutomationId="TitleEntry"
-                     Placeholder="Title"
-                     Text="{Binding MovieTitle}" />
-              <Picker AutomationId="StreamingServicePicker"
-                      Title="Streaming Service"
-                      ItemsSource="{Binding StreamingServices}"
-                      SelectedItem="{Binding SelectedStreamingService, Mode=TwoWay}" />
-              <Picker AutomationId="CategoryPicker"
-                      Title="Category"
-                      ItemsSource="{Binding Categories}"
-                      SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
-                      SelectedIndexChanged="OnCategorySelectionChanged" />
-              <Entry AutomationId="DeepLinkEntry"
-                     Placeholder="Deep Link"
-                     Text="{Binding MovieDeepLinkUri}" />
+       <ScrollView>
+              <StackLayout Padding="10" Spacing="10">
+                     <!-- Poster Image & Metadata Header -->
+                     <Grid ColumnDefinitions="100,*" ColumnSpacing="12" IsVisible="{Binding EditableItem.PosterUrl, Converter={StaticResource StringToBoolConverter}}">
+                            <Image Source="{Binding EditableItem.PosterUrl}" WidthRequest="100" HeightRequest="150" Aspect="AspectFill" Grid.Column="0" />
+                            <StackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                   <Label Text="{Binding EditableItem.Overview}" FontSize="Small" MaxLines="5" LineBreakMode="TailTruncation" />
+                            </StackLayout>
+                     </Grid>
 
-              <!-- Type Dropdown -->
-              <Picker AutomationId="TypePicker"
-                      Title="Type"
-                      ItemsSource="{Binding AvailableTypes}"
-                      SelectedItem="{Binding EditableItem.Type, Mode=TwoWay}" />
+                     <!-- Streaming Availability & Refresh Button -->
+                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding EditableItem.HasAvailableStreamingServices}">
+                            <Label Text="{Binding EditableItem.AvailableStreamingServicesDisplay}"
+                                   Grid.Column="0"
+                                   VerticalOptions="Center"
+                                   FontSize="Small"
+                                   FontAttributes="Italic"
+                                   TextColor="Gray" />
+                            <Button AutomationId="RefreshStreamingServicesButton"
+                                    Text="🔄 Refresh"
+                                    Grid.Column="1"
+                                    Command="{Binding RefreshStreamingServicesCommand}"
+                                    VerticalOptions="Center" />
+                     </Grid>
 
-              <!-- IsWatched Checkbox -->
-              <StackLayout Orientation="Horizontal">
-                     <Label Text="Watched:"
-                            VerticalOptions="Center" />
-                     <Switch AutomationId="WatchedSwitch"
-                             IsToggled="{Binding IsWatched}"
-                             Toggled="Switch_Toggled" />
+                     <Entry AutomationId="TitleEntry"
+                            Placeholder="Title"
+                            Text="{Binding MovieTitle}" />
+                     <Picker AutomationId="StreamingServicePicker"
+                             Title="Streaming Service"
+                             ItemsSource="{Binding StreamingServices}"
+                             SelectedItem="{Binding SelectedStreamingService, Mode=TwoWay}" />
+                     <Picker AutomationId="CategoryPicker"
+                             Title="Category"
+                             ItemsSource="{Binding Categories}"
+                             SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
+                             SelectedIndexChanged="OnCategorySelectionChanged" />
+                     <Entry AutomationId="DeepLinkEntry"
+                            Placeholder="Deep Link"
+                            Text="{Binding MovieDeepLinkUri}" />
+
+                     <!-- Type Dropdown -->
+                     <Picker AutomationId="TypePicker"
+                             Title="Type"
+                             ItemsSource="{Binding AvailableTypes}"
+                             SelectedItem="{Binding EditableItem.Type, Mode=TwoWay}" />
+
+                     <!-- IsWatched Checkbox -->
+                     <StackLayout Orientation="Horizontal">
+                            <Label Text="Watched:"
+                                   VerticalOptions="Center" />
+                            <Switch AutomationId="WatchedSwitch"
+                                    IsToggled="{Binding IsWatched}"
+                                    Toggled="Switch_Toggled" />
+                     </StackLayout>
+
+                     <!-- Thumbs Up/Down UI -->
+                     <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
+                            <Button AutomationId="ThumbsUpButton"
+                                    Text="👍"
+                                    Command="{Binding ToggleIsLikedCommand}"
+                                    CommandParameter="{StaticResource TrueBoolean}"
+                                    BackgroundColor="{Binding IsLiked, Converter={StaticResource BoolToColorConverter}}" />
+                            <Button AutomationId="ThumbsDownButton"
+                                    Text="👎"
+                                    Command="{Binding ToggleIsLikedCommand}"
+                                    CommandParameter="{StaticResource FalseBoolean}"
+                                    BackgroundColor="{Binding IsDisliked, Converter={StaticResource BoolToColorConverter}}" />
+                     </StackLayout>
+
+                     <Button AutomationId="SearchApisButton"
+                             Text="Search APIs"
+                             Command="{Binding OpenSearchCommand}"
+                             Style="{StaticResource PrimaryButtonStyle}" />
+
+                     <Button AutomationId="SaveButton" Text="Save" Command="{Binding SaveCommand}" />
               </StackLayout>
-
-              <!-- Thumbs Up/Down UI -->
-              <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
-                     <Button AutomationId="ThumbsUpButton"
-                             Text="👍"
-                             Command="{Binding ToggleIsLikedCommand}"
-                             CommandParameter="{StaticResource TrueBoolean}"
-                             BackgroundColor="{Binding IsLiked, Converter={StaticResource BoolToColorConverter}}" />
-                     <Button AutomationId="ThumbsDownButton"
-                             Text="👎"
-                             Command="{Binding ToggleIsLikedCommand}"
-                             CommandParameter="{StaticResource FalseBoolean}"
-                             BackgroundColor="{Binding IsDisliked, Converter={StaticResource BoolToColorConverter}}" />
-              </StackLayout>
-
-              <Button AutomationId="SearchApisButton"
-                      Text="Search APIs"
-                      Command="{Binding OpenSearchCommand}"
-                      Style="{StaticResource PrimaryButtonStyle}" />
-
-              <Button AutomationId="SaveButton" Text="Save" Command="{Binding SaveCommand}" />
-       </StackLayout>
+       </ScrollView>
 </ContentPage>

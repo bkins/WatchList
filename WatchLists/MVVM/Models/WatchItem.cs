@@ -15,6 +15,18 @@ public class WatchItem : ObservableObject
     public bool     IsLiked          { get; set; }
     public string   DeepLinkUri      { get; set; } // URL/URI to open the streaming service app
     public DateTime LastUpdated      { get; set; } = DateTime.Now;
-    public string   Type             { get; set; } // e.g., "Show", "Movie", "Mini-Series"
-    public string   PreviousCategory { get; set; }
+    public string   Type                       { get; set; } // e.g., "Show", "Movie", "Mini-Series"
+    public string   PreviousCategory           { get; set; }
+    public int      MovieId                    { get; set; }
+    public string   Overview                   { get; set; } = string.Empty;
+    public string   PosterUrl                  { get; set; } = string.Empty;
+    public string   AvailableStreamingServices { get; set; } = string.Empty;
+
+    [Ignore]
+    public bool HasAvailableStreamingServices => ! string.IsNullOrWhiteSpace(AvailableStreamingServices);
+
+    [Ignore]
+    public string AvailableStreamingServicesDisplay => HasAvailableStreamingServices
+        ? "Available on: " + AvailableStreamingServices
+        : string.Empty;
 }

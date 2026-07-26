@@ -156,8 +156,9 @@
                                                 </SwipeItems>
                                             </SwipeView.RightItems>
 
-                                            <Grid Padding="10">
+                                            <Grid Padding="10" ColumnSpacing="10">
                                                 <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="Auto" />
@@ -173,8 +174,17 @@
                                                     </MenuFlyout>
                                                 </FlyoutBase.ContextFlyout>
 
+                                                <!-- Poster Image -->
+                                                <Image Grid.Column="0"
+                                                       Source="{Binding PosterUrl}"
+                                                       WidthRequest="50"
+                                                       HeightRequest="75"
+                                                       Aspect="AspectFill"
+                                                       IsVisible="{Binding PosterUrl, Converter={StaticResource StringToBoolConverter}}"
+                                                       VerticalOptions="Center" />
+
                                                 <!-- Movie Info (Tapping this opens deep link) -->
-                                                <StackLayout Grid.Column="0" Orientation="Vertical" VerticalOptions="Center">
+                                                <StackLayout Grid.Column="1" Orientation="Vertical" VerticalOptions="Center">
                                                     <StackLayout.GestureRecognizers>
                                                         <TapGestureRecognizer
                                                             Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
@@ -183,10 +193,13 @@
                                                     <Label Text="{Binding Title}" FontAttributes="Bold" />
                                                     <Label Text="{Binding StreamingService}" FontSize="Small"
                                                            TextColor="Gray" />
+                                                    <Label Text="{Binding AvailableStreamingServicesDisplay}" FontSize="Micro"
+                                                           TextColor="Gray" FontAttributes="Italic"
+                                                           IsVisible="{Binding HasAvailableStreamingServices}" />
                                                 </StackLayout>
 
                                                 <!-- Edit Button -->
-                                                <ImageButton Grid.Column="1"
+                                                <ImageButton Grid.Column="2"
                                                              WidthRequest="32"
                                                              HeightRequest="32"
                                                              Padding="4"
@@ -204,7 +217,7 @@
                                                 </ImageButton>
 
                                                 <!-- Heart Icon to indicate "Liked" status -->
-                                                <Image Grid.Column="2"
+                                                <Image Grid.Column="3"
                                                        WidthRequest="24"
                                                        HeightRequest="24"
                                                        VerticalOptions="Center"

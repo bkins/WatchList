@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WatchLists.DataAccess.Interfaces;
+using WatchLists.ExtensionMethods;
 using WatchLists.Services.Interfaces;
 using WatchLists.Services.Models;
 
@@ -14,7 +15,7 @@ public class MovieDataAggregator : IMovieDataAggregator
 
     public MovieDataAggregator(IEnumerable<IMovieDataProvider> providers)
     {
-        _providers = providers.Where(p => p.IsEnabled).ToList();
+        _providers = providers.Where(provider => provider.IsEnabled).ToList();
     }
 
     /// <summary>
@@ -36,8 +37,8 @@ public class MovieDataAggregator : IMovieDataAggregator
                 aggregatedResult.Diagnostics[diagnostic.Key] = diagnostic.Value;
             }
 
-            // Keep the last successful data instead of returning early
-            if (result.Data != null)
+            // Keep the first successful data (preferring primary providers like TMDB)
+            if (lastSuccessfulData == null && result.Data != null)
             {
                 lastSuccessfulData = result.Data;
             }
@@ -95,16 +96,13 @@ public class MovieDataAggregator : IMovieDataAggregator
                 }
             }
 
-            if (completed.Result?.Data?.Results != null)
-            {
-                foreach (var item in completed.Result.Data.Results)
-                {
-                    if (item != null)
-                    {
-                        allResults.Add((completed.ProviderName, item));
-                    }
-                }
-            }
+            if (completed.Result?.Data?.Results == null) continue;
+
+            allResults.AddRange(completed.Result
+                                         .Data
+                                         .Results
+                                         .OfType<MovieSearchResult>()
+                                         .Select(item => (completed.ProviderName, item)));
         }
 
         // Group by normalized title to deduplicate
@@ -116,49 +114,48 @@ public class MovieDataAggregator : IMovieDataAggregator
         foreach (var group in groupedResults)
         {
             // Prefer TMDB first, then JustWatch, then Utelly for the primary representative
-            var primaryRepresentative = group.OrderBy(result => result.ProviderName == "TmdbService" ? 0 
-                                                              : result.ProviderName == "JustWatchService" ? 1 
+            var primaryRepresentative = group.OrderBy(result => result.ProviderName == "TmdbService" ? 0
+                                                              : result.ProviderName == "JustWatchService" ? 1
                                                               : 2)
                                              .Select(result => result.Item)
                                              .FirstOrDefault();
 
-            if (primaryRepresentative != null)
+            if (primaryRepresentative == null) continue;
+
+            // Merge streaming providers from all items in this group
+            var allProvidersForGroup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var result in group)
             {
-                // Merge streaming providers from all items in this group
-                var allProvidersForGroup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (result.Item.StreamingProviders == null) continue;
 
-                foreach (var result in group)
+                foreach (var providerName in result.Item
+                                                   .StreamingProviders
+                                                   .Where(providerName => !string.IsNullOrWhiteSpace(providerName)))
                 {
-                    if (result.Item.StreamingProviders != null)
-                    {
-                        foreach (var providerName in result.Item.StreamingProviders)
-                        {
-                            if (!string.IsNullOrWhiteSpace(providerName))
-                            {
-                                allProvidersForGroup.Add(providerName);
-                            }
-                        }
-                    }
+                    allProvidersForGroup.Add(providerName);
                 }
-
-                primaryRepresentative.StreamingProviders = allProvidersForGroup.ToList();
-                mergedResults.Add(primaryRepresentative);
             }
+
+            primaryRepresentative.StreamingProviders = allProvidersForGroup.ToList();
+            mergedResults.Add(primaryRepresentative);
         }
 
-        aggregatedResult.Data.Results = mergedResults;
+        var sortedMergedResults = mergedResults.OrderByDescending(item => item.Title.EqualsIgnoreCase(query))
+                                               .ThenBy(item => item.Title.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                                               .ToList();
+
+        aggregatedResult.Data.Results = sortedMergedResults;
         return aggregatedResult;
     }
 
-    private string NormalizeTitle(string title)
+    private static string NormalizeTitle(string title)
     {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
 
         var normalized = title.ToLowerInvariant();
         var chars = normalized.Where(c => char.IsLetterOrDigit(c)).ToArray();
+
         return new string(chars);
     }
 

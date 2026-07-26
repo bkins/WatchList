@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+
+using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Messaging;
 using WatchLists.MVVM.Views;
@@ -26,27 +28,38 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     // This method is called when the page is navigated to with query parameters.
     public async void ApplyQueryAttributes (IDictionary<string, object> query)
     {
-        if (query.TryGetValue("movieId"
-                            , out object movieIdObj))
+        if (query.TryGetValue("SearchResult", out var searchResultObj) && searchResultObj is MovieSearchResult searchResult)
         {
-            // Convert the query parameter to a string.
+            MovieDetail = new MovieDetail
+            {
+                Id         = searchResult.Id,
+                Title      = searchResult.Title,
+                Overview   = searchResult.Overview,
+                PosterPath = searchResult.PosterPath
+            };
+
+            var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
+                    searchResult.Id.ToString()
+                  , _movieDataAggregator.GetMovieDetailsAsync
+                  , "Movie ID");
+
+            if (result.Data != null && result.Data.Title.HasValue() && result.Data.Title.EqualsIgnoreCase(searchResult.Title))
+            {
+                MovieDetail = result.Data;
+            }
+        }
+        else if (query.TryGetValue("movieId", out var movieIdObj))
+        {
             string movieIdStr = movieIdObj?.ToString() ?? "";
 
-            // Use the ApiUtility to validate and execute the API call.
             var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
                     movieIdStr
                   , _movieDataAggregator.GetMovieDetailsAsync
                   , "Movie ID");
 
-            // If data is returned, assign it; otherwise, handle error/diagnostics as needed.
             if (result.Data != null)
             {
                 MovieDetail = result.Data;
-            }
-            else
-            {
-                // Optionally, log or display the diagnostic error:
-                // For example: MovieDetail = new MovieDetail { Title = result.Diagnostics["ApiTestViewModel"] };
             }
         }
     }
@@ -60,13 +73,19 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
             return;
         }
 
+        var posterUrl = string.IsNullOrWhiteSpace(MovieDetail.PosterPath)
+            ? string.Empty
+            : MovieDetail.PosterPath.StartsWith("http")
+                ? MovieDetail.PosterPath
+                : $"https://image.tmdb.org/t/p/w500{MovieDetail.PosterPath}";
+
         var movie = new Movie
-        {
-            Id         = MovieDetail.Id,
-            Title      = MovieDetail.Title,
-            Overview   = MovieDetail.Overview,
-            PosterPath = MovieDetail.PosterPath ?? string.Empty
-        };
+                    {
+                        Id         = MovieDetail.Id
+                      , Title      = MovieDetail.Title
+                      , Overview   = MovieDetail.Overview
+                      , PosterPath = posterUrl
+                    };
 
         await FileLogger.WriteLogAsync($"[SelectMovie] Invoked. Selected Title: '{movie.Title}', Id: {movie.Id}");
 
