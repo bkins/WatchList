@@ -1,20 +1,17 @@
 using WatchLists.MVVM.ViewModels;
-using WatchLists.Services;
-using WatchLists.Services.Interfaces;
-using WatchLists.DataAccess.Interfaces;
 
 namespace WatchLists.MVVM.Views;
 
 public partial class MovieDetailsPage : ContentPage, IQueryAttributable
 {
-    public MovieDetailsPage()
+    public MovieDetailsPage(MovieDetailsViewModel viewModel)
     {
         InitializeComponent();
+        BindingContext = viewModel;
+    }
 
-        var services = App.Current.Services;
-        BindingContext = services.GetService<MovieDetailsViewModel>()
-                      ?? new MovieDetailsViewModel(services.GetService<IMovieDataAggregator>() 
-                                                   ?? new MovieDataAggregator(System.Linq.Enumerable.Empty<IMovieDataProvider>()));
+    public MovieDetailsPage() : this(App.Current.Services.GetRequiredService<MovieDetailsViewModel>())
+    {
     }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)

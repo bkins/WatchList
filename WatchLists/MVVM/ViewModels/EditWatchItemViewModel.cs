@@ -156,6 +156,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                        {
                            Id                         = EditableItem.Id
                          , MovieId                    = movie?.Id ?? 0
+                         , ApiSource                  = movie?.PrimarySourceApi ?? string.Empty
                          , Title                      = movie?.Title ?? string.Empty
                          , Overview                   = movie?.Overview ?? string.Empty
                          , PosterUrl                  = movie?.PosterPath ?? string.Empty
@@ -337,7 +338,18 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         await FileLogger.WriteLogAsync("Save command invoked.");
 
+        if (EditableItem != null && EditableItem.MovieId > 0)
+        {
+            var existingDuplicate = _watchListService.FindDuplicateItem(EditableItem.MovieId, EditableItem.ApiSource, OriginalItem.Id);
+            if (existingDuplicate != null)
+            {
+                await Shell.Current.DisplayAlert("Duplicate Item", $"'{MovieTitle}' is already in your WatchList under '{existingDuplicate.Category}'.", "OK");
+                return;
+            }
+        }
+
         OriginalItem.MovieId                    = EditableItem.MovieId;
+        OriginalItem.ApiSource                  = EditableItem.ApiSource;
         OriginalItem.Overview                   = EditableItem.Overview;
         OriginalItem.PosterUrl                  = EditableItem.PosterUrl;
         OriginalItem.AvailableStreamingServices = EditableItem.AvailableStreamingServices;
@@ -443,6 +455,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                            {
                                    Id                         = item.Id
                                  , MovieId                    = item.MovieId
+                                 , ApiSource                  = item.ApiSource
                                  , Overview                   = item.Overview
                                  , PosterUrl                  = item.PosterUrl
                                  , AvailableStreamingServices = item.AvailableStreamingServices
@@ -460,6 +473,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                            {
                                    Id                         = OriginalItem.Id
                                  , MovieId                    = OriginalItem.MovieId
+                                 , ApiSource                  = OriginalItem.ApiSource
                                  , Overview                   = OriginalItem.Overview
                                  , PosterUrl                  = OriginalItem.PosterUrl
                                  , AvailableStreamingServices = OriginalItem.AvailableStreamingServices

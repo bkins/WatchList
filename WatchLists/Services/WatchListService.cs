@@ -90,6 +90,19 @@ public class WatchListService
         _ = FileLogger.WriteLogAsync($"Deleted WatchItem with ID: {id} via SQLite");
     }
 
+    public WatchItem? FindDuplicateItem (int movieId, string? apiSource = null, Guid? excludeId = null)
+    {
+        if (movieId <= 0) return null;
+
+        var items = GetWatchItems();
+        return items.FirstOrDefault(item =>
+            item.Id != excludeId
+         && item.MovieId == movieId
+         && (apiSource.IsEmptyNullOrWhiteSpace()
+          || item.ApiSource.IsEmptyNullOrWhiteSpace()
+          || item.ApiSource.EqualsIgnoreCase(apiSource)));
+    }
+
     public async Task SaveWatchItemAsync (WatchItem item)
     {
         // Check if the category exists in settings options

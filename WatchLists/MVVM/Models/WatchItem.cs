@@ -18,6 +18,7 @@ public class WatchItem : ObservableObject
     public string   Type                       { get; set; } // e.g., "Show", "Movie", "Mini-Series"
     public string   PreviousCategory           { get; set; }
     public int      MovieId                    { get; set; }
+    public string   ApiSource                  { get; set; } = string.Empty; // e.g. "TMDB", "TVMaze", "JustWatch"
     public string   Overview                   { get; set; } = string.Empty;
     public string   PosterUrl                  { get; set; } = string.Empty;
     public string   AvailableStreamingServices { get; set; } = string.Empty;
