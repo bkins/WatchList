@@ -65,37 +65,57 @@ public static class DeepLinkUtility
                     return $"youtube://watch?v={match.Groups[1].Value}";
                 }
             }
+            else if (normalizedProvider.Contains("apple"))
+            {
+                var match = Regex.Match(webUrl, @"tv\.apple\.com/[^/]+/(?:show|movie)/[^/]+/([^/?#]+)");
+                if (match.Success)
+                {
+                    return webUrl;
+                }
+            }
 
             return webUrl;
         }
 
         // 2. Search-based deep link fallbacks
         var escapedTitle = Uri.EscapeDataString(title);
+        if (normalizedProvider.Contains("apple"))
+        {
+            return $"https://tv.apple.com/us/search?term={escapedTitle}";
+        }
         if (normalizedProvider.Contains("netflix"))
         {
-            return $"netflix://search?q={escapedTitle}";
+            return $"https://www.netflix.com/search?q={escapedTitle}";
         }
         if (normalizedProvider.Contains("prime video") || normalizedProvider.Contains("amazon"))
         {
-            return $"primevideo://search?phrase={escapedTitle}";
+            return $"https://www.amazon.com/s?k={escapedTitle}&i=instant-video";
         }
         if (normalizedProvider.Contains("disney"))
         {
-            return "disneyplus://";
+            return $"https://www.disneyplus.com/search?q={escapedTitle}";
         }
         if (normalizedProvider.Contains("hulu"))
         {
-            return "hulu://";
+            return $"https://www.hulu.com/search?q={escapedTitle}";
         }
         if (normalizedProvider.Contains("max") || normalizedProvider.Contains("hbo"))
         {
-            return "max://";
+            return $"https://www.max.com/search?q={escapedTitle}";
         }
         if (normalizedProvider.Contains("youtube"))
         {
-            return $"youtube://results?search_query={escapedTitle}";
+            return $"https://www.youtube.com/results?search_query={escapedTitle}";
+        }
+        if (normalizedProvider.Contains("paramount"))
+        {
+            return $"https://www.paramountplus.com/search/?q={escapedTitle}";
+        }
+        if (normalizedProvider.Contains("peacock"))
+        {
+            return $"https://www.peacocktv.com/watch/search?q={escapedTitle}";
         }
 
-        return string.Empty;
+        return !string.IsNullOrWhiteSpace(webUrl) ? webUrl : $"https://www.google.com/search?q={escapedTitle}+watch+online";
     }
 }

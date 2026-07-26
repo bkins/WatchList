@@ -26,6 +26,8 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
         }
     }
 
+    public int ItemCount => Items.Count;
+
     public WatchItemGroup(string categoryName) : base()
     {
         CategoryName        = categoryName;

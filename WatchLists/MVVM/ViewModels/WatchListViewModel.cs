@@ -19,6 +19,15 @@ public partial class WatchListViewModel : ObservableObject
     [ObservableProperty]
     private string searchText;
 
+    [ObservableProperty]
+    private int totalCount;
+
+    [ObservableProperty]
+    private int watchedCount;
+
+    [ObservableProperty]
+    private int unwatchedCount;
+
     public ObservableCollection<WatchItemGroup> WatchItemGroups { get; set; } = new();
     public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
     public ObservableCollection<WatchItem> VisibleWatchItems { get; set; } = new();
@@ -109,14 +118,14 @@ public partial class WatchListViewModel : ObservableObject
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
     }
 
+    public ObservableCollection<CategoryStatCardItem> CategoryStats { get; } = new();
+
     private async Task LoadGroupedWatchItemsAsync()
     {
-        // var managedCategories = await _settingsService.LoadOptionsAsync("Categories.json",
-        //                                             "Currently Watching,Finished Watching,Consider Watching");
         var managedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
 
-        WatchItemGroups.Clear();
-        var groupedItems = _watchListService.GetWatchItems().GroupBy(item => item.Category).ToList();
+        var allWatchItems = _watchListService.GetWatchItems();
+        var groupedItems = allWatchItems.GroupBy(item => item.Category.HasValue() ? item.Category : "Currently Watching").ToList();
 
         // Sort groups based on managed category order.
         var sortedGroups = groupedItems.OrderBy(grouping =>
@@ -125,6 +134,7 @@ public partial class WatchListViewModel : ObservableObject
             return index >= 0 ? index : int.MaxValue;
         });
 
+        WatchItemGroups.Clear();
         foreach (var group in sortedGroups)
         {
             var watchItemGroup = new WatchItemGroup(group.Key);
@@ -144,7 +154,60 @@ public partial class WatchListViewModel : ObservableObject
 
         FilterGroups();
         UpdateVisibleItems();
+
+        var allItems = WatchItemGroups.SelectMany(g => g.Items).ToList();
+        TotalCount = allItems.Count;
+        WatchedCount = allItems.Count(i => i.IsWatched);
+        UnwatchedCount = TotalCount - WatchedCount;
+
+        CategoryStats.Clear();
+        CategoryStats.Add(new CategoryStatCardItem
+        {
+            CategoryName = "All",
+            Count = TotalCount,
+            IsSelected = true,
+            SelectCommand = new RelayCommand(() => SelectCategoryStat("All"))
+        });
+
+        foreach (var group in WatchItemGroups.Where(g => g.Items.Count > 0))
+        {
+            var catName = group.CategoryName;
+            CategoryStats.Add(new CategoryStatCardItem
+            {
+                CategoryName = catName,
+                Count = group.Items.Count,
+                IsSelected = false,
+                SelectCommand = new RelayCommand(() => SelectCategoryStat(catName))
+            });
+        }
+
         await FileLogger.WriteLogAsync($"Loaded {groupedItems.Count} watch items");
+    }
+
+    [RelayCommand]
+    public void SelectCategoryStat(string categoryName)
+    {
+        foreach (var stat in CategoryStats)
+        {
+            stat.IsSelected = stat.CategoryName.EqualsIgnoreCase(categoryName);
+        }
+
+        if (categoryName.EqualsIgnoreCase("All"))
+        {
+            foreach (var group in WatchItemGroups)
+            {
+                group.IsExpanded = true;
+            }
+        }
+        else
+        {
+            foreach (var group in WatchItemGroups)
+            {
+                group.IsExpanded = group.CategoryName.EqualsIgnoreCase(categoryName);
+            }
+        }
+
+        UpdateVisibleItemsAction?.Invoke();
     }
 
     partial void OnSearchTextChanged(string value)
@@ -218,4 +281,12 @@ public partial class WatchListViewModel : ObservableObject
             }
         }
     }
+}
+
+public partial class CategoryStatCardItem : ObservableObject
+{
+    [ObservableProperty] private string categoryName = string.Empty;
+    [ObservableProperty] private int count;
+    [ObservableProperty] private bool isSelected;
+    public System.Windows.Input.ICommand SelectCommand { get; set; }
 }

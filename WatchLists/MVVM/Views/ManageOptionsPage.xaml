@@ -1,60 +1,73 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    x:Class="WatchLists.MVVM.Views.ManageOptionsPage"
-    x:Name="PageReference"
-    Title="{Binding OptionTitle}">
+<?xml version="1.0" encoding="utf-8" ?>
 
-    <Grid RowDefinitions="*,Auto,Auto" Padding="10">
-        <!-- CollectionView for Options with Up/Down buttons -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="WatchLists.MVVM.Views.ManageOptionsPage"
+             x:Name="PageReference"
+             Title="{Binding OptionTitle}">
+
+    <Grid RowDefinitions="*,Auto,Auto" Padding="12,10" RowSpacing="10">
+
+        <!-- CollectionView for Options with Up/Down Reorder Buttons -->
         <CollectionView Grid.Row="0" ItemsSource="{Binding Options}">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Padding="10" ColumnSpacing="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <!-- Editable Entry for each option -->
-                        <Entry Text="{Binding ., Mode=TwoWay}" Grid.Column="0" />
-                        <!-- Up Button -->
-                        <Button Text="↑"
-                                Grid.Column="1"
-                                Command="{Binding BindingContext.MoveOptionUpCommand, Source={x:Reference PageReference}}"
-                                CommandParameter="{Binding .}" />
-                        <!-- Down Button -->
-                        <Button Text="↓"
-                                Grid.Column="2"
-                                Command="{Binding BindingContext.MoveOptionDownCommand, Source={x:Reference PageReference}}"
-                                CommandParameter="{Binding .}" />
-                    </Grid>
+                    <Frame Style="{StaticResource CardStyle}" Padding="10,6" Margin="0,3">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                            <Border Grid.Column="0" Padding="2">
+                                <Entry Text="{Binding ., Mode=TwoWay}" />
+                            </Border>
+
+                            <Button Text="↑"
+                                    Grid.Column="1"
+                                    Command="{Binding BindingContext.MoveOptionUpCommand, Source={x:Reference PageReference}}"
+                                    CommandParameter="{Binding .}"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    Padding="0"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+
+                            <Button Text="↓"
+                                    Grid.Column="2"
+                                    Command="{Binding BindingContext.MoveOptionDownCommand, Source={x:Reference PageReference}}"
+                                    CommandParameter="{Binding .}"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    Padding="0"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </Grid>
+                    </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Entry for adding a new option -->
-        <Grid Grid.Row="1"
-              Padding="10">
-            <Entry Placeholder="Enter new option"
-                   Text="{Binding NewOption, Mode=TwoWay}"
-                   HorizontalOptions="Fill">
-                <Entry.Behaviors>
-                    <toolkit:EventToCommandBehavior
-                        EventName="Completed"
-                        Command="{Binding AddOptionCommand}" />
-                </Entry.Behaviors>
-            </Entry>
-        </Grid>
+        <!-- Entry & Add Button for Adding a New Option -->
+        <Frame Grid.Row="1" Style="{StaticResource ElevatedCardStyle}" Padding="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <Border Grid.Column="0" Padding="2">
+                    <Entry Placeholder="Enter new option item..."
+                           Text="{Binding NewOption, Mode=TwoWay}">
+                        <Entry.Behaviors>
+                            <toolkit:EventToCommandBehavior EventName="Completed" Command="{Binding AddOptionCommand}" />
+                        </Entry.Behaviors>
+                    </Entry>
+                </Border>
 
-        <!-- Fixed Save Button -->
-        <Grid Grid.Row="2"
-              Padding="10">
-            <Button Text="Save"
-                    Command="{Binding SaveOptionsCommand}"
-                    HorizontalOptions="Fill" />
-        </Grid>
+                <Button Grid.Column="1"
+                        Text="+ Add"
+                        Command="{Binding AddOptionCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HeightRequest="44"
+                        Padding="14,0" />
+            </Grid>
+        </Frame>
+
+        <!-- Save Button -->
+        <Button Grid.Row="2"
+                Text="💾 Save Options"
+                Command="{Binding SaveOptionsCommand}"
+                Style="{StaticResource PrimaryButtonStyle}"
+                HorizontalOptions="Fill" />
     </Grid>
 </ContentPage>

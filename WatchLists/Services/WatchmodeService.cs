@@ -44,9 +44,10 @@ public class WatchmodeService : IMovieDataProvider
                 {
                     var movieSearchResult = new MovieSearchResult
                                            {
-                                               Id       = titleResult.Id
-                                             , Title    = titleResult.Name ?? string.Empty
-                                             , Overview = $"Release Year: {titleResult.Year}"
+                                               Id         = titleResult.Id
+                                             , Title      = titleResult.Name ?? string.Empty
+                                             , Overview   = $"Release Year: {titleResult.Year}"
+                                             , SourceApis = new List<string> { "Watchmode" }
                                            };
 
                     try

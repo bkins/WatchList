@@ -4,71 +4,121 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="WatchLists.MVVM.Views.SearchPage"
              x:Name="SearchPageReference"
-             Title="Search Movies">
-    <Grid Padding="10" RowSpacing="10" RowDefinitions="Auto,Auto,*">
-        <!-- Search Controls -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <SearchBar AutomationId="MovieSearchBar"
-                       Placeholder="Search for movies..."
-                       Text="{Binding SearchQuery, Mode=TwoWay}"
-                       SearchCommand="{Binding SearchCommand}"
-                       Grid.Column="0" />
-            <Button AutomationId="SearchMovieButton"
-                    Text="Search"
-                    Command="{Binding SearchCommand}"
-                    Grid.Column="1"
-                    VerticalOptions="Center" />
-        </Grid>
+             Title="Discover Movies &amp; Shows">
+
+    <Grid Padding="12,10" RowDefinitions="Auto,Auto,*" RowSpacing="10">
+
+        <!-- Search Header Card -->
+        <Frame Grid.Row="0"
+               Style="{StaticResource ElevatedCardStyle}"
+               Padding="14,12"
+               Margin="0,0,0,4">
+            <StackLayout Spacing="8">
+                <Label Text="Discover &amp; Search"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                <Label Text="Search TMDB, JustWatch, TVMaze &amp; Utelly concurrently"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4,0,0">
+                    <Border Grid.Column="0"
+                            Padding="2"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}">
+                        <SearchBar AutomationId="MovieSearchBar"
+                                   Placeholder="Search titles (e.g. Inception, Breaking Bad)..."
+                                   Text="{Binding SearchQuery, Mode=TwoWay}"
+                                   SearchCommand="{Binding SearchCommand}" />
+                    </Border>
+
+                    <Button AutomationId="SearchMovieButton"
+                            Text="Search"
+                            Command="{Binding SearchCommand}"
+                            Grid.Column="1"
+                            VerticalOptions="Center"
+                            HeightRequest="44"
+                            Padding="16,0"
+                            CornerRadius="8" />
+                </Grid>
+            </StackLayout>
+        </Frame>
 
         <!-- Error Feedback Label -->
-        <Label Grid.Row="1"
-               Text="{Binding ErrorMessage}"
-               TextColor="Red"
-               HorizontalOptions="Center"
-               IsVisible="{Binding HasError}"
-               LineBreakMode="WordWrap"
-               Margin="10" />
+        <Border Grid.Row="1"
+                Padding="12"
+                IsVisible="{Binding HasError}"
+                BackgroundColor="#2A1519"
+                Stroke="#7F1D1D"
+                Margin="0,0,0,4">
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="#FCA5A5"
+                   HorizontalOptions="Center"
+                   LineBreakMode="WordWrap"
+                   FontSize="13" />
+        </Border>
 
-        <!-- CollectionView to display search results -->
+        <!-- Search Results CollectionView -->
         <CollectionView Grid.Row="2"
                         AutomationId="SearchResultsCollectionView"
                         ItemsSource="{Binding Movies}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Padding="10"
-                          ColumnSpacing="10">
-                        <Grid.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding BindingContext.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}}"
-                                CommandParameter="{Binding}" />
-                        </Grid.GestureRecognizers>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Frame Style="{StaticResource CardStyle}"
+                           Padding="10"
+                           Margin="0,4">
+                        <Grid ColumnDefinitions="90,*" ColumnSpacing="12">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding BindingContext.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}}"
+                                                      CommandParameter="{Binding}" />
+                            </Grid.GestureRecognizers>
 
-                        <Image Source="{Binding PosterUrl}"
-                               WidthRequest="80"
-                               HeightRequest="120"
-                               Aspect="AspectFill"
-                               Grid.Column="0" />
-                        <StackLayout Grid.Column="1"
-                                     Spacing="5">
-                            <Label Text="{Binding Title}"
-                                   FontAttributes="Bold"
-                                   FontSize="Medium" />
-                            <Label Text="{Binding Overview}"
-                                   LineBreakMode="TailTruncation"
-                                   MaxLines="3"
-                                   FontSize="Small" />
-                            <Label Text="{Binding StreamingProvidersDisplay}"
-                                   TextColor="Gray"
-                                   FontSize="Micro"
-                                   FontAttributes="Italic"
-                                   IsVisible="{Binding HasStreamingProviders}" />
-                        </StackLayout>
-                    </Grid>
+                            <!-- Poster Artwork -->
+                            <Border Grid.Column="0"
+                                    WidthRequest="90"
+                                    HeightRequest="130"
+                                    VerticalOptions="Start">
+                                <Image Source="{Binding PosterUrl}" Aspect="AspectFill" />
+                            </Border>
+
+                            <!-- Movie / Show Information -->
+                            <StackLayout Grid.Column="1" Spacing="6" VerticalOptions="Start">
+                                <Label Text="{Binding Title}"
+                                       FontAttributes="Bold"
+                                       FontSize="16"
+                                       TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+
+                                <Label Text="{Binding Overview}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="3"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+
+                                <!-- Streaming Providers Display Tag -->
+                                <Border Padding="6,3"
+                                        HorizontalOptions="Start"
+                                        IsVisible="{Binding HasStreamingProviders}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}">
+                                    <Label Text="{Binding StreamingProvidersDisplay}"
+                                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}"
+                                           FontSize="11"
+                                           FontAttributes="Bold" />
+                                </Border>
+
+                                <!-- Source API Debug Badge -->
+                                <Border Padding="6,2"
+                                        HorizontalOptions="Start"
+                                        IsVisible="{Binding HasSourceApis}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}">
+                                    <Label Text="{Binding SourceApisDisplay}"
+                                           TextColor="{StaticResource Secondary}"
+                                           FontSize="10"
+                                           FontAttributes="Italic" />
+                                </Border>
+                            </StackLayout>
+                        </Grid>
+                    </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

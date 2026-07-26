@@ -235,9 +235,10 @@ Run-Test "Step 01: Verify Main Page Ready" {
 }
 
 Run-Test "Step 02: Open Add Item Page" {
-    $addBtn = Find-ById $script:Window "AddToolbarItem" -TimeoutSeconds 8
+    $addBtn = Find-ByName $script:Window "+ Add Media" -TimeoutSeconds 5
+    if (-not $addBtn) { $addBtn = Find-ById $script:Window "AddToolbarItem" -TimeoutSeconds 5 }
     if (-not $addBtn) { $addBtn = Find-ByName $script:Window "Add" -TimeoutSeconds 5 }
-    if (-not $addBtn) { throw "Add toolbar item not found." }
+    if (-not $addBtn) { throw "Add Media button not found." }
 
     Invoke-Element $addBtn | Out-Null
     Start-Sleep -Seconds 1
@@ -270,9 +271,9 @@ Run-Test "Step 04: Filter Watch List" {
 }
 
 Run-Test "Step 05: Open Settings Page" {
-    $settingsBtn = Find-ById $script:Window "SettingsToolbarItem" -TimeoutSeconds 8
-    if (-not $settingsBtn) { $settingsBtn = Find-ByName $script:Window "Settings" -TimeoutSeconds 5 }
-    if (-not $settingsBtn) { throw "Settings toolbar item not found." }
+    $settingsBtn = Find-ByName $script:Window "Settings" -TimeoutSeconds 5
+    if (-not $settingsBtn) { $settingsBtn = Find-ById $script:Window "SettingsToolbarItem" -TimeoutSeconds 5 }
+    if (-not $settingsBtn) { throw "Settings navigation item not found." }
 
     Invoke-Element $settingsBtn | Out-Null
     Start-Sleep -Seconds 1
@@ -280,14 +281,13 @@ Run-Test "Step 05: Open Settings Page" {
     $manageBtn = Find-ById $script:Window "ManageStreamingServicesButton" -TimeoutSeconds 8
     if (-not $manageBtn) { $manageBtn = Find-ByName $script:Window "Manage Streaming Services" -TimeoutSeconds 5 }
     if (-not $manageBtn) { throw "Settings page failed to load." }
-
-    Navigate-Back $script:Window
 }
 
 Run-Test "Step 06: Open Logs Page" {
-    $logsBtn = Find-ById $script:Window "LogsToolbarItem" -TimeoutSeconds 8
-    if (-not $logsBtn) { $logsBtn = Find-ByName $script:Window "Logs" -TimeoutSeconds 5 }
-    if (-not $logsBtn) { throw "Logs toolbar item not found." }
+    $logsBtn = Find-ByName $script:Window "Dev Tools" -TimeoutSeconds 5
+    if (-not $logsBtn) { $logsBtn = Find-ByName $script:Window "System Logs" -TimeoutSeconds 5 }
+    if (-not $logsBtn) { $logsBtn = Find-ById $script:Window "LogsToolbarItem" -TimeoutSeconds 5 }
+    if (-not $logsBtn) { throw "Logs navigation item not found." }
 
     Invoke-Element $logsBtn | Out-Null
     Start-Sleep -Seconds 1
@@ -295,14 +295,12 @@ Run-Test "Step 06: Open Logs Page" {
     $copyLogsBtn = Find-ById $script:Window "CopyLogsButton" -TimeoutSeconds 8
     if (-not $copyLogsBtn) { $copyLogsBtn = Find-ByName $script:Window "Copy Logs" -TimeoutSeconds 5 }
     if (-not $copyLogsBtn) { throw "Logs page failed to load." }
-
-    Navigate-Back $script:Window
 }
 
 Run-Test "Step 07: Open API Test Page" {
-    $apiBtn = Find-ById $script:Window "ApiTestToolbarItem" -TimeoutSeconds 8
-    if (-not $apiBtn) { $apiBtn = Find-ByName $script:Window "API Test" -TimeoutSeconds 5 }
-    if (-not $apiBtn) { throw "API Test toolbar item not found." }
+    $apiBtn = Find-ByName $script:Window "API Test" -TimeoutSeconds 5
+    if (-not $apiBtn) { $apiBtn = Find-ById $script:Window "ApiTestToolbarItem" -TimeoutSeconds 5 }
+    if (-not $apiBtn) { throw "API Test navigation item not found." }
 
     Invoke-Element $apiBtn | Out-Null
     Start-Sleep -Seconds 1
@@ -310,8 +308,6 @@ Run-Test "Step 07: Open API Test Page" {
     $execBtn = Find-ById $script:Window "ExecuteApiCallButton" -TimeoutSeconds 8
     if (-not $execBtn) { $execBtn = Find-ByName $script:Window "Execute API Call" -TimeoutSeconds 5 }
     if (-not $execBtn) { throw "API Test page failed to load." }
-
-    Navigate-Back $script:Window
 }
 
 if ($ForceFailure) {
@@ -328,7 +324,8 @@ if (-not $KeepAppOpen -and $script:Proc -and -not $script:Proc.HasExited) {
 }
 
 Write-Host "`n==================================================" -ForegroundColor Cyan
-Write-Host " Windows Smoke Test Results: $Passed Passed, $Failed Failed" -ForegroundColor ($Failed -eq 0 ? "Green" : "Red")
+$summaryColor = if ($Failed -eq 0) { "Green" } else { "Red" }
+Write-Host " Windows Smoke Test Results: $Passed Passed, $Failed Failed" -ForegroundColor $summaryColor
 Write-Host "==================================================" -ForegroundColor Cyan
 
 if ($Failed -gt 0) {

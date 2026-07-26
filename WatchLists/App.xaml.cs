@@ -1,4 +1,4 @@
-﻿using Serilog;
+using Serilog;
 using Microsoft.Maui.Controls;
 
 namespace WatchLists
@@ -11,10 +11,8 @@ namespace WatchLists
         {
             InitializeComponent();
             Services                         = services;
-            Application.Current.UserAppTheme = AppTheme.Light;
-            MainPage                         = new AppShell();
-
-            //Application.Current.UserAppTheme = AppTheme.Dark; // Forces Dark Mode
+            UserAppTheme = AppTheme.Dark;
+            MainPage     = new AppShell();
         }
 
         // Add a static property for convenience

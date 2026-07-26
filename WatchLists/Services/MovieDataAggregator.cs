@@ -122,11 +122,25 @@ public class MovieDataAggregator : IMovieDataAggregator
 
             if (primaryRepresentative == null) continue;
 
-            // Merge streaming providers from all items in this group
+            // Merge streaming providers and source APIs from all items in this group
             var allProvidersForGroup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sourceApisForGroup = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var result in group)
             {
+                var apiName = result.ProviderName.Replace("Service", "");
+                if (result.Item.SourceApis != null && result.Item.SourceApis.Count > 0)
+                {
+                    foreach (var src in result.Item.SourceApis)
+                    {
+                        if (src.HasValue()) sourceApisForGroup.Add(src);
+                    }
+                }
+                else
+                {
+                    sourceApisForGroup.Add(apiName);
+                }
+
                 if (result.Item.StreamingProviders == null) continue;
 
                 foreach (var providerName in result.Item
@@ -138,6 +152,11 @@ public class MovieDataAggregator : IMovieDataAggregator
             }
 
             primaryRepresentative.StreamingProviders = allProvidersForGroup.ToList();
+            primaryRepresentative.SourceApis = sourceApisForGroup.ToList();
+            if (primaryRepresentative.PrimarySourceApi.HasNoValue())
+            {
+                primaryRepresentative.PrimarySourceApi = sourceApisForGroup.FirstOrDefault() ?? "Unknown";
+            }
             mergedResults.Add(primaryRepresentative);
         }
 

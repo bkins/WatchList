@@ -6,14 +6,36 @@
     xmlns:local="clr-namespace:WatchLists"
     xmlns:views="clr-namespace:WatchLists.MVVM.Views"
     Shell.FlyoutBehavior="Disabled"
-    Title="WatchLists">
+    Title="WatchList">
 
-    <ShellContent
-        Title="WL"
-        ContentTemplate="{DataTemplate views:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <Tab Title="WatchList">
+            <Tab.Icon>
+                <FontImageSource Glyph="{StaticResource VideoLibraryIcon}" FontFamily="MaterialIcons" Size="20" />
+            </Tab.Icon>
+            <ShellContent ContentTemplate="{DataTemplate views:MainPage}" Route="MainPage" />
+        </Tab>
 
-    <!-- MainPage as the starting page -->
-    <ShellContent Title="Watch List"
-                  ContentTemplate="{DataTemplate views:MainPage}" />
+        <Tab Title="Discover">
+            <Tab.Icon>
+                <FontImageSource Glyph="{StaticResource SearchIcon}" FontFamily="MaterialIcons" Size="20" />
+            </Tab.Icon>
+            <ShellContent ContentTemplate="{DataTemplate views:SearchPage}" Route="SearchPage" />
+        </Tab>
+
+        <Tab Title="Settings">
+            <Tab.Icon>
+                <FontImageSource Glyph="{StaticResource SettingsIcon}" FontFamily="MaterialIcons" Size="20" />
+            </Tab.Icon>
+            <ShellContent ContentTemplate="{DataTemplate views:SettingsPage}" Route="SettingsPage" />
+        </Tab>
+
+        <Tab Title="Dev Tools">
+            <Tab.Icon>
+                <FontImageSource Glyph="{StaticResource ListIcon}" FontFamily="MaterialIcons" Size="20" />
+            </Tab.Icon>
+            <ShellContent Title="System Logs" ContentTemplate="{DataTemplate views:LogsPage}" Route="LogsPage" />
+            <ShellContent Title="API Test" ContentTemplate="{DataTemplate views:ApiTestPage}" Route="ApiTestPage" />
+        </Tab>
+    </TabBar>
 </Shell>

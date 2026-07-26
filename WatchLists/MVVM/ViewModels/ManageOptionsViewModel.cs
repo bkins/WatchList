@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using WatchLists.ExtensionMethods;
@@ -120,6 +120,11 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         [RelayCommand]
         private async Task SaveOptions()
         {
+            if (NewOption.HasValue())
+            {
+                AddOption();
+            }
+
             await _settingsService.SaveOptionsAsync(OptionSetting
                                                   , Options.ToList());
             await Shell.Current.GoToAsync("..");

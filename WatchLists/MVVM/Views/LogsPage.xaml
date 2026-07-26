@@ -3,24 +3,47 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="WatchLists.MVVM.Views.LogsPage"
-             Title="Logs">
-    <StackLayout Padding="10">
-        <Button AutomationId="CopyLogsButton" Text="Copy Logs" Clicked="OnCopyLogsClicked" />
-        <ListView AutomationId="LogsListView"
-                  x:Name="LogsListView"
-                  ItemsSource="{Binding Logs}"
-                  HasUnevenRows="True">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <ViewCell>
-                        <Label Text="{Binding .}"
-                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                               Padding="10,5"
-                               VerticalTextAlignment="Center" />
-                    </ViewCell>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-        <Button AutomationId="ClearLogsButton" Text="Clear Logs" Command="{Binding ClearLogsCommand}" />
-    </StackLayout>
+             Title="System Logs">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="12,10" RowSpacing="10">
+
+        <!-- Log Actions Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button AutomationId="CopyLogsButton"
+                    Text="📋 Copy Logs"
+                    Clicked="OnCopyLogsClicked"
+                    Style="{StaticResource SecondaryButtonStyle}" />
+
+            <Button AutomationId="ClearLogsButton"
+                    Text="🗑️ Clear Logs"
+                    Command="{Binding ClearLogsCommand}"
+                    BackgroundColor="{StaticResource Tertiary}"
+                    TextColor="White"
+                    CornerRadius="10" />
+        </Grid>
+
+        <!-- Developer Console Log Output -->
+        <Frame Grid.Row="1"
+               Style="{StaticResource ElevatedCardStyle}"
+               Padding="8">
+            <ListView AutomationId="LogsListView"
+                      x:Name="LogsListView"
+                      ItemsSource="{Binding Logs}"
+                      HasUnevenRows="True">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Label Text="{Binding .}"
+                                   FontFamily="Courier New"
+                                   FontSize="11"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource PrimaryLight}}"
+                                   Padding="6,4"
+                                   VerticalTextAlignment="Center" />
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Frame>
+
+    </Grid>
 </ContentPage>

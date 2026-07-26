@@ -2,84 +2,179 @@
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="WatchLists.MVVM.Views.EditWatchItemPage">
+             x:Class="WatchLists.MVVM.Views.EditWatchItemPage"
+             Title="Manage Media Item">
 
-       <ScrollView>
-              <StackLayout Padding="10" Spacing="10">
-                     <!-- Poster Image & Metadata Header -->
-                     <Grid ColumnDefinitions="100,*" ColumnSpacing="12" IsVisible="{Binding EditableItem.PosterUrl, Converter={StaticResource StringToBoolConverter}}">
-                            <Image Source="{Binding EditableItem.PosterUrl}" WidthRequest="100" HeightRequest="150" Aspect="AspectFill" Grid.Column="0" />
-                            <StackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                   <Label Text="{Binding EditableItem.Overview}" FontSize="Small" MaxLines="5" LineBreakMode="TailTruncation" />
-                            </StackLayout>
-                     </Grid>
+    <ScrollView Padding="12,10">
+        <StackLayout Spacing="12">
 
-                     <!-- Streaming Availability & Refresh Button -->
-                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4">
-                            <Label Text="{Binding EditableItem.AvailableStreamingServicesDisplay}"
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   FontSize="Small"
-                                   FontAttributes="Italic"
-                                   TextColor="Gray" />
-                            <Button AutomationId="RefreshStreamingServicesButton"
-                                    Text="🔄 Refresh"
-                                    Grid.Column="1"
-                                    Command="{Binding RefreshStreamingServicesCommand}"
-                                    VerticalOptions="Center" />
-                     </Grid>
+            <!-- Primary API Search Action Header Button -->
+            <Button AutomationId="SearchApisButton"
+                    Text="🔍 Search Movies &amp; TV Shows (API Aggregator)"
+                    Command="{Binding OpenSearchCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    HeightRequest="50"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Fill" />
 
-                     <Entry AutomationId="TitleEntry"
-                            Placeholder="Title"
-                            Text="{Binding MovieTitle}" />
-                     <Picker AutomationId="StreamingServicePicker"
-                             Title="Streaming Service"
-                             ItemsSource="{Binding StreamingServices}"
-                             SelectedItem="{Binding SelectedStreamingService, Mode=TwoWay}" />
-                     <Picker AutomationId="CategoryPicker"
-                             Title="Category"
-                             ItemsSource="{Binding Categories}"
-                             SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
-                             SelectedIndexChanged="OnCategorySelectionChanged" />
-                     <Entry AutomationId="DeepLinkEntry"
-                            Placeholder="Deep Link"
-                            Text="{Binding MovieDeepLinkUri}" />
+            <!-- Movie Poster & Overview Header Card -->
+            <Frame Style="{StaticResource ElevatedCardStyle}"
+                   Padding="12"
+                   IsVisible="{Binding EditableItem.PosterUrl, Converter={StaticResource StringToBoolConverter}}">
+                <Grid ColumnDefinitions="100,*" ColumnSpacing="12">
+                    <Border Grid.Column="0"
+                            WidthRequest="100"
+                            HeightRequest="145"
+                            VerticalOptions="Start">
+                        <Image Source="{Binding EditableItem.PosterUrl}" Aspect="AspectFill" />
+                    </Border>
 
-                     <!-- Type Dropdown -->
-                     <Picker AutomationId="TypePicker"
-                             Title="Type"
-                             ItemsSource="{Binding AvailableTypes}"
-                             SelectedItem="{Binding EditableItem.Type, Mode=TwoWay}" />
+                    <StackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                        <Label Text="{Binding MovieTitle}"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
 
-                     <!-- IsWatched Checkbox -->
-                     <StackLayout Orientation="Horizontal">
-                            <Label Text="Watched:"
-                                   VerticalOptions="Center" />
-                            <Switch AutomationId="WatchedSwitch"
-                                    IsToggled="{Binding IsWatched}"
-                                    Toggled="Switch_Toggled" />
-                     </StackLayout>
+                        <Label Text="{Binding EditableItem.Overview}"
+                               FontSize="12"
+                               MaxLines="5"
+                               LineBreakMode="TailTruncation"
+                               TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    </StackLayout>
+                </Grid>
+            </Frame>
 
-                     <!-- Thumbs Up/Down UI -->
-                     <StackLayout Orientation="Horizontal" HorizontalOptions="Center">
-                            <Button AutomationId="ThumbsUpButton"
-                                    Text="👍"
-                                    Command="{Binding ToggleIsLikedCommand}"
-                                    CommandParameter="{StaticResource TrueBoolean}"
-                                    BackgroundColor="{Binding IsLiked, Converter={StaticResource BoolToColorConverter}}" />
-                            <Button AutomationId="ThumbsDownButton"
-                                    Text="👎"
-                                    Command="{Binding ToggleIsLikedCommand}"
-                                    CommandParameter="{StaticResource FalseBoolean}"
-                                    BackgroundColor="{Binding IsDisliked, Converter={StaticResource BoolToColorConverter}}" />
-                     </StackLayout>
+            <!-- Media Identification Form Card -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="Media Details"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
-                     <Button AutomationId="SearchApisButton"
-                             Text="Search APIs"
-                             Command="{Binding OpenSearchCommand}"
-                             Style="{StaticResource PrimaryButtonStyle}" />
+                    <Label Text="Title" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Entry AutomationId="TitleEntry"
+                               Placeholder="Movie or TV Show title..."
+                               Text="{Binding MovieTitle}" />
+                    </Border>
 
-                     <Button AutomationId="SaveButton" Text="Save" Command="{Binding SaveCommand}" />
-              </StackLayout>
-       </ScrollView>
+                    <Label Text="Media Type" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="TypePicker"
+                                Title="Select type (Movie, Show, Mini-Series)"
+                                ItemsSource="{Binding AvailableTypes}"
+                                SelectedItem="{Binding EditableItem.Type, Mode=TwoWay}" />
+                    </Border>
+                </StackLayout>
+            </Frame>
+
+            <!-- Streaming & Classification Card -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="Category &amp; Platform"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Label Text="Category" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="CategoryPicker"
+                                Title="Select category"
+                                ItemsSource="{Binding Categories}"
+                                SelectedItem="{Binding EditableItem.Category, Mode=TwoWay}"
+                                SelectedIndexChanged="OnCategorySelectionChanged" />
+                    </Border>
+
+                    <Label Text="Streaming Service" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="StreamingServicePicker"
+                                Title="Select streaming service"
+                                ItemsSource="{Binding StreamingServices}"
+                                SelectedItem="{Binding SelectedStreamingService, Mode=TwoWay}" />
+                    </Border>
+
+                    <!-- Availability Row -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4">
+                        <Label Text="{Binding EditableItem.AvailableStreamingServicesDisplay}"
+                               Grid.Column="0"
+                               VerticalOptions="Center"
+                               FontSize="11"
+                               FontAttributes="Italic"
+                               TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+
+                        <Button AutomationId="RefreshStreamingServicesButton"
+                                Text="🔄 Refresh Providers"
+                                Grid.Column="1"
+                                Command="{Binding RefreshStreamingServicesCommand}"
+                                VerticalOptions="Center"
+                                HeightRequest="36"
+                                Padding="10,0"
+                                FontSize="11" />
+                    </Grid>
+
+                    <Label Text="App / Web Deep Link" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Entry AutomationId="DeepLinkEntry"
+                               Placeholder="Direct URI or web playback link..."
+                               Text="{Binding MovieDeepLinkUri}" />
+                    </Border>
+                </StackLayout>
+            </Frame>
+
+            <!-- Rating & Watched Status Card -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="Watch Status &amp; Rating"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                        <Label Grid.Column="0"
+                               Text="Marked as Watched"
+                               VerticalOptions="Center"
+                               FontSize="14" />
+                        <Switch Grid.Column="1"
+                                AutomationId="WatchedSwitch"
+                                IsToggled="{Binding IsWatched}"
+                                Toggled="Switch_Toggled"
+                                VerticalOptions="Center" />
+                    </Grid>
+
+                    <BoxView HeightRequest="1" Margin="0,4" />
+
+                    <!-- Rating Buttons -->
+                    <Label Text="Personal Rating:" HorizontalOptions="Center" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" HorizontalOptions="Center" WidthRequest="220">
+                        <Button Grid.Column="0"
+                                AutomationId="ThumbsUpButton"
+                                Text="👍 Like"
+                                Command="{Binding ToggleIsLikedCommand}"
+                                CommandParameter="{StaticResource TrueBoolean}"
+                                HeightRequest="44"
+                                BackgroundColor="{Binding IsLiked, Converter={StaticResource BoolToColorConverter}}" />
+
+                        <Button Grid.Column="1"
+                                AutomationId="ThumbsDownButton"
+                                Text="👎 Dislike"
+                                Command="{Binding ToggleIsLikedCommand}"
+                                CommandParameter="{StaticResource FalseBoolean}"
+                                HeightRequest="44"
+                                BackgroundColor="{Binding IsDisliked, Converter={StaticResource BoolToColorConverter}}" />
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Save Action Button -->
+            <Button AutomationId="SaveButton"
+                    Text="💾 Save Changes"
+                    Command="{Binding SaveCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    HeightRequest="48"
+                    Margin="0,4,0,16"
+                    HorizontalOptions="Fill" />
+        </StackLayout>
+    </ScrollView>
 </ContentPage>

@@ -36,7 +36,9 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 Title              = searchResult.Title,
                 Overview           = searchResult.Overview,
                 PosterPath         = searchResult.PosterPath,
-                StreamingProviders = searchResult.StreamingProviders
+                StreamingProviders = searchResult.StreamingProviders,
+                PrimarySourceApi   = searchResult.PrimarySourceApi,
+                WebUrl             = searchResult.WebUrl
             };
 
             var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
@@ -49,6 +51,8 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
              && result.Data.Title.EqualsIgnoreCase(searchResult.Title))
             {
                 result.Data.StreamingProviders = searchResult.StreamingProviders;
+                if (result.Data.WebUrl.HasNoValue()) result.Data.WebUrl = searchResult.WebUrl;
+                if (result.Data.PrimarySourceApi.HasNoValue()) result.Data.PrimarySourceApi = searchResult.PrimarySourceApi;
                 MovieDetail = result.Data;
             }
         }
@@ -89,6 +93,8 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                       , Overview           = MovieDetail.Overview
                       , PosterPath         = posterUrl
                       , StreamingProviders = MovieDetail.StreamingProviders
+                      , PrimarySourceApi   = MovieDetail.PrimarySourceApi
+                      , WebUrl             = MovieDetail.WebUrl
                     };
 
         await FileLogger.WriteLogAsync($"[SelectMovie] Invoked. Selected Title: '{movie.Title}', Id: {movie.Id}");

@@ -119,6 +119,9 @@ public class TmdbService : IMovieDataProvider
                             movie.StreamingProviders = streamingNames;
                         }
                     }
+                    movie.SourceApis = new List<string> { "TMDB" };
+                    movie.PrimarySourceApi = "TMDB";
+                    movie.WebUrl = $"https://www.themoviedb.org/movie/{movie.Id}";
                 }).ToList();
 
                 await Task.WhenAll(providerTasks);

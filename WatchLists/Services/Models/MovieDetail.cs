@@ -24,4 +24,13 @@ public class MovieDetail
 
     [JsonIgnore]
     public List<string> StreamingProviders { get; set; } = new();
+
+    [JsonIgnore]
+    public string PrimarySourceApi { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string WebUrl { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string MediaType { get; set; } = string.Empty;
 }

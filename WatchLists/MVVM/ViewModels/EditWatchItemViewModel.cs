@@ -116,9 +116,30 @@ public partial class EditWatchItemViewModel : ObservableObject
                 {
                     await FileLogger.WriteLogAsync($"[Subscription] Error fetching watch providers: {ex.Message}");
                 }
+
+                // Auto-add any newly discovered streaming services to available settings options
+                foreach (var provider in _providerLinks.Keys)
+                {
+                    if (provider.HasValue() && StreamingServices.DoesNotContains(provider))
+                    {
+                        StreamingServices.Add(provider);
+                        await _settingsService.AddOptionAsync(SettingType.StreamingServices, provider);
+                    }
+                }
+
+                if ((SelectedStreamingService.IsEmptyNullOrWhiteSpace() || _providerLinks.ContainsKey(SelectedStreamingService) == false) && _providerLinks.Keys.Count > 0)
+                {
+                    SelectedStreamingService = _providerLinks.Keys.First();
+                }
             }
 
-            var defaultDeepLink = movie != null ? $"https://www.themoviedb.org/movie/{movie.Id}" : string.Empty;
+            var detectedType = movie != null && movie.MediaType.HasValue()
+                ? movie.MediaType
+                : "Movie";
+
+            var defaultDeepLink = movie != null
+                ? (movie.WebUrl.HasValue() ? movie.WebUrl : $"https://www.themoviedb.org/movie/{movie.Id}")
+                : string.Empty;
             var finalDeepLink   = defaultDeepLink;
 
             var currentService = SelectedStreamingService;
@@ -139,24 +160,24 @@ public partial class EditWatchItemViewModel : ObservableObject
                          , Overview                   = movie?.Overview ?? string.Empty
                          , PosterUrl                  = movie?.PosterPath ?? string.Empty
                          , AvailableStreamingServices = string.Join(", ", _providerLinks.Keys)
-                         , StreamingService           = EditableItem.StreamingService
+                         , StreamingService           = SelectedStreamingService
                          , Category                   = EditableItem.Category
                          , IsWatched                  = EditableItem.IsWatched
                          , IsLiked                    = EditableItem.IsLiked
                          , DeepLinkUri                = finalDeepLink
-                         , Type                       = "Movie"
+                         , Type                       = detectedType
                          , PreviousCategory           = EditableItem.PreviousCategory
                        };
 
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 EditableItem = item;
-                SelectedType = "Movie";
+                SelectedType = detectedType;
                 MovieTitle = item.Title;
                 MovieDeepLinkUri = item.DeepLinkUri;
                 OnPropertyChanged(string.Empty);
             });
-            await FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{item.Title}', Type='Movie', DeepLink='{item.DeepLinkUri}'");
+            await FileLogger.WriteLogAsync($"[Subscription] Form fields updated: Title='{item.Title}', Type='{detectedType}', DeepLink='{item.DeepLinkUri}'");
         });
     }
 

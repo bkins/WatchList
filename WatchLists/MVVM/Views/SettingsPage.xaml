@@ -6,46 +6,92 @@
              xmlns:converters="clr-namespace:WatchLists.Converters"
              x:Class="WatchLists.MVVM.Views.SettingsPage"
              Title="Settings">
-        <StackLayout Padding="10"
-                     Spacing="15">
-                <Label Text="Streaming Services"
-                       FontAttributes="Bold" />
-                <Picker AutomationId="StreamingServicePicker"
-                        Title="Select a Streaming Service"
-                        ItemsSource="{Binding StreamingServices}"
-                        SelectedItem="{Binding SelectedStreamingService}" />
-                <Button AutomationId="ManageStreamingServicesButton"
-                        Text="Manage Streaming Services"
-                        Command="{Binding NavigateToManageOptionsCommand}"
-                        CommandParameter="StreamingServices" />
 
-                <Label Text="Categories"
-                       FontAttributes="Bold" />
-                <Picker AutomationId="CategoryPicker"
-                        Title="Select a Category"
-                        ItemsSource="{Binding Categories}"
-                        SelectedItem="{Binding SelectedCategory}" />
-                <Button AutomationId="ManageCategoriesButton"
-                        Text="Manage Categories"
-                        Command="{Binding NavigateToManageOptionsCommand}"
-                        CommandParameter="Categories" />
+    <ScrollView Padding="12,10">
+        <StackLayout Spacing="14">
 
-                <Picker AutomationId="WatchedCategoryPicker"
-                        Title="Select Watched Category"
-                        ItemsSource="{Binding Categories}"
-                        SelectedItem="{Binding SelectedWatchedCategory, Mode=TwoWay}" />
+            <!-- Section 1: Streaming Services -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="📺 Streaming Services"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
-                <Label Text="Types"
-                       FontAttributes="Bold" />
-                <Picker AutomationId="TypePicker"
-                        Title="Select a Type"
-                        ItemsSource="{Binding Types}"
-                        SelectedItem="{Binding SelectedType}" />
-                <Button AutomationId="ManageTypesButton"
-                        Text="Manage Types"
-                        Command="{Binding NavigateToManageOptionsCommand}"
-                        CommandParameter="Types" />
+                    <Label Text="Select Active Service" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="StreamingServicePicker"
+                                Title="Select a Streaming Service"
+                                ItemsSource="{Binding StreamingServices}"
+                                SelectedItem="{Binding SelectedStreamingService}" />
+                    </Border>
 
+                    <Button AutomationId="ManageStreamingServicesButton"
+                            Text="Manage Streaming Services"
+                            Command="{Binding NavigateToManageOptionsCommand}"
+                            CommandParameter="StreamingServices"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+                </StackLayout>
+            </Frame>
+
+            <!-- Section 2: Watchlist Categories -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="🏷️ Categories"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Label Text="Select Active Category" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="CategoryPicker"
+                                Title="Select a Category"
+                                ItemsSource="{Binding Categories}"
+                                SelectedItem="{Binding SelectedCategory}" />
+                    </Border>
+
+                    <Button AutomationId="ManageCategoriesButton"
+                            Text="Manage Categories"
+                            Command="{Binding NavigateToManageOptionsCommand}"
+                            CommandParameter="Categories"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+
+                    <BoxView HeightRequest="1" Margin="0,4" />
+
+                    <Label Text="Designated Watched Category" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="WatchedCategoryPicker"
+                                Title="Select Watched Category"
+                                ItemsSource="{Binding Categories}"
+                                SelectedItem="{Binding SelectedWatchedCategory, Mode=TwoWay}" />
+                    </Border>
+                </StackLayout>
+            </Frame>
+
+            <!-- Section 3: Media Types -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="🎬 Media Types"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Label Text="Select Active Type" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="2">
+                        <Picker AutomationId="TypePicker"
+                                Title="Select a Type"
+                                ItemsSource="{Binding Types}"
+                                SelectedItem="{Binding SelectedType}" />
+                    </Border>
+
+                    <Button AutomationId="ManageTypesButton"
+                            Text="Manage Types"
+                            Command="{Binding NavigateToManageOptionsCommand}"
+                            CommandParameter="Types"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+                </StackLayout>
+            </Frame>
 
         </StackLayout>
+    </ScrollView>
 </ContentPage>

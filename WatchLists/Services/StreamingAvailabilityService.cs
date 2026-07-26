@@ -55,6 +55,7 @@ public class StreamingAvailabilityService : IMovieDataProvider
                                                Title      = show.Title ?? string.Empty
                                              , Overview   = show.Overview ?? string.Empty
                                              , PosterPath = show.ImageSet?.VerticalPoster?.W480 ?? string.Empty
+                                             , SourceApis = new List<string> { "RapidAPI" }
                                            };
 
                     if (show.StreamingOptions != null

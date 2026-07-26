@@ -1,51 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ContentPage
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="WatchLists.MVVM.Views.MovieDetailsPage"
-    Title="{Binding MovieDetail.Title}"
-    Padding="15"
-    BackgroundColor="{AppThemeBinding Light=White, Dark=#121212}">
-    <ScrollView>
-        <StackLayout Spacing="15" HorizontalOptions="FillAndExpand">
-            <!-- Poster Image -->
-            <Image Source="{Binding MovieDetail.PosterPath, Converter={StaticResource ImageConverter}}"
-                   WidthRequest="200"
-                   HeightRequest="300"
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="WatchLists.MVVM.Views.MovieDetailsPage"
+             Title="{Binding MovieDetail.Title}">
+
+    <ScrollView Padding="16,12">
+        <StackLayout Spacing="14" HorizontalOptions="FillAndExpand">
+
+            <!-- Hero Poster Artwork Card -->
+            <Frame Style="{StaticResource ElevatedCardStyle}"
+                   Padding="12"
                    HorizontalOptions="Center"
-                   Margin="0,10" />
+                   Margin="0,6">
+                <Border WidthRequest="210"
+                        HeightRequest="310"
+                        HorizontalOptions="Center">
+                    <Image Source="{Binding MovieDetail.PosterPath, Converter={StaticResource ImageConverter}}"
+                           Aspect="AspectFill" />
+                </Border>
+            </Frame>
 
-            <!-- Title -->
-            <Label Text="{Binding MovieDetail.Title}"
-                   FontSize="Large"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+            <!-- Movie Title & Release Banner -->
+            <StackLayout Spacing="4" HorizontalOptions="Center">
+                <Label Text="{Binding MovieDetail.Title}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
 
-            <!-- Release Date -->
-            <Label Text="{Binding MovieDetail.ReleaseDate, StringFormat='Released: {0}'}"
-                   FontSize="Small"
-                   HorizontalTextAlignment="Center"
-                   TextColor="Gray" />
+                <Label Text="{Binding MovieDetail.ReleaseDate, StringFormat='Released: {0}'}"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+            </StackLayout>
 
-            <!-- Select Movie Button -->
-            <Button Text="Select Movie"
+            <!-- Select Movie Action Button -->
+            <Button Text="➕ Select &amp; Add to WatchList"
                     Command="{Binding SelectMovieCommand}"
-                    BackgroundColor="{StaticResource PrimaryColor}"
-                    TextColor="White"
-                    CornerRadius="5"
-                    HeightRequest="44"
-                    Margin="20,10"
-                    HorizontalOptions="Center"
-                    WidthRequest="200" />
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    HeightRequest="48"
+                    Margin="12,6"
+                    HorizontalOptions="Fill" />
 
-            <!-- Overview -->
-            <Label Text="{Binding MovieDetail.Overview}"
-                   FontSize="Medium"
-                   TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                   LineBreakMode="WordWrap"
-                   Margin="5,15,5,5" />
+            <!-- Overview Card -->
+            <Frame Style="{StaticResource CardStyle}" Padding="16">
+                <StackLayout Spacing="8">
+                    <Label Text="Synopsis Overview"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Label Text="{Binding MovieDetail.Overview}"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}"
+                           LineBreakMode="WordWrap" />
+                </StackLayout>
+            </Frame>
 
         </StackLayout>
     </ScrollView>

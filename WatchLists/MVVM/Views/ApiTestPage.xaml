@@ -3,33 +3,59 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="WatchLists.MVVM.Views.ApiTestPage"
-             Title="API Tester">
-    <ContentPage.Content>
-        <StackLayout Padding="10" Spacing="10">
-            <!-- Picker to choose API call -->
-            <Label Text="Select API Call:" FontAttributes="Bold" />
-            <Picker AutomationId="ApiCallPicker"
-                    ItemsSource="{Binding ApiCallOptions}"
-                    SelectedItem="{Binding SelectedApiCall, Mode=TwoWay}" />
+             Title="API Diagnostics">
 
-            <!-- Entry for query parameter -->
-            <Label Text="Query Parameter:" FontAttributes="Bold" />
-            <Entry AutomationId="QueryParameterEntry"
-                   Placeholder="Enter search query or ID"
-                   Text="{Binding QueryParameter, Mode=TwoWay}" />
+    <Grid RowDefinitions="Auto,*" Padding="12,10" RowSpacing="10">
 
-            <!-- Button to execute the API call -->
-            <Button AutomationId="ExecuteApiCallButton" Text="Execute API Call" Command="{Binding ExecuteApiCallCommand}" />
+        <!-- Controls Card -->
+        <Frame Grid.Row="0" Style="{StaticResource CardStyle}" Padding="14">
+            <StackLayout Spacing="10">
+                <Label Text="🛠️ API Diagnostic Endpoint Tester"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
-            <!-- Display the raw JSON result -->
-            <Label Text="Results:" FontAttributes="Bold" />
-            <ScrollView VerticalOptions="FillAndExpand">
-                <Label AutomationId="ResultJsonLabel"
-                       Text="{Binding ResultJson}"
-                       FontFamily="Courier New"
-                       FontSize="12"
-                       LineBreakMode="WordWrap" />
-            </ScrollView>
-        </StackLayout>
-    </ContentPage.Content>
+                <Label Text="Select Provider &amp; Endpoint" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                <Border Padding="2">
+                    <Picker AutomationId="ApiCallPicker"
+                            ItemsSource="{Binding ApiCallOptions}"
+                            SelectedItem="{Binding SelectedApiCall, Mode=TwoWay}" />
+                </Border>
+
+                <Label Text="Query Parameter (Movie title / ID)" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                <Border Padding="2">
+                    <Entry AutomationId="QueryParameterEntry"
+                           Placeholder="Enter search query or ID..."
+                           Text="{Binding QueryParameter, Mode=TwoWay}" />
+                </Border>
+
+                <Button AutomationId="ExecuteApiCallButton"
+                        Text="🚀 Execute API Call"
+                        Command="{Binding ExecuteApiCallCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" />
+            </StackLayout>
+        </Frame>
+
+        <!-- Response Console Output Card -->
+        <Frame Grid.Row="1" Style="{StaticResource ElevatedCardStyle}" Padding="12">
+            <Grid RowDefinitions="Auto,*">
+                <Label Grid.Row="0"
+                       Text="JSON Response Payload:"
+                       FontAttributes="Bold"
+                       FontSize="13"
+                       Margin="0,0,0,8"
+                       TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+
+                <ScrollView Grid.Row="1" VerticalOptions="FillAndExpand">
+                    <Label AutomationId="ResultJsonLabel"
+                           Text="{Binding ResultJson}"
+                           FontFamily="Courier New"
+                           FontSize="11"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}"
+                           LineBreakMode="WordWrap" />
+                </ScrollView>
+            </Grid>
+        </Frame>
+
+    </Grid>
 </ContentPage>
