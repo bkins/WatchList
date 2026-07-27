@@ -33,4 +33,7 @@ public class MovieDetail
 
     [JsonIgnore]
     public string MediaType { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public Dictionary<string, string> AggregatedData { get; set; } = new();
 }

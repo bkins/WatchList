@@ -74,8 +74,8 @@ public static class MauiProgram
 
         // Register HTTP Clients (but without API keys yet)
         builder.Services.AddHttpClient<TmdbService>();
-        builder.Services.AddHttpClient<JustWatchService>();
-        builder.Services.AddHttpClient<UtellyService>();
+        builder.Services.AddHttpClient<OmdbService>();
+        builder.Services.AddHttpClient<FmDbService>();
         builder.Services.AddHttpClient<Imdb236Service>();
         builder.Services.AddHttpClient<WatchmodeService>();
         builder.Services.AddHttpClient<StreamingAvailabilityService>();
@@ -87,8 +87,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<MovieDataAggregator>();
         builder.Services.AddSingleton<IMovieDataAggregator, MovieDataAggregator>();
         builder.Services.AddSingleton<IMovieDataProvider, TmdbService>();
-        builder.Services.AddSingleton<IMovieDataProvider, JustWatchService>();
-        builder.Services.AddSingleton<IMovieDataProvider, UtellyService>();
+        builder.Services.AddSingleton<IMovieDataProvider, OmdbService>();
+        builder.Services.AddSingleton<IMovieDataProvider, FmDbService>();
         builder.Services.AddSingleton<IMovieDataProvider, Imdb236Service>();
         builder.Services.AddSingleton<IMovieDataProvider, WatchmodeService>();
         builder.Services.AddSingleton<IMovieDataProvider, StreamingAvailabilityService>();

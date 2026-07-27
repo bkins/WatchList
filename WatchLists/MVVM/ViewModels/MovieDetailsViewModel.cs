@@ -22,6 +22,33 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     private readonly SettingsService      _settingsService;
 
     [ObservableProperty] private MovieDetail? movieDetail;
+    [ObservableProperty] private bool          _isAggregatedDataExpanded = false;
+
+    public List<KeyValuePair<string, string>> AggregatedDataItems => MovieDetail?.AggregatedData?.ToList() ?? new();
+    public bool HasAggregatedData => AggregatedDataItems != null && AggregatedDataItems.Count > 0;
+    public bool HasNoAggregatedData => !HasAggregatedData;
+    public string AggregatedDataExpandIcon => IsAggregatedDataExpanded ? "🔼 Collapse" : "🔽 Expand";
+    public bool IsAggregatedDataContentVisible => HasAggregatedData && IsAggregatedDataExpanded;
+
+    partial void OnIsAggregatedDataExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AggregatedDataExpandIcon));
+        OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
+    }
+
+    [RelayCommand]
+    private void ToggleAggregatedDataExpanded()
+    {
+        IsAggregatedDataExpanded = !IsAggregatedDataExpanded;
+    }
+
+    partial void OnMovieDetailChanged(MovieDetail? value)
+    {
+        OnPropertyChanged(nameof(AggregatedDataItems));
+        OnPropertyChanged(nameof(HasAggregatedData));
+        OnPropertyChanged(nameof(HasNoAggregatedData));
+        OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
+    }
 
     public MovieDetailsViewModel (IMovieDataAggregator movieDataAggregator
                                 , WatchListService     watchListService
@@ -46,7 +73,8 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 StreamingProviders = searchResult.StreamingProviders,
                 PrimarySourceApi   = searchResult.PrimarySourceApi,
                 WebUrl             = searchResult.WebUrl,
-                MediaType          = searchResult.MediaType
+                MediaType          = searchResult.MediaType,
+                AggregatedData     = searchResult.AggregatedData != null ? new Dictionary<string, string>(searchResult.AggregatedData) : new()
             };
 
             var result = await ApiUtility.TryParseAndExecuteAsync<MovieDetail>(
@@ -62,6 +90,16 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 if (result.Data.WebUrl.HasNoValue()) result.Data.WebUrl = searchResult.WebUrl;
                 if (result.Data.PrimarySourceApi.HasNoValue()) result.Data.PrimarySourceApi = searchResult.PrimarySourceApi;
                 if (result.Data.MediaType.HasNoValue()) result.Data.MediaType = searchResult.MediaType;
+                if (searchResult.AggregatedData != null)
+                {
+                    foreach (var kvp in searchResult.AggregatedData)
+                    {
+                        if (!result.Data.AggregatedData.ContainsKey(kvp.Key))
+                        {
+                            result.Data.AggregatedData[kvp.Key] = kvp.Value;
+                        }
+                    }
+                }
                 MovieDetail = result.Data;
             }
         }
@@ -105,6 +143,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                       , PrimarySourceApi   = MovieDetail.PrimarySourceApi
                       , WebUrl             = MovieDetail.WebUrl
                       , MediaType          = MovieDetail.MediaType
+                      , AggregatedData     = MovieDetail.AggregatedData
                     };
 
         await FileLogger.WriteLogAsync($"[SelectMovie] Invoked. Selected Title: '{movie.Title}', Id: {movie.Id}");
@@ -182,7 +221,8 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 Type                       = detectedType,
                 DeepLinkUri                = deepLink,
                 IsWatched                  = false,
-                LastUpdated                = DateTime.Now
+                LastUpdated                = DateTime.Now,
+                AggregatedData             = movie.AggregatedData ?? new Dictionary<string, string>()
             };
 
             await _watchListService.SaveWatchItemAsync(newItem);

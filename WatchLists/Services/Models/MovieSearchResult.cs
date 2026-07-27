@@ -51,4 +51,7 @@ public class MovieSearchResult
 
     [JsonIgnore]
     public string WebUrl { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public Dictionary<string, string> AggregatedData { get; set; } = new();
 }

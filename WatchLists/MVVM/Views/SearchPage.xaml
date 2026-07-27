@@ -18,7 +18,7 @@
                        FontSize="20"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                <Label Text="Search TMDB, JustWatch, TVMaze &amp; Utelly concurrently"
+                <Label Text="Search TMDB, TVMaze, OMDB &amp; FM-DB concurrently"
                        FontSize="12"
                        TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
 

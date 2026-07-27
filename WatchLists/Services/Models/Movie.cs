@@ -10,4 +10,5 @@ public class Movie
     public string       PrimarySourceApi   { get; set; } = string.Empty;
     public string       WebUrl             { get; set; } = string.Empty;
     public string       MediaType          { get; set; } = string.Empty;
+    public Dictionary<string, string> AggregatedData { get; set; } = new();
 }

@@ -25,6 +25,33 @@ public partial class EditWatchItemViewModel : ObservableObject
     [ObservableProperty] private WatchItem _editableItem = new();
     [ObservableProperty] private string    _movieTitle = string.Empty;
     [ObservableProperty] private string    _movieDeepLinkUri = string.Empty;
+    [ObservableProperty] private bool      _isAggregatedDataExpanded = false;
+
+    public List<KeyValuePair<string, string>> AggregatedDataItems => EditableItem?.AggregatedData?.ToList() ?? new();
+    public bool HasAggregatedData => AggregatedDataItems != null && AggregatedDataItems.Count > 0;
+    public bool HasNoAggregatedData => !HasAggregatedData;
+    public string AggregatedDataExpandIcon => IsAggregatedDataExpanded ? "🔼 Collapse" : "🔽 Expand";
+    public bool IsAggregatedDataContentVisible => HasAggregatedData && IsAggregatedDataExpanded;
+
+    partial void OnIsAggregatedDataExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AggregatedDataExpandIcon));
+        OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
+    }
+
+    [RelayCommand]
+    private void ToggleAggregatedDataExpanded()
+    {
+        IsAggregatedDataExpanded = !IsAggregatedDataExpanded;
+    }
+
+    partial void OnEditableItemChanged(WatchItem value)
+    {
+        OnPropertyChanged(nameof(AggregatedDataItems));
+        OnPropertyChanged(nameof(HasAggregatedData));
+        OnPropertyChanged(nameof(HasNoAggregatedData));
+        OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
+    }
 
     private string _previousCategory = string.Empty;
     private bool   _isLoaded         = false;
@@ -161,6 +188,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                          , Overview                   = movie?.Overview ?? string.Empty
                          , PosterUrl                  = movie?.PosterPath ?? string.Empty
                          , AvailableStreamingServices = string.Join(", ", _providerLinks.Keys)
+                         , AggregatedData             = movie?.AggregatedData ?? new Dictionary<string, string>()
                          , StreamingService           = SelectedStreamingService
                          , Category                   = EditableItem.Category
                          , IsWatched                  = EditableItem.IsWatched
@@ -216,6 +244,11 @@ public partial class EditWatchItemViewModel : ObservableObject
                             }
                         }
                     }
+
+                    if (firstMatch.AggregatedData != null && firstMatch.AggregatedData.Count > 0)
+                    {
+                        EditableItem.AggregatedData = firstMatch.AggregatedData;
+                    }
                 }
             }
             catch (Exception ex)
@@ -241,6 +274,12 @@ public partial class EditWatchItemViewModel : ObservableObject
                             AddProvidersToDictionary(countryProviders.Buy);
                         }
                     }
+                }
+
+                var detailsResult = await _movieDataAggregator.GetMovieDetailsAsync(EditableItem.MovieId);
+                if (detailsResult?.Data?.AggregatedData != null && detailsResult.Data.AggregatedData.Count > 0)
+                {
+                    EditableItem.AggregatedData = detailsResult.Data.AggregatedData;
                 }
             }
             catch (Exception ex)
@@ -353,6 +392,7 @@ public partial class EditWatchItemViewModel : ObservableObject
         OriginalItem.Overview                   = EditableItem.Overview;
         OriginalItem.PosterUrl                  = EditableItem.PosterUrl;
         OriginalItem.AvailableStreamingServices = EditableItem.AvailableStreamingServices;
+        OriginalItem.AggregatedDataJson         = EditableItem.AggregatedDataJson;
         OriginalItem.Title                      = MovieTitle;
         OriginalItem.StreamingService           = EditableItem.StreamingService;
         OriginalItem.Category                   = EditableItem.Category;
@@ -459,6 +499,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                                  , Overview                   = item.Overview
                                  , PosterUrl                  = item.PosterUrl
                                  , AvailableStreamingServices = item.AvailableStreamingServices
+                                 , AggregatedDataJson         = item.AggregatedDataJson
                                  , Title                      = item.Title
                                  , StreamingService           = item.StreamingService
                                  , Category                   = item.Category
@@ -477,6 +518,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                                  , Overview                   = OriginalItem.Overview
                                  , PosterUrl                  = OriginalItem.PosterUrl
                                  , AvailableStreamingServices = OriginalItem.AvailableStreamingServices
+                                 , AggregatedDataJson         = OriginalItem.AggregatedDataJson
                                  , Title                      = OriginalItem.Title
                                  , StreamingService           = OriginalItem.StreamingService
                                  , Category                   = OriginalItem.Category
@@ -499,7 +541,29 @@ public partial class EditWatchItemViewModel : ObservableObject
         MovieTitle = EditableItem.Title ?? string.Empty;
         MovieDeepLinkUri = EditableItem.DeepLinkUri ?? string.Empty;
 
+        if (EditableItem.AggregatedData.Count == 0 && EditableItem.MovieId > 0)
+        {
+            try
+            {
+                var detailResult = await _movieDataAggregator.GetMovieDetailsAsync(EditableItem.MovieId);
+                if (detailResult?.Data?.AggregatedData != null && detailResult.Data.AggregatedData.Count > 0)
+                {
+                    EditableItem.AggregatedData = detailResult.Data.AggregatedData;
+                    OriginalItem.AggregatedData = detailResult.Data.AggregatedData;
+                    await _watchListService.SaveWatchItemAsync(EditableItem);
+                }
+            }
+            catch (Exception ex)
+            {
+                await FileLogger.WriteLogAsync($"[LoadItem] Error auto-populating aggregated provider data: {ex.Message}");
+            }
+        }
+
         // Ensure UI updates properly
+        OnPropertyChanged(nameof(AggregatedDataItems));
+        OnPropertyChanged(nameof(HasAggregatedData));
+        OnPropertyChanged(nameof(HasNoAggregatedData));
+        OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
         Debug.WriteLine($"EditableItem.StreamingService BEFORE PropertyChanged: {EditableItem.StreamingService}");
         OnPropertyChanged(nameof(EditableItem));
         OnPropertyChanged(nameof(EditableItem.StreamingService));

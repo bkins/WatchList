@@ -167,6 +167,55 @@
                 </StackLayout>
             </Frame>
 
+            <!-- Aggregated Provider Data Card -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                        <Label Grid.Column="0"
+                               Text="🌐 Aggregated Provider Data"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"
+                               TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                        <Button Grid.Column="1"
+                                Text="{Binding AggregatedDataExpandIcon}"
+                                Command="{Binding ToggleAggregatedDataExpandedCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                HeightRequest="32"
+                                Padding="10,0"
+                                FontSize="11"
+                                VerticalOptions="Center" />
+                    </Grid>
+
+                    <Label Text="No additional provider metadata found (tap Refresh Providers above to check)."
+                           FontSize="12"
+                           FontAttributes="Italic"
+                           TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}"
+                           IsVisible="{Binding HasNoAggregatedData}" />
+
+                    <CollectionView ItemsSource="{Binding AggregatedDataItems}"
+                                    SelectionMode="None"
+                                    IsVisible="{Binding IsAggregatedDataContentVisible}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="160,*" Padding="0,4">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Key}"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Value}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </StackLayout>
+            </Frame>
+
             <!-- Save Action Button -->
             <Button AutomationId="SaveButton"
                     Text="💾 Save Changes"
