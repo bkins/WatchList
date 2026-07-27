@@ -33,38 +33,75 @@ public class OmdbService : IMovieDataProvider
 
         try
         {
-            var searchUrl = $"{BaseUrl}?apikey={_apiKey}&s={Uri.EscapeDataString(query)}";
-            var response  = await _httpClient.GetFromJsonAsync<OmdbSearchResponse>(searchUrl);
-
+            var isImdbId = System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^tt\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var movieResults = new List<MovieSearchResult>();
 
-            if (response?.Search != null && response.Search.Count > 0)
+            if (isImdbId)
             {
-                foreach (var item in response.Search)
-                {
-                    if (item.Title.HasNoValue()) continue;
+                var directUrl = $"{BaseUrl}?apikey={_apiKey}&i={Uri.EscapeDataString(query.Trim())}";
+                var directItem = await _httpClient.GetFromJsonAsync<OmdbItemDetail>(directUrl);
 
-                    var poster = (item.Poster.HasValue() && !item.Poster!.EqualsIgnoreCase("N/A"))
-                        ? item.Poster!
+                if (directItem != null && directItem.Response.EqualsIgnoreCase("True") && directItem.Title.HasValue())
+                {
+                    var poster = (directItem.Poster.HasValue() && !directItem.Poster!.EqualsIgnoreCase("N/A"))
+                        ? directItem.Poster!
                         : string.Empty;
 
-                    var imdbIdHash = item.ImdbId.HasValue() ? item.ImdbId!.GetHashCode() : item.Title!.GetHashCode();
+                    var imdbIdHash = directItem.ImdbId.HasValue() ? directItem.ImdbId!.GetHashCode() : directItem.Title!.GetHashCode();
                     var movieId    = Math.Abs(imdbIdHash);
 
                     var movieSearchResult = new MovieSearchResult
                                            {
                                                Id               = movieId
-                                             , Title            = item.Title!
-                                             , Overview         = $"Year: {item.Year ?? "N/A"}"
+                                             , Title            = directItem.Title!
+                                             , Overview         = directItem.Plot.HasValue() && !directItem.Plot!.EqualsIgnoreCase("N/A") 
+                                                     ? directItem.Plot! 
+                                                     : $"Year: {directItem.Year ?? "N/A"}"
                                              , PosterPath       = poster
+                                             , MediaType        = directItem.Type.EqualsIgnoreCase("series") ? "Show" : "Movie"
                                              , SourceApis       = new List<string> { "OMDB" }
                                              , PrimarySourceApi = "OMDB"
-                                             , WebUrl           = item.ImdbId.HasValue()
-                                                     ? $"https://www.imdb.com/title/{item.ImdbId}/"
-                                                     : $"https://www.omdbapi.com/?t={Uri.EscapeDataString(item.Title!)}"
+                                             , WebUrl           = directItem.ImdbId.HasValue()
+                                                     ? $"https://www.imdb.com/title/{directItem.ImdbId}/"
+                                                     : $"https://www.omdbapi.com/?t={Uri.EscapeDataString(directItem.Title!)}"
                                            };
 
                     movieResults.Add(movieSearchResult);
+                }
+            }
+            else
+            {
+                var searchUrl = $"{BaseUrl}?apikey={_apiKey}&s={Uri.EscapeDataString(query)}";
+                var response  = await _httpClient.GetFromJsonAsync<OmdbSearchResponse>(searchUrl);
+
+                if (response?.Search != null && response.Search.Count > 0)
+                {
+                    foreach (var item in response.Search)
+                    {
+                        if (item.Title.HasNoValue()) continue;
+
+                        var poster = (item.Poster.HasValue() && !item.Poster!.EqualsIgnoreCase("N/A"))
+                            ? item.Poster!
+                            : string.Empty;
+
+                        var imdbIdHash = item.ImdbId.HasValue() ? item.ImdbId!.GetHashCode() : item.Title!.GetHashCode();
+                        var movieId    = Math.Abs(imdbIdHash);
+
+                        var movieSearchResult = new MovieSearchResult
+                                               {
+                                                   Id               = movieId
+                                                 , Title            = item.Title!
+                                                 , Overview         = $"Year: {item.Year ?? "N/A"}"
+                                                 , PosterPath       = poster
+                                                 , SourceApis       = new List<string> { "OMDB" }
+                                                 , PrimarySourceApi = "OMDB"
+                                                 , WebUrl           = item.ImdbId.HasValue()
+                                                         ? $"https://www.imdb.com/title/{item.ImdbId}/"
+                                                         : $"https://www.omdbapi.com/?t={Uri.EscapeDataString(item.Title!)}"
+                                               };
+
+                        movieResults.Add(movieSearchResult);
+                    }
                 }
             }
 
@@ -134,5 +171,29 @@ public class OmdbService : IMovieDataProvider
 
         [JsonPropertyName("Poster")]
         public string? Poster { get; set; }
+    }
+
+    private class OmdbItemDetail
+    {
+        [JsonPropertyName("Title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("Year")]
+        public string? Year { get; set; }
+
+        [JsonPropertyName("Plot")]
+        public string? Plot { get; set; }
+
+        [JsonPropertyName("imdbID")]
+        public string? ImdbId { get; set; }
+
+        [JsonPropertyName("Type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("Poster")]
+        public string? Poster { get; set; }
+
+        [JsonPropertyName("Response")]
+        public string? Response { get; set; }
     }
 }

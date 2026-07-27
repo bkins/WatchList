@@ -97,8 +97,50 @@ public class TmdbService : IMovieDataProvider
 
         try
         {
-            var url = $"{BaseUrl}/search/movie?api_key={ApiKey}&query={Uri.EscapeDataString(query)}";
-            var response = await _httpClient.GetFromJsonAsync<MovieSearchResponse>(url);
+            var isImdbId = System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^tt\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            MovieSearchResponse? response = null;
+
+            if (isImdbId)
+            {
+                var findUrl = $"{BaseUrl}/find/{Uri.EscapeDataString(query.Trim())}?api_key={ApiKey}&external_source=imdb_id";
+                var findResponse = await _httpClient.GetFromJsonAsync<TmdbFindResponse>(findUrl);
+
+                var combinedResults = new List<MovieSearchResult>();
+
+                if (findResponse?.MovieResults != null && findResponse.MovieResults.Count > 0)
+                {
+                    foreach (var movie in findResponse.MovieResults)
+                    {
+                        movie.MediaType = "Movie";
+                        combinedResults.Add(movie);
+                    }
+                }
+
+                if (findResponse?.TvResults != null && findResponse.TvResults.Count > 0)
+                {
+                    foreach (var tv in findResponse.TvResults)
+                    {
+                        combinedResults.Add(new MovieSearchResult
+                        {
+                            Id               = tv.Id
+                          , Title            = tv.Name
+                          , Overview         = tv.Overview
+                          , PosterPath       = tv.PosterPath ?? string.Empty
+                          , MediaType        = "Show"
+                          , SourceApis       = new List<string> { "TMDB" }
+                          , PrimarySourceApi = "TMDB"
+                          , WebUrl           = $"https://www.themoviedb.org/tv/{tv.Id}"
+                        });
+                    }
+                }
+
+                response = new MovieSearchResponse { Results = combinedResults };
+            }
+            else
+            {
+                var url = $"{BaseUrl}/search/movie?api_key={ApiKey}&query={Uri.EscapeDataString(query)}";
+                response = await _httpClient.GetFromJsonAsync<MovieSearchResponse>(url);
+            }
 
             if (response?.Results != null && response.Results.Count > 0)
             {
@@ -119,9 +161,15 @@ public class TmdbService : IMovieDataProvider
                             movie.StreamingProviders = streamingNames;
                         }
                     }
-                    movie.SourceApis = new List<string> { "TMDB" };
+                    if (movie.SourceApis == null || movie.SourceApis.Count == 0)
+                    {
+                        movie.SourceApis = new List<string> { "TMDB" };
+                    }
                     movie.PrimarySourceApi = "TMDB";
-                    movie.WebUrl = $"https://www.themoviedb.org/movie/{movie.Id}";
+                    if (string.IsNullOrEmpty(movie.WebUrl))
+                    {
+                        movie.WebUrl = $"https://www.themoviedb.org/movie/{movie.Id}";
+                    }
                 }).ToList();
 
                 await Task.WhenAll(providerTasks);

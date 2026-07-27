@@ -19,6 +19,15 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
                                            , out object? watchItemId)
                                ? watchItemId?.ToString()
                                : null); // No ID means we're adding a new item
+
+        if (query.TryGetValue("PreFilledTitle", out object? preFilledTitleObj) && preFilledTitleObj is string preFilledTitle && !string.IsNullOrWhiteSpace(preFilledTitle))
+        {
+            viewModel.MovieTitle = preFilledTitle;
+            if (viewModel.EditableItem != null)
+            {
+                viewModel.EditableItem.Title = preFilledTitle;
+            }
+        }
     }
 
     private async void OnStreamingServiceSelectionChanged (object    sender

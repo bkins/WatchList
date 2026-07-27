@@ -25,45 +25,94 @@ public class TvMazeService : IMovieDataProvider
 
         try
         {
-            var searchUrl = $"{BaseUrl}/search/shows?q={Uri.EscapeDataString(query)}";
-            var response  = await _httpClient.GetFromJsonAsync<List<TvMazeSearchResult>>(searchUrl);
-
+            var isImdbId = System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^tt\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var movieResults = new List<MovieSearchResult>();
 
-            if (response != null && response.Count > 0)
+            if (isImdbId)
             {
-                foreach (var item in response)
+                try
                 {
-                    if (item.Show == null) continue;
+                    var lookupUrl = $"{BaseUrl}/lookup/shows?imdb={Uri.EscapeDataString(query.Trim())}";
+                    var show = await _httpClient.GetFromJsonAsync<TvMazeShow>(lookupUrl);
 
-                    var rawSummary = item.Show.Summary ?? string.Empty;
-                    var cleanSummary = Regex.Replace(rawSummary, "<.*?>", string.Empty);
-
-                    var movieSearchResult = new MovieSearchResult
-                                           {
-                                               Id               = item.Show.Id
-                                             , Title            = item.Show.Name ?? string.Empty
-                                             , Overview         = cleanSummary
-                                             , PosterPath       = item.Show.Image?.Medium ?? string.Empty
-                                             , SourceApis       = new List<string> { "TVMaze" }
-                                             , PrimarySourceApi = "TVMaze"
-                                             , WebUrl           = item.Show.Url ?? $"https://www.tvmaze.com/shows/{item.Show.Id}"
-                                           };
-
-                    var providers = new List<string>();
-
-                    if (item.Show.WebChannel?.Name.HasValue() ?? false)
+                    if (show != null && show.Name.HasValue())
                     {
-                        providers.Add(item.Show.WebChannel.Name!);
-                    }
+                        var rawSummary   = show.Summary ?? string.Empty;
+                        var cleanSummary = Regex.Replace(rawSummary, "<.*?>", string.Empty);
 
-                    if (item.Show.Network?.Name.HasValue() ?? false)
+                        var movieSearchResult = new MovieSearchResult
+                                               {
+                                                   Id               = show.Id
+                                                 , Title            = show.Name ?? string.Empty
+                                                 , Overview         = cleanSummary
+                                                 , PosterPath       = show.Image?.Medium ?? string.Empty
+                                                 , MediaType        = "Show"
+                                                 , SourceApis       = new List<string> { "TVMaze" }
+                                                 , PrimarySourceApi = "TVMaze"
+                                                 , WebUrl           = show.Url ?? $"https://www.tvmaze.com/shows/{show.Id}"
+                                               };
+
+                        var providers = new List<string>();
+
+                        if (show.WebChannel?.Name.HasValue() ?? false)
+                        {
+                            providers.Add(show.WebChannel.Name!);
+                        }
+
+                        if (show.Network?.Name.HasValue() ?? false)
+                        {
+                            providers.Add(show.Network.Name!);
+                        }
+
+                        movieSearchResult.StreamingProviders = providers.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                        movieResults.Add(movieSearchResult);
+                    }
+                }
+                catch
+                {
+                    // 404 or lookup error, fallback to empty results for TVMaze
+                }
+            }
+            else
+            {
+                var searchUrl = $"{BaseUrl}/search/shows?q={Uri.EscapeDataString(query)}";
+                var response  = await _httpClient.GetFromJsonAsync<List<TvMazeSearchResult>>(searchUrl);
+
+                if (response != null && response.Count > 0)
+                {
+                    foreach (var item in response)
                     {
-                        providers.Add(item.Show.Network.Name!);
-                    }
+                        if (item.Show == null) continue;
 
-                    movieSearchResult.StreamingProviders = providers.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                    movieResults.Add(movieSearchResult);
+                        var rawSummary = item.Show.Summary ?? string.Empty;
+                        var cleanSummary = Regex.Replace(rawSummary, "<.*?>", string.Empty);
+
+                        var movieSearchResult = new MovieSearchResult
+                                               {
+                                                   Id               = item.Show.Id
+                                                 , Title            = item.Show.Name ?? string.Empty
+                                                 , Overview         = cleanSummary
+                                                 , PosterPath       = item.Show.Image?.Medium ?? string.Empty
+                                                 , SourceApis       = new List<string> { "TVMaze" }
+                                                 , PrimarySourceApi = "TVMaze"
+                                                 , WebUrl           = item.Show.Url ?? $"https://www.tvmaze.com/shows/{item.Show.Id}"
+                                               };
+
+                        var providers = new List<string>();
+
+                        if (item.Show.WebChannel?.Name.HasValue() ?? false)
+                        {
+                            providers.Add(item.Show.WebChannel.Name!);
+                        }
+
+                        if (item.Show.Network?.Name.HasValue() ?? false)
+                        {
+                            providers.Add(item.Show.Network.Name!);
+                        }
+
+                        movieSearchResult.StreamingProviders = providers.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                        movieResults.Add(movieSearchResult);
+                    }
                 }
             }
 

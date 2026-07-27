@@ -80,6 +80,7 @@ public static class MauiProgram
         builder.Services.AddHttpClient<WatchmodeService>();
         builder.Services.AddHttpClient<StreamingAvailabilityService>();
         builder.Services.AddHttpClient<TvMazeService>();
+        builder.Services.AddHttpClient<WikipediaMovieProvider>();
 
         // Register services
         builder.Services.AddSingleton<WatchListService>();
@@ -93,6 +94,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IMovieDataProvider, WatchmodeService>();
         builder.Services.AddSingleton<IMovieDataProvider, StreamingAvailabilityService>();
         builder.Services.AddSingleton<IMovieDataProvider, TvMazeService>();
+        builder.Services.AddSingleton<IMovieDataProvider, WikipediaMovieProvider>();
+        builder.Services.AddSingleton<IMovieDataProvider, GoogleSearchFallbackProvider>();
 
         // Build the app to resolve services
         var app = builder.Build();

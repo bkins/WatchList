@@ -175,7 +175,8 @@ public class MovieDataAggregator : IMovieDataAggregator
             mergedResults.Add(primaryRepresentative);
         }
 
-        var sortedMergedResults = mergedResults.OrderByDescending(item => item.Title.EqualsIgnoreCase(query))
+        var sortedMergedResults = mergedResults.OrderBy(item => item.PrimarySourceApi == "Google" ? 1 : 0)
+                                               .ThenByDescending(item => item.Title.EqualsIgnoreCase(query))
                                                .ThenBy(item => item.Title.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
                                                .ToList();
 

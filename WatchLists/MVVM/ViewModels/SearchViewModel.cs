@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Services;
 using WatchLists.Services.Models;
@@ -104,6 +105,19 @@ public partial class SearchViewModel : ObservableObject
     {
         if (param is MovieSearchResult searchResult)
         {
+            if (searchResult.PrimarySourceApi == "Google" && !string.IsNullOrWhiteSpace(searchResult.WebUrl))
+            {
+                try
+                {
+                    await Launcher.OpenAsync(new Uri(searchResult.WebUrl));
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    await FileLogger.WriteLogAsync($"[SearchViewModel] Error launching Google URL: {ex.Message}");
+                }
+            }
+
             var navParams = new Dictionary<string, object>
             {
                 { "SearchResult", searchResult },
@@ -115,5 +129,47 @@ public partial class SearchViewModel : ObservableObject
         {
             await Shell.Current.GoToAsync($"MovieDetailsPage?movieId={movieId}");
         }
+    }
+
+    [RelayCommand]
+    public async Task SearchWikipedia()
+    {
+        var query = SearchQuery.HasValue() ? SearchQuery.Trim() : "movies";
+        var wikiUrl = $"https://en.wikipedia.org/w/index.php?search={Uri.EscapeDataString(query)}";
+        await FileLogger.WriteLogAsync($"[SearchViewModel] Opening Wikipedia search for '{query}'");
+        try
+        {
+            await Launcher.OpenAsync(new Uri(wikiUrl));
+        }
+        catch (Exception ex)
+        {
+            await FileLogger.WriteLogAsync($"[SearchViewModel] Error opening Wikipedia URL: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task SearchGoogle()
+    {
+        var query = SearchQuery.HasValue() ? SearchQuery.Trim() : "movies";
+        var googleUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query + " movie show")}";
+        await FileLogger.WriteLogAsync($"[SearchViewModel] Opening Google search for '{query}'");
+        try
+        {
+            await Launcher.OpenAsync(new Uri(googleUrl));
+        }
+        catch (Exception ex)
+        {
+            await FileLogger.WriteLogAsync($"[SearchViewModel] Error opening Google URL: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task AddCustomItem()
+    {
+        var navParams = new Dictionary<string, object>
+        {
+            { "PreFilledTitle", SearchQuery ?? string.Empty }
+        };
+        await Shell.Current.GoToAsync(nameof(WatchLists.MVVM.Views.EditWatchItemPage), navParams);
     }
 }

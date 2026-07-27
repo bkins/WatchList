@@ -121,6 +121,56 @@
                     </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
+
+            <!-- Search Fallback Options Footer -->
+            <CollectionView.Footer>
+                <Frame Style="{StaticResource CardStyle}"
+                       Padding="14"
+                       Margin="0,12,0,16"
+                       BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}">
+                    <StackLayout Spacing="10">
+                        <Label Text="Can't find what you're looking for?"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                        <Label Text="Try querying broader web indexes or manually create your custom watch item:"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+
+                        <FlexLayout Wrap="Wrap" Direction="Row" JustifyContent="Start" AlignItems="Center">
+                            <Button AutomationId="SearchWikipediaButton"
+                                    Text="🌐 Search Wikipedia"
+                                    Command="{Binding SearchWikipediaCommand}"
+                                    Margin="0,0,8,8"
+                                    HeightRequest="38"
+                                    FontSize="12"
+                                    CornerRadius="6"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                            <Button AutomationId="SearchGoogleButton"
+                                    Text="🔍 Search Google"
+                                    Command="{Binding SearchGoogleCommand}"
+                                    Margin="0,0,8,8"
+                                    HeightRequest="38"
+                                    FontSize="12"
+                                    CornerRadius="6"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                            <Button AutomationId="AddCustomItemButton"
+                                    Text="➕ Add Custom Item"
+                                    Command="{Binding AddCustomItemCommand}"
+                                    Margin="0,0,8,8"
+                                    HeightRequest="38"
+                                    FontSize="12"
+                                    CornerRadius="6"
+                                    BackgroundColor="{StaticResource Secondary}"
+                                    TextColor="White" />
+                        </FlexLayout>
+                    </StackLayout>
+                </Frame>
+            </CollectionView.Footer>
         </CollectionView>
     </Grid>
 </ContentPage>
