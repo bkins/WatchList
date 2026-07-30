@@ -54,9 +54,8 @@ public static class MauiProgram
                                       .GetAwaiter()
                                       .GetResult();
 
-        var config = new ConfigurationBuilder()
-                     .AddJsonStream(secretsStream)
-                     .Build();
+        var config = new ConfigurationBuilder().AddJsonStream(secretsStream)
+                                               .Build();
 
         builder.Configuration.AddConfiguration(config);
 
