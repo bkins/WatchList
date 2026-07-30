@@ -17,10 +17,12 @@ Hidden=false
     Reads the current version from version.txt, increments the version based on the specified
     increment level (Major, Minor, Patch, Build) or uses an explicit version string, and compiles the
     MAUI project for target platforms (Android and/or Windows).
+    
+    If run with no arguments, or with the -Interactive switch, it launches a step-by-step guided wizard.
     The built files are archived in the Releases/ folder at the root of the solution.
 
 .PARAMETER Increment
-    The version component to increment. Options: Major, Minor, Patch, Build. Default: Build.
+    The version component to increment. Options: Major, Minor, Patch, Build.
     - Major: Increments major number, sets minor/patch/build to 0. (e.g. 1.0.0.0 -> 2.0.0.0)
     - Minor: Increments minor number, sets patch/build to 0. (e.g. 1.0.0.0 -> 1.1.0.0)
     - Patch: Increments patch number, sets build to 0. (e.g. 1.0.0.0 -> 1.0.1.0)
@@ -31,10 +33,17 @@ Hidden=false
     Takes precedence over the -Increment parameter.
 
 .PARAMETER Platform
-    The target build platform. Options: All, Windows, Android. Default: All.
+    The target build platform. Options: All, Windows, Android.
 
 .PARAMETER Clean
     If set, deletes the bin/ and obj/ folders in the project directory before building.
+
+.PARAMETER Interactive
+    Launches the guided release build wizard.
+
+.EXAMPLE
+    .\Build-Release.ps1
+    Launches the guided wizard to configure the build step-by-step.
 
 .EXAMPLE
     .\Build-Release.ps1 -Increment Build
@@ -47,14 +56,16 @@ Hidden=false
 
 param(
     [ValidateSet("Major", "Minor", "Patch", "Build")]
-    [string]$Increment = "Build",
+    [string]$Increment,
 
     [string]$Version,
 
     [ValidateSet("All", "Windows", "Android")]
-    [string]$Platform = "All",
+    [string]$Platform,
 
-    [switch]$Clean
+    [switch]$Clean,
+
+    [switch]$Interactive
 )
 
 Set-StrictMode -Version Latest
@@ -65,7 +76,77 @@ $solutionRoot = Split-Path $PSScriptRoot -Parent
 $versionPath = Join-Path $PSScriptRoot "version.txt"
 $releasesRoot = Join-Path $solutionRoot "Releases"
 
-# 1. Determine current version
+# Determine if we should run in interactive mode
+$isInteractive = $Interactive -or ($null -eq $Increment -and -not $Version -and -not $Platform)
+
+# 1. Interactive wizard mode
+if ($isInteractive) 
+{
+    Write-Host "==================================================" -ForegroundColor Cyan
+    Write-Host " WatchList Build Release Interactive Wizard" -ForegroundColor Cyan
+    Write-Host "==================================================" -ForegroundColor Cyan
+
+    # Select Version Bump Level
+    Write-Host "`n[1] Select Version Bump Level:" -ForegroundColor Gray
+    Write-Host "  1) Build (increment 4th digit, e.g. 1.0.0.1 -> 1.0.0.2)"
+    Write-Host "  2) Patch (increment 3rd digit, reset 4th)"
+    Write-Host "  3) Minor (increment 2nd digit, reset 3rd/4th)"
+    Write-Host "  4) Major (increment 1st digit, reset 2nd/3rd/4th)"
+    Write-Host "  5) Explicit Version String (e.g. 2.1.0.0)"
+    
+    $vChoice = ""
+    while ($vChoice -notmatch '^[1-5]$') 
+    {
+        $vChoice = Read-Host "Select option [1-5]"
+    }
+
+    if ($vChoice -eq "5") 
+    {
+        $Version = ""
+        while ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') 
+        {
+            $Version = Read-Host "Enter explicit version (major.minor.patch.build)"
+        }
+    } 
+    else 
+    {
+        $map = @{ "1"="Build"; "2"="Patch"; "3"="Minor"; "4"="Major" }
+        $Increment = $map[$vChoice]
+    }
+
+    # Select Target Platform
+    Write-Host "`n[2] Select Target Platform:" -ForegroundColor Gray
+    Write-Host "  1) All Platforms (Windows + Android)"
+    Write-Host "  2) Windows Desktop Only"
+    Write-Host "  3) Android Only"
+    
+    $pChoice = ""
+    while ($pChoice -notmatch '^[1-3]$') 
+    {
+        $pChoice = Read-Host "Select platform [1-3]"
+    }
+    $mapPlatform = @{ "1"="All"; "2"="Windows"; "3"="Android" }
+    $Platform = $mapPlatform[$pChoice]
+
+    # Clean option
+    Write-Host "`n[3] Clean Build Folders?" -ForegroundColor Gray
+    $cChoice = Read-Host "Clean bin/obj directories first? (y/n)"
+    $Clean = $cChoice -match '^[yY]([eE][sS])?$'
+} 
+else 
+{
+    # Set default values if running from non-interactive CLI and omitted
+    if (-not $Increment -and -not $Version) 
+    {
+        $Increment = "Build"
+    }
+    if (-not $Platform) 
+    {
+        $Platform = "All"
+    }
+}
+
+# 2. Determine current version
 if (-not (Test-Path $versionPath)) 
 {
     Write-Host "version.txt not found. Initializing to 1.0.0.0" -ForegroundColor Yellow
@@ -73,7 +154,7 @@ if (-not (Test-Path $versionPath))
 }
 
 $currentVersionStr = (Get-Content -Path $versionPath -Raw).Trim()
-Write-Host "Current version: $currentVersionStr" -ForegroundColor Gray
+Write-Host "`nCurrent version: $currentVersionStr" -ForegroundColor Gray
 
 $parts = $currentVersionStr -split '\.'
 while ($parts.Count -lt 4) 
@@ -86,7 +167,7 @@ $minor = [int]$parts[1]
 $patch = [int]$parts[2]
 $build = [int]$parts[3]
 
-# 2. Determine new version
+# Determine new version
 if ($Version) 
 {
     if ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') 
