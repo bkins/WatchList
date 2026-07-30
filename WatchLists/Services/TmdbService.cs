@@ -35,9 +35,9 @@ public class TmdbService : IMovieDataProvider
 
     #region Common API Methods
 
-    public async Task<AggregatedResult<MovieDetail>> GetMovieDetailsAsync(int movieId)
+    public async Task<AggregatedResult<MovieDetail?>> GetMovieDetailsAsync(int movieId)
     {
-        var result = new AggregatedResult<MovieDetail>();
+        var result = new AggregatedResult<MovieDetail?>();
 
         try
         {
