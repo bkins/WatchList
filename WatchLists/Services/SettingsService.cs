@@ -14,10 +14,26 @@ public class SettingsService
     private const string StreamingFile       = "StreamingServices.json";
     private const string TypesFile           = "Types.json";
     private const string WatchedCategoryFile = "WatchedCategory.json";
+    private const string SyncSettingsFile    = "SyncSettings.json";
 
-    public SettingsService()
+    public SettingsService (string? storageFolder = null)
     {
-        _folder = FileSystem.AppDataDirectory;
+        if (storageFolder.HasValue())
+        {
+            _folder = storageFolder;
+        }
+        else
+        {
+            try
+            {
+                _folder = FileSystem.AppDataDirectory;
+            }
+            catch
+            {
+                _folder = Path.Combine(Path.GetTempPath(), "WatchList");
+                Directory.CreateDirectory(_folder);
+            }
+        }
     }
 
     public async Task<string> GetWatchedCategoryAsync()
@@ -217,4 +233,103 @@ public class SettingsService
                                  , options);
         }
     }
+
+    private SyncSettingsConfig LoadSyncSettingsConfig()
+    {
+        var filePath = Path.Combine(_folder, SyncSettingsFile);
+        if (Avails.FileDoesNotExist(filePath)) return new SyncSettingsConfig();
+
+        try
+        {
+            var json = File.ReadAllText(filePath);
+            return JsonSerializer.Deserialize<SyncSettingsConfig>(json) ?? new SyncSettingsConfig();
+        }
+        catch
+        {
+            return new SyncSettingsConfig();
+        }
+    }
+
+    private async Task SaveSyncSettingsConfigAsync (SyncSettingsConfig config)
+    {
+        var filePath = Path.Combine(_folder, SyncSettingsFile);
+        var json     = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, json);
+    }
+
+    public string GetSyncFolderPath()
+    {
+        return LoadSyncSettingsConfig().SyncFolderPath;
+    }
+
+    public async Task SaveSyncFolderPathAsync (string path)
+    {
+        var config            = LoadSyncSettingsConfig();
+        config.SyncFolderPath = path ?? string.Empty;
+        await SaveSyncSettingsConfigAsync(config);
+    }
+
+    public bool GetAutoSyncEnabled()
+    {
+        return LoadSyncSettingsConfig().AutoSyncEnabled;
+    }
+
+    public async Task SaveAutoSyncEnabledAsync (bool enabled)
+    {
+        var config             = LoadSyncSettingsConfig();
+        config.AutoSyncEnabled = enabled;
+        await SaveSyncSettingsConfigAsync(config);
+    }
+
+    public string GetSyncMode()
+    {
+        return LoadSyncSettingsConfig().SyncMode;
+    }
+
+    public async Task SaveSyncModeAsync (string mode)
+    {
+        var config      = LoadSyncSettingsConfig();
+        config.SyncMode = mode ?? "CloudApi";
+        await SaveSyncSettingsConfigAsync(config);
+    }
+
+    public string GetApiEndpointUrl()
+    {
+        var url = LoadSyncSettingsConfig().ApiEndpointUrl;
+        if (url.IsEmptyNullOrWhiteSpace() || 
+            url.EqualsIgnoreCase("https://watchlist-app-sync-default-rtdb.firebaseio.com") || 
+            url.EqualsIgnoreCase("https://watchlist-app-sync-default-rtdb.firebaseio.com/"))
+        {
+            return "https://watchlist-faa16-default-rtdb.firebaseio.com/";
+        }
+        return url;
+    }
+
+    public async Task SaveApiEndpointUrlAsync (string url)
+    {
+        var config            = LoadSyncSettingsConfig();
+        config.ApiEndpointUrl = url ?? string.Empty;
+        await SaveSyncSettingsConfigAsync(config);
+    }
+
+    public string GetSyncCode()
+    {
+        return LoadSyncSettingsConfig().SyncCode;
+    }
+
+    public async Task SaveSyncCodeAsync (string code)
+    {
+        var config      = LoadSyncSettingsConfig();
+        config.SyncCode = code ?? string.Empty;
+        await SaveSyncSettingsConfigAsync(config);
+    }
+}
+
+public class SyncSettingsConfig
+{
+    public string SyncMode        { get; set; } = "CloudApi";
+    public string SyncFolderPath  { get; set; } = string.Empty;
+    public string ApiEndpointUrl  { get; set; } = "https://watchlist-faa16-default-rtdb.firebaseio.com/";
+    public string SyncCode        { get; set; } = "MyWatchList2026";
+    public bool   AutoSyncEnabled { get; set; } = true;
 }

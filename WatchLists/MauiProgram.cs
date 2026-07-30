@@ -70,6 +70,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<LogsViewModel>();
         builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<SearchViewModel>();
+        builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<SettingsViewModel>();
 
 
         // Register HTTP Clients (but without API keys yet)
@@ -85,6 +87,7 @@ public static class MauiProgram
         // Register services
         builder.Services.AddSingleton<WatchListService>();
         builder.Services.AddSingleton<SettingsService>();
+        builder.Services.AddSingleton<SyncService>();
         builder.Services.AddSingleton<MovieDataAggregator>();
         builder.Services.AddSingleton<IMovieDataAggregator, MovieDataAggregator>();
         builder.Services.AddSingleton<IMovieDataProvider, TmdbService>();

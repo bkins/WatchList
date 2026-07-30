@@ -1,11 +1,10 @@
-﻿using WatchLists.Utilities;
+using WatchLists.Utilities;
 
 namespace WatchLists.Logger;
 
 public static class FileLogger
 {
-    // Use the same path as before, for consistency with your other text data.
-    public static readonly string LogFilePath = LogConfig.LogFilePath;
+    public static string LogFilePath => LogConfig.LogFilePath;
 
     static FileLogger()
     {

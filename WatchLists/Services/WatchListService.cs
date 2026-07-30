@@ -12,22 +12,40 @@ public class WatchListService
     private readonly SettingsService _settingsService;
     private readonly SQLiteConnection _dbConnection;
 
-    public WatchListService (SettingsService settingsService)
+    public WatchListService (SettingsService settingsService, string? dbPath = null)
     {
         _settingsService = settingsService;
 
         _ = FileLogger.WriteLogAsync("WatchListService constructor invoked");
 
-        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "watchlist.db");
+        if (dbPath.IsEmptyNullOrWhiteSpace())
+        {
+            string appData;
+            try
+            {
+                appData = FileSystem.AppDataDirectory;
+            }
+            catch
+            {
+                appData = Path.Combine(Path.GetTempPath(), "WatchList");
+                Directory.CreateDirectory(appData);
+            }
+
+            dbPath = Path.Combine(appData, "watchlist.db");
+        }
+
         _dbConnection = new SQLiteConnection(dbPath);
         _dbConnection.CreateTable<WatchItem>();
+        _dbConnection.Execute("UPDATE WatchItems SET IsDeleted = 0 WHERE IsDeleted IS NULL;");
 
-        MigrateJsonData();
+        MigrateJsonData(Path.GetDirectoryName(dbPath) ?? string.Empty);
     }
 
-    private void MigrateJsonData()
+    private void MigrateJsonData (string appDataDir)
     {
-        var jsonPath = Path.Combine(FileSystem.AppDataDirectory, "watchlist.json");
+        if (appDataDir.IsEmptyNullOrWhiteSpace()) return;
+
+        var jsonPath = Path.Combine(appDataDir, "watchlist.json");
         if (File.Exists(jsonPath))
         {
             try
@@ -50,9 +68,24 @@ public class WatchListService
         }
     }
 
+    public event EventHandler? WatchListChanged;
+
     public List<WatchItem> GetCurrentWatchItems() => GetWatchItems();
 
     public List<WatchItem> GetWatchItems()
+    {
+        try
+        {
+            return _dbConnection.Table<WatchItem>().Where(item => !item.IsDeleted).ToList();
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"GetWatchItems: Failed to retrieve: {ex.Message}");
+            return new List<WatchItem>();
+        }
+    }
+
+    public List<WatchItem> GetAllWatchItemsIncludingDeleted()
     {
         try
         {
@@ -60,7 +93,7 @@ public class WatchListService
         }
         catch (Exception ex)
         {
-            _ = FileLogger.WriteLogAsync($"GetWatchItems: Failed to retrieve: {ex.Message}");
+            _ = FileLogger.WriteLogAsync($"GetAllWatchItemsIncludingDeleted: Failed to retrieve: {ex.Message}");
             return new List<WatchItem>();
         }
     }
@@ -73,21 +106,55 @@ public class WatchListService
             _ = FileLogger.WriteLogAsync($"Assigned new ID: {item.Id} to new WatchItem");
         }
 
-        _dbConnection.Insert(item);
+        if (item.LastUpdated == default)
+        {
+            item.LastUpdated = DateTime.UtcNow;
+        }
+        _dbConnection.InsertOrReplace(item);
         _ = FileLogger.WriteLogAsync($"Added new WatchItem with ID: {item.Id} via SQLite");
+
+        WatchListChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void UpdateWatchItem (WatchItem updatedItem)
     {
-        updatedItem.LastUpdated = DateTime.Now;
+        updatedItem.LastUpdated = DateTime.UtcNow;
         _dbConnection.InsertOrReplace(updatedItem);
         _ = FileLogger.WriteLogAsync($"Updated WatchItem with ID: {updatedItem.Id} via SQLite");
+
+        WatchListChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void DeleteWatchItem (Guid id)
     {
-        _dbConnection.Delete<WatchItem>(id);
-        _ = FileLogger.WriteLogAsync($"Deleted WatchItem with ID: {id} via SQLite");
+        try
+        {
+            var item = _dbConnection.Find<WatchItem>(id);
+            if (item != null)
+            {
+                item.IsDeleted   = true;
+                item.LastUpdated = DateTime.UtcNow;
+                _dbConnection.InsertOrReplace(item);
+                _ = FileLogger.WriteLogAsync($"Soft-deleted WatchItem with ID: {id} via SQLite");
+
+                WatchListChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"DeleteWatchItem error: {ex.Message}");
+        }
+    }
+
+    public void UpsertWatchItemFromSync (WatchItem item)
+    {
+        _dbConnection.InsertOrReplace(item);
+        _ = FileLogger.WriteLogAsync($"UpsertWatchItemFromSync ID: {item.Id} via SQLite");
+    }
+
+    public void NotifyWatchListChanged()
+    {
+        WatchListChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public WatchItem? FindDuplicateItem (int movieId, string? apiSource = null, Guid? excludeId = null)
@@ -115,8 +182,10 @@ public class WatchListService
                                                  , savedCategories);
         }
 
-        item.LastUpdated = DateTime.Now;
+        item.LastUpdated = DateTime.UtcNow;
         _dbConnection.InsertOrReplace(item);
         _ = FileLogger.WriteLogAsync($"Saved WatchItem with ID: {item.Id} via SQLite");
+
+        WatchListChanged?.Invoke(this, EventArgs.Empty);
     }
 }

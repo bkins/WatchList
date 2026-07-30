@@ -14,8 +14,9 @@ public class WatchItem : ObservableObject
     public string   Category         { get; set; } // e.g., "Currently Watching", "Finished Watching"
     public bool     IsWatched        { get; set; }
     public bool     IsLiked          { get; set; }
+    public bool     IsDeleted        { get; set; } = false;
     public string   DeepLinkUri      { get; set; } // URL/URI to open the streaming service app
-    public DateTime LastUpdated      { get; set; } = DateTime.Now;
+    public DateTime LastUpdated      { get; set; } = DateTime.UtcNow;
     public string   Type                       { get; set; } // e.g., "Show", "Movie", "Mini-Series"
     public string   PreviousCategory           { get; set; }
     public int      MovieId                    { get; set; }

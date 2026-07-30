@@ -92,6 +92,94 @@
                 </StackLayout>
             </Frame>
 
+            <!-- Section 4: Data Synchronization -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <StackLayout Spacing="10">
+                    <Label Text="🔄 Data Synchronization"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
+                    <Label Text="Sync Mode" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                    <Border Padding="4">
+                        <Picker AutomationId="SyncModePicker"
+                                ItemsSource="{Binding SyncModes}"
+                                SelectedItem="{Binding SyncMode, Mode=TwoWay}"
+                                FontSize="12" />
+                    </Border>
+
+                    <!-- Cloud API Section -->
+                    <StackLayout IsVisible="{Binding IsCloudApiMode}" Spacing="8">
+                        <Label Text="Sync Code (Pair Laptop &amp; Phone)" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                        <Border Padding="6">
+                            <Entry AutomationId="SyncCodeEntry"
+                                   Text="{Binding SyncCode, Mode=TwoWay}"
+                                   Placeholder="Enter pairing code e.g. MyWatchList2026"
+                                   FontSize="12" />
+                        </Border>
+
+                        <Label Text="Cloud Endpoint URL" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="6">
+                            <Border Padding="6" Grid.Column="0">
+                                <Entry AutomationId="ApiEndpointUrlEntry"
+                                       Text="{Binding ApiEndpointUrl, Mode=TwoWay}"
+                                       Placeholder="HTTPS REST Endpoint URL or tap Create..."
+                                       FontSize="12" />
+                            </Border>
+                            <Button AutomationId="CreateCloudEndpointButton"
+                                    Grid.Column="1"
+                                    Text="➕ Create Storage"
+                                    Command="{Binding CreateNewCloudEndpointCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </Grid>
+                    </StackLayout>
+
+                    <!-- File System Section -->
+                    <StackLayout IsVisible="{Binding IsFileSystemMode}" Spacing="8">
+                        <Label Text="Shared Sync Storage Directory" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="6">
+                            <Border Padding="6" Grid.Column="0">
+                                <Entry AutomationId="SyncFolderPathEntry"
+                                       Text="{Binding SyncFolderPath, Mode=TwoWay}"
+                                       Placeholder="Select or enter folder path..."
+                                       FontSize="12" />
+                            </Border>
+                            <Button AutomationId="BrowseSyncFolderButton"
+                                    Grid.Column="1"
+                                    Text="📁 Browse"
+                                    Command="{Binding PickSyncFolderCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button AutomationId="UseDefaultAppFolderButton"
+                                    Grid.Column="2"
+                                    Text="📱 App Storage"
+                                    Command="{Binding UseDefaultAppFolderCommand}"
+                                    Style="{StaticResource SecondaryButtonStyle}" />
+                        </Grid>
+                    </StackLayout>
+
+                    <Grid ColumnDefinitions="*, Auto" Margin="0,4">
+                        <StackLayout Grid.Column="0" VerticalOptions="Center">
+                            <Label Text="Auto-Sync Data" FontSize="14" FontAttributes="Bold" />
+                            <Label Text="Automatically import on launch and export on changes" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                        </StackLayout>
+                        <Switch AutomationId="AutoSyncSwitch"
+                                Grid.Column="1"
+                                IsToggled="{Binding AutoSyncEnabled, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Button AutomationId="SyncNowButton"
+                            Text="⚡ Sync Now"
+                            Command="{Binding SyncNowCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+
+                    <Label Text="{Binding SyncStatusMessage}"
+                           FontSize="12"
+                           FontAttributes="Italic"
+                           TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}"
+                           HorizontalOptions="Center" />
+                </StackLayout>
+            </Frame>
+
         </StackLayout>
     </ScrollView>
 </ContentPage>

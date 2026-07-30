@@ -41,6 +41,14 @@ public partial class WatchListViewModel : ObservableObject
         _settingsService = settingsService;
         UpdateVisibleItemsAction = UpdateVisibleItems;
 
+        _watchListService.WatchListChanged += (sender, args) =>
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await LoadGroupedWatchItemsAsync();
+            });
+        };
+
         // Start loading grouped items asynchronously.
         _ = LoadGroupedWatchItemsAsync();
     }
