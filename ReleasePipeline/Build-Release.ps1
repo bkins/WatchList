@@ -1,5 +1,49 @@
-# Build-Release.ps1
-# Automates compiling, version bumping, and archiving build artifacts for WatchList.
+<#
+@tool
+Name=Build WatchList Release
+Category=Deployment
+Description=Increments version, compiles the application, and archives build artifacts for targeted platforms.
+Order=20
+Icon=Build
+RequiresConfirmation=false
+Hidden=false
+#>
+
+<#
+.SYNOPSIS
+    Build-Release.ps1 - Bumps application version and packages deployment artifacts.
+
+.DESCRIPTION
+    Reads the current version from version.txt, increments the version based on the specified
+    increment level (Major, Minor, Patch, Build) or uses an explicit version string, and compiles the
+    MAUI project for target platforms (Android and/or Windows).
+    The built files are archived in the Releases/ folder at the root of the solution.
+
+.PARAMETER Increment
+    The version component to increment. Options: Major, Minor, Patch, Build. Default: Build.
+    - Major: Increments major number, sets minor/patch/build to 0. (e.g. 1.0.0.0 -> 2.0.0.0)
+    - Minor: Increments minor number, sets patch/build to 0. (e.g. 1.0.0.0 -> 1.1.0.0)
+    - Patch: Increments patch number, sets build to 0. (e.g. 1.0.0.0 -> 1.0.1.0)
+    - Build: Increments build number. (e.g. 1.0.0.0 -> 1.0.0.1)
+
+.PARAMETER Version
+    An explicit version string in format Major.Minor.Patch.Build (e.g. 2.1.0.5).
+    Takes precedence over the -Increment parameter.
+
+.PARAMETER Platform
+    The target build platform. Options: All, Windows, Android. Default: All.
+
+.PARAMETER Clean
+    If set, deletes the bin/ and obj/ folders in the project directory before building.
+
+.EXAMPLE
+    .\Build-Release.ps1 -Increment Build
+    Bumps the build segment (e.g. 1.0.0.1 -> 1.0.0.2) and builds all platforms.
+
+.EXAMPLE
+    .\Build-Release.ps1 -Increment Patch -Platform Windows -Clean
+    Bumps patch segment, cleans, and builds Windows only.
+#>
 
 param(
     [ValidateSet("Major", "Minor", "Patch", "Build")]
@@ -16,7 +60,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# Resolve directories
+$solutionRoot = Split-Path $PSScriptRoot -Parent
 $versionPath = Join-Path $PSScriptRoot "version.txt"
+$releasesRoot = Join-Path $solutionRoot "Releases"
 
 # 1. Determine current version
 if (-not (Test-Path $versionPath)) 
@@ -86,16 +133,15 @@ $versionCode = ($major * 1000000) + ($minor * 10000) + ($patch * 100) + $build
 
 # 3. Restore NuGet packages first to handle multi-targeting cleanly
 Write-Host "Restoring NuGet packages..." -ForegroundColor Gray
-dotnet restore "$PSScriptRoot\WatchLists\WatchLists.csproj"
+dotnet restore "$solutionRoot\WatchLists\WatchLists.csproj"
 
 # 4. Optionally Clean
 if ($Clean) 
 {
     Write-Host "Cleaning bin and obj folders..." -ForegroundColor Yellow
-    Get-ChildItem -Path $PSScriptRoot -Include bin,obj -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -Path $solutionRoot -Include bin,obj -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
 }
 
-$releasesRoot = Join-Path $PSScriptRoot "Releases"
 $versionReleaseDir = Join-Path $releasesRoot $newVersion
 $androidDest = Join-Path $versionReleaseDir "Android"
 $windowsDest = Join-Path $versionReleaseDir "Windows"
@@ -107,10 +153,10 @@ if ($Platform -eq "All" -or $Platform -eq "Android")
     Write-Host " Building Android (version: $newVersion, code: $versionCode)" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
 
-    dotnet publish "$PSScriptRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-android --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion=$versionCode
+    dotnet publish "$solutionRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-android --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion=$versionCode
 
     # Locate APK
-    $androidOutputDir = Join-Path $PSScriptRoot "WatchLists\bin\Release\net9.0-android"
+    $androidOutputDir = Join-Path $solutionRoot "WatchLists\bin\Release\net9.0-android"
     if (-not (Test-Path $androidOutputDir)) 
     {
         Write-Error "Android build output directory not found at $androidOutputDir"
@@ -150,9 +196,9 @@ if ($Platform -eq "All" -or $Platform -eq "Windows")
     Write-Host " Building Windows Desktop (version: $newVersion)" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
 
-    dotnet publish "$PSScriptRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-windows10.0.19041.0 -r win10-x64 --self-contained false --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion="$newVersion"
+    dotnet publish "$solutionRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-windows10.0.19041.0 -r win10-x64 --self-contained false --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion="$newVersion"
 
-    $publishDir = "$PSScriptRoot\WatchLists\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish"
+    $publishDir = "$solutionRoot\WatchLists\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish"
     if (-not (Test-Path $publishDir)) 
     {
         Write-Error "Windows publish output directory not found at $publishDir"

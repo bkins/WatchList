@@ -1,5 +1,49 @@
-# Deploy-Release.ps1
-# Deploys a specific version of WatchList to Windows Desktop or an Android device.
+<#
+@tool
+Name=Deploy WatchList Release
+Category=Deployment
+Description=Deploys a specific version of the application to Windows Desktop or a connected Android device.
+Order=21
+Icon=Publish
+RequiresConfirmation=false
+Hidden=false
+#>
+
+<#
+.SYNOPSIS
+    Deploy-Release.ps1 - Deploys a compiled WatchList release to a target environment.
+
+.DESCRIPTION
+    Installs and launches a specific version of the WatchList app from the archived Releases/ folder.
+    Supports local Windows desktop copies (with shortcut creation) and Android APK sideloading via ADB.
+
+.PARAMETER Version
+    The version string of the release to deploy (e.g. 1.0.0.1). Must exist in the Releases/ directory.
+
+.PARAMETER Platform
+    The target deployment platform. Options: Windows, Android.
+
+.PARAMETER Destination
+    The installation folder path for Windows deployments. Default: $env:LOCALAPPDATA\WatchList-App.
+
+.PARAMETER Device
+    The target ADB device serial number for Android deployment (e.g. "emulator-5554").
+    Auto-detects the first connected device if omitted.
+
+.PARAMETER Run
+    If set, launches the application immediately after successful deployment.
+
+.PARAMETER CreateShortcut
+    If set, creates a Desktop shortcut pointing to the deployed executable (applicable to Windows only).
+
+.EXAMPLE
+    .\Deploy-Release.ps1 -Version 1.0.0.1 -Platform Windows -CreateShortcut -Run
+    Deploys version 1.0.0.1 to Local AppData, creates a desktop shortcut, and runs it.
+
+.EXAMPLE
+    .\Deploy-Release.ps1 -Version 1.0.0.1 -Platform Android -Run
+    Installs version 1.0.0.1 to the connected Android device and opens it.
+#>
 
 param(
     [Parameter(Mandatory = $true)]
@@ -21,7 +65,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$releasesRoot = Join-Path $PSScriptRoot "Releases"
+# Resolve solution root and releases directory
+$solutionRoot = Split-Path $PSScriptRoot -Parent
+$releasesRoot = Join-Path $solutionRoot "Releases"
 $versionReleaseDir = Join-Path $releasesRoot $Version
 
 # 1. Validate version release folder exists
@@ -48,7 +94,6 @@ if ($Platform -eq "Windows")
     }
 
     Write-Host "Copying files..." -ForegroundColor Gray
-    # Copy files recursively
     try 
     {
         Copy-Item -Path "$windowsSource\*" -Destination $Destination -Recurse -Force
