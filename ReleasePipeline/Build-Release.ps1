@@ -16,6 +16,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$solutionRoot = Split-Path $PSScriptRoot -Parent
 $versionPath = Join-Path $PSScriptRoot "version.txt"
 
 # 1. Determine current version
@@ -86,16 +87,16 @@ $versionCode = ($major * 1000000) + ($minor * 10000) + ($patch * 100) + $build
 
 # 3. Restore NuGet packages first to handle multi-targeting cleanly
 Write-Host "Restoring NuGet packages..." -ForegroundColor Gray
-dotnet restore "$PSScriptRoot\WatchLists\WatchLists.csproj"
+dotnet restore "$solutionRoot\WatchLists\WatchLists.csproj"
 
 # 4. Optionally Clean
 if ($Clean)
 {
     Write-Host "Cleaning bin and obj folders..." -ForegroundColor Yellow
-    Get-ChildItem -Path $PSScriptRoot -Include bin,obj -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -Path "$solutionRoot\WatchLists" -Include bin,obj -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
 }
 
-$releasesRoot = Join-Path $PSScriptRoot "Releases"
+$releasesRoot = Join-Path $solutionRoot "Releases"
 $versionReleaseDir = Join-Path $releasesRoot $newVersion
 $androidDest = Join-Path $versionReleaseDir "Android"
 $windowsDest = Join-Path $versionReleaseDir "Windows"
@@ -107,10 +108,10 @@ if ($Platform -eq "All" -or $Platform -eq "Android")
     Write-Host " Building Android (version: $newVersion, code: $versionCode)" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
 
-    dotnet publish "$PSScriptRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-android --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion=$versionCode
+    dotnet publish "$solutionRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-android --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion=$versionCode
 
     # Locate APK
-    $androidOutputDir = Join-Path $PSScriptRoot "WatchLists\bin\Release\net9.0-android"
+    $androidOutputDir = Join-Path $solutionRoot "WatchLists\bin\Release\net9.0-android"
     if (-not (Test-Path $androidOutputDir))
     {
         Write-Error "Android build output directory not found at $androidOutputDir"
@@ -150,9 +151,9 @@ if ($Platform -eq "All" -or $Platform -eq "Windows")
     Write-Host " Building Windows Desktop (version: $newVersion)" -ForegroundColor Cyan
     Write-Host "==================================================" -ForegroundColor Cyan
 
-    dotnet publish "$PSScriptRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-windows10.0.19041.0 -r win10-x64 --self-contained false --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion="$newVersion"
+    dotnet publish "$solutionRoot\WatchLists\WatchLists.csproj" -c Release -f net9.0-windows10.0.19041.0 -r win10-x64 --self-contained false --no-restore /p:ApplicationDisplayVersion="$newVersion" /p:ApplicationVersion="$newVersion"
 
-    $publishDir = "$PSScriptRoot\WatchLists\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish"
+    $publishDir = "$solutionRoot\WatchLists\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish"
     if (-not (Test-Path $publishDir))
     {
         Write-Error "Windows publish output directory not found at $publishDir"
