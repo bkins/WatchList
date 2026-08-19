@@ -7,10 +7,11 @@ using WatchLists.Services.Enums;
 
 namespace WatchLists.Services;
 
-public class WatchListService
+public class WatchListService : IDisposable
 {
     private readonly SettingsService _settingsService;
     private readonly SQLiteConnection _dbConnection;
+    private bool _disposed;
 
     public WatchListService (SettingsService settingsService, string? dbPath = null)
     {
@@ -98,8 +99,24 @@ public class WatchListService
         }
     }
 
+    public WatchItem? GetWatchItemById(Guid id)
+    {
+        if (id == Guid.Empty) return null;
+        try
+        {
+            return _dbConnection.Find<WatchItem>(id);
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"GetWatchItemById error: {ex.Message}");
+            return null;
+        }
+    }
+
     public void AddWatchItem (WatchItem item)
     {
+        if (item == null) return;
+
         if (item.Id == Guid.Empty)
         {
             item.Id = Guid.NewGuid();
@@ -118,6 +135,8 @@ public class WatchListService
 
     public void UpdateWatchItem (WatchItem updatedItem)
     {
+        if (updatedItem == null) return;
+
         updatedItem.LastUpdated = DateTime.UtcNow;
         _dbConnection.InsertOrReplace(updatedItem);
         _ = FileLogger.WriteLogAsync($"Updated WatchItem with ID: {updatedItem.Id} via SQLite");
@@ -146,8 +165,43 @@ public class WatchListService
         }
     }
 
+    public void DeleteWatchItems (IEnumerable<Guid> ids)
+    {
+        if (ids == null) return;
+
+        try
+        {
+            var idList = ids.ToList();
+            if (idList.Count == 0) return;
+
+            var now = DateTime.UtcNow;
+            _dbConnection.RunInTransaction(() =>
+            {
+                foreach (var id in idList)
+                {
+                    var item = _dbConnection.Find<WatchItem>(id);
+                    if (item != null)
+                    {
+                        item.IsDeleted   = true;
+                        item.LastUpdated = now;
+                        _dbConnection.InsertOrReplace(item);
+                    }
+                }
+            });
+
+            _ = FileLogger.WriteLogAsync($"Soft-deleted {idList.Count} items via batch delete in SQLite");
+            WatchListChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"DeleteWatchItems batch error: {ex.Message}");
+        }
+    }
+
     public void UpsertWatchItemFromSync (WatchItem item)
     {
+        if (item == null) return;
+
         _dbConnection.InsertOrReplace(item);
         _ = FileLogger.WriteLogAsync($"UpsertWatchItemFromSync ID: {item.Id} via SQLite");
     }
@@ -172,10 +226,12 @@ public class WatchListService
 
     public async Task SaveWatchItemAsync (WatchItem item)
     {
+        if (item == null) return;
+
         // Check if the category exists in settings options
         var savedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
 
-        if (savedCategories.DoesNotContain(item.Category))
+        if (item.Category.HasValue() && savedCategories.DoesNotContain(item.Category))
         {
             savedCategories.Add(item.Category);
             await _settingsService.SaveOptionsAsync(SettingType.Categories
@@ -187,5 +243,20 @@ public class WatchListService
         _ = FileLogger.WriteLogAsync($"Saved WatchItem with ID: {item.Id} via SQLite");
 
         WatchListChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        try
+        {
+            _dbConnection?.Close();
+            _dbConnection?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _ = FileLogger.WriteLogAsync($"WatchListService dispose error: {ex.Message}");
+        }
     }
 }

@@ -8,23 +8,52 @@ namespace WatchLists.MVVM.Models;
 public class WatchItem : ObservableObject
 {
     [PrimaryKey]
-    public Guid     Id               { get; set; } = Guid.NewGuid();
-    public string   Title            { get; set; }
-    public string   StreamingService { get; set; } // e.g., Netflix, Prime Video
-    public string   Category         { get; set; } // e.g., "Currently Watching", "Finished Watching"
-    public bool     IsWatched        { get; set; }
-    public bool     IsLiked          { get; set; }
-    public bool     IsDeleted        { get; set; } = false;
-    public string   DeepLinkUri      { get; set; } // URL/URI to open the streaming service app
-    public DateTime LastUpdated      { get; set; } = DateTime.UtcNow;
-    public string   Type                       { get; set; } // e.g., "Show", "Movie", "Mini-Series"
-    public string   PreviousCategory           { get; set; }
+    public Guid     Id                         { get; set; } = Guid.NewGuid();
+
+    [Indexed]
+    public string   Title                      { get; set; } = string.Empty;
+
+    public string   StreamingService           { get; set; } = string.Empty; // e.g., Netflix, Prime Video
+
+    public string   Category                   { get; set; } = string.Empty; // e.g., "Currently Watching", "Finished Watching"
+
+    public bool     IsWatched                  { get; set; }
+
+    public bool     IsLiked                    { get; set; }
+
+    [Indexed]
+    public bool     IsDeleted                  { get; set; } = false;
+
+    public string   DeepLinkUri                { get; set; } = string.Empty; // URL/URI to open the streaming service app
+
+    [Indexed]
+    public DateTime LastUpdated                { get; set; } = DateTime.UtcNow;
+
+    public string   Type                       { get; set; } = string.Empty; // e.g., "Show", "Movie", "Mini-Series"
+
+    public string   PreviousCategory           { get; set; } = string.Empty;
+
+    [Indexed]
     public int      MovieId                    { get; set; }
+
     public string   ApiSource                  { get; set; } = string.Empty; // e.g. "TMDB", "TVMaze", "OMDB", "FM-DB"
+
     public string   Overview                   { get; set; } = string.Empty;
+
     public string   PosterUrl                  { get; set; } = string.Empty;
+
     public string   AvailableStreamingServices { get; set; } = string.Empty;
+
     public string   AggregatedDataJson         { get; set; } = string.Empty;
+
+    private bool _isSelected;
+
+    [Ignore]
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
 
     [Ignore]
     public Dictionary<string, string> AggregatedData

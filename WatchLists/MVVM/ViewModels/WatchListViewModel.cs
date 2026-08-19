@@ -11,13 +11,15 @@ using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
-public partial class WatchListViewModel : ObservableObject
+public partial class WatchListViewModel : ObservableObject, IDisposable
 {
     private readonly WatchListService _watchListService;
-    private readonly SettingsService _settingsService;
+    private readonly SettingsService  _settingsService;
+    private readonly EventHandler    _onWatchListChanged;
+    private bool                      _disposed;
 
     [ObservableProperty]
-    private string searchText;
+    private string searchText = string.Empty;
 
     [ObservableProperty]
     private int totalCount;
@@ -28,26 +30,34 @@ public partial class WatchListViewModel : ObservableObject
     [ObservableProperty]
     private int unwatchedCount;
 
-    public ObservableCollection<WatchItemGroup> WatchItemGroups { get; set; } = new();
-    public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
-    public ObservableCollection<WatchItem> VisibleWatchItems { get; set; } = new();
-    public ObservableCollection<WatchItem> WatchItems { get; set; } = new();
+    [ObservableProperty]
+    private bool isSelectionMode;
 
-    public Action UpdateVisibleItemsAction { get; set; }
+    [ObservableProperty]
+    private int selectedItemsCount;
+
+    public ObservableCollection<WatchItemGroup> WatchItemGroups         { get; set; } = new();
+    public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
+    public ObservableCollection<WatchItem>      VisibleWatchItems       { get; set; } = new();
+    public ObservableCollection<WatchItem>      WatchItems              { get; set; } = new();
+
+    public Action? UpdateVisibleItemsAction { get; set; }
 
     public WatchListViewModel(WatchListService watchListService, SettingsService settingsService)
     {
         _watchListService = watchListService;
-        _settingsService = settingsService;
+        _settingsService  = settingsService;
         UpdateVisibleItemsAction = UpdateVisibleItems;
 
-        _watchListService.WatchListChanged += (sender, args) =>
+        _onWatchListChanged = (sender, args) =>
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 await LoadGroupedWatchItemsAsync();
             });
         };
+
+        _watchListService.WatchListChanged += _onWatchListChanged;
 
         // Start loading grouped items asynchronously.
         _ = LoadGroupedWatchItemsAsync();
@@ -84,9 +94,78 @@ public partial class WatchListViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void ToggleSelectionMode()
+    {
+        IsSelectionMode = !IsSelectionMode;
+        if (!IsSelectionMode)
+        {
+            ClearSelection();
+        }
+        else
+        {
+            UpdateSelectedCount();
+        }
+    }
+
+    [RelayCommand]
+    public void SelectAll()
+    {
+        foreach (var group in WatchItemGroups)
+        {
+            foreach (var item in group.Items)
+            {
+                item.IsSelected = true;
+            }
+        }
+        UpdateSelectedCount();
+    }
+
+    [RelayCommand]
+    public void ClearSelection()
+    {
+        foreach (var group in WatchItemGroups)
+        {
+            foreach (var item in group.Items)
+            {
+                item.IsSelected = false;
+            }
+        }
+        UpdateSelectedCount();
+    }
+
+    [RelayCommand]
+    public void ToggleItemSelection(WatchItem item)
+    {
+        if (item == null) return;
+        item.IsSelected = !item.IsSelected;
+        UpdateSelectedCount();
+    }
+
+    [RelayCommand]
+    public void DeleteSelectedItems()
+    {
+        var selectedIds = WatchItemGroups.SelectMany(group => group.Items)
+                                         .Where(item => item.IsSelected)
+                                         .Select(item => item.Id)
+                                         .ToList();
+
+        if (selectedIds.Count == 0) return;
+
+        _watchListService.DeleteWatchItems(selectedIds);
+        IsSelectionMode = false;
+        ClearSelection();
+    }
+
+    private void UpdateSelectedCount()
+    {
+        SelectedItemsCount = WatchItemGroups.SelectMany(group => group.Items)
+                                            .Count(item => item.IsSelected);
+    }
+
+    [RelayCommand]
     public async Task OpenDeepLink(WatchItem item)
     {
-        if (item.DeepLinkUri.IsEmptyNullOrWhiteSpace())
+        if (item == null || item.DeepLinkUri.IsEmptyNullOrWhiteSpace())
             return;
 
         try
@@ -96,17 +175,18 @@ public partial class WatchListViewModel : ObservableObject
         catch (Exception ex)
         {
             await FileLogger.WriteLogAsync($"Failed to launch deep link: {ex.Message}");
-            //Debug.WriteLine($"Failed to launch deep link: {ex.Message}");
         }
     }
 
     [RelayCommand]
     public void DeleteItem(WatchItem item)
     {
+        if (item == null) return;
+
         _watchListService.DeleteWatchItem(item.Id);
 
         // Remove item from group
-        var group = WatchItemGroups.FirstOrDefault(g => g.Items.Contains(item));
+        var group = WatchItemGroups.FirstOrDefault(targetGroup => targetGroup.Items.Contains(item));
         if (group != null)
         {
             group.Items.Remove(item);
@@ -118,6 +198,8 @@ public partial class WatchListViewModel : ObservableObject
     [RelayCommand]
     public async Task EditItem(WatchItem item)
     {
+        if (item == null) return;
+
         if (! item.IsWatched)
         {
             item.PreviousCategory = item.Category;
@@ -127,6 +209,13 @@ public partial class WatchListViewModel : ObservableObject
     }
 
     public ObservableCollection<CategoryStatCardItem> CategoryStats { get; } = new();
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _watchListService.WatchListChanged -= _onWatchListChanged;
+    }
 
     private async Task LoadGroupedWatchItemsAsync()
     {

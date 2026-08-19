@@ -28,7 +28,7 @@
                Style="{StaticResource ElevatedCardStyle}"
                Padding="14,12"
                Margin="0,0,0,8">
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                 <!-- App Banner Header -->
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                     <StackLayout Grid.Column="0" Spacing="2">
@@ -40,18 +40,72 @@
                                FontSize="12"
                                TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
                     </StackLayout>
+                    <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                        <Button Text="Select"
+                                AutomationId="ToggleSelectModeButton"
+                                Command="{Binding ToggleSelectionModeCommand}"
+                                HeightRequest="36"
+                                Padding="12,4"
+                                FontSize="12"
+                                CornerRadius="8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                                TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+                        <Button Text="+ Add Media"
+                                Command="{Binding AddItemCommand}"
+                                HeightRequest="36"
+                                Padding="12,4"
+                                FontSize="12"
+                                CornerRadius="8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <!-- Multi-Select Action Bar -->
+                <Grid Grid.Row="1"
+                      IsVisible="{Binding IsSelectionMode}"
+                      ColumnDefinitions="*,Auto,Auto,Auto"
+                      ColumnSpacing="8"
+                      Padding="4,2">
+                    <Label Grid.Column="0"
+                           Text="{Binding SelectedItemsCount, StringFormat='{0} selected'}"
+                           VerticalOptions="Center"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
                     <Button Grid.Column="1"
-                            Text="+ Add Media"
-                            Command="{Binding AddItemCommand}"
-                            HeightRequest="36"
-                            Padding="12,4"
-                            FontSize="12"
-                            CornerRadius="8"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
+                            Text="Select All"
+                            AutomationId="SelectAllButton"
+                            Command="{Binding SelectAllCommand}"
+                            HeightRequest="32"
+                            Padding="10,2"
+                            FontSize="11"
+                            CornerRadius="6"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                            TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                    <Button Grid.Column="2"
+                            Text="Clear"
+                            AutomationId="ClearSelectionButton"
+                            Command="{Binding ClearSelectionCommand}"
+                            HeightRequest="32"
+                            Padding="10,2"
+                            FontSize="11"
+                            CornerRadius="6"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                            TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                    <Button Grid.Column="3"
+                            Text="Delete"
+                            AutomationId="DeleteSelectedButton"
+                            Command="{Binding DeleteSelectedItemsCommand}"
+                            HeightRequest="32"
+                            Padding="10,2"
+                            FontSize="11"
+                            CornerRadius="6"
+                            BackgroundColor="{StaticResource Tertiary}"
+                            TextColor="White" />
                 </Grid>
 
                 <!-- Dynamic Category Stat Cards Horizontal Bar -->
-                <CollectionView Grid.Row="1"
+                <CollectionView Grid.Row="2"
                                 ItemsSource="{Binding CategoryStats}"
                                 HeightRequest="54"
                                 VerticalOptions="Center">
@@ -194,7 +248,7 @@
                                             <Frame Style="{StaticResource CardStyle}"
                                                    Padding="10"
                                                    Margin="2,4">
-                                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="10">
                                                     <FlyoutBase.ContextFlyout>
                                                         <MenuFlyout>
                                                             <MenuFlyoutItem Text="Edit"
@@ -206,8 +260,15 @@
                                                         </MenuFlyout>
                                                     </FlyoutBase.ContextFlyout>
 
+                                                    <!-- Selection CheckBox (visible in selection mode) -->
+                                                    <CheckBox Grid.Column="0"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              IsVisible="{Binding BindingContext.IsSelectionMode, Source={x:Reference PageReference}}"
+                                                              VerticalOptions="Center"
+                                                              Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+
                                                     <!-- Poster Image -->
-                                                    <Border Grid.Column="0"
+                                                    <Border Grid.Column="1"
                                                             WidthRequest="55"
                                                             HeightRequest="82"
                                                             VerticalOptions="Center"
@@ -216,7 +277,7 @@
                                                     </Border>
 
                                                     <!-- Media Details & Deep Link Tap Area -->
-                                                    <StackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
+                                                    <StackLayout Grid.Column="2" VerticalOptions="Center" Spacing="4">
                                                         <StackLayout.GestureRecognizers>
                                                             <TapGestureRecognizer Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
                                                                                   CommandParameter="{Binding}" />
@@ -252,7 +313,7 @@
                                                     </StackLayout>
 
                                                     <!-- Quick Edit Button -->
-                                                    <ImageButton Grid.Column="2"
+                                                    <ImageButton Grid.Column="3"
                                                                  WidthRequest="32"
                                                                  HeightRequest="32"
                                                                  Padding="4"
@@ -269,7 +330,7 @@
                                                     </ImageButton>
 
                                                     <!-- Liked Status Heart Icon -->
-                                                    <Image Grid.Column="3"
+                                                    <Image Grid.Column="4"
                                                            WidthRequest="24"
                                                            HeightRequest="24"
                                                            VerticalOptions="Center"

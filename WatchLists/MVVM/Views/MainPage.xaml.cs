@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Serilog;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
@@ -25,6 +25,15 @@ namespace WatchLists.MVVM.Views
                 vm.RefreshItemsCommand.Execute(null);
             }
         }
-    }
 
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            if (BindingContext is WatchListViewModel vm && vm.IsSelectionMode)
+            {
+                vm.ToggleSelectionMode();
+            }
+        }
+    }
 }
