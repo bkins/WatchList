@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
@@ -36,7 +36,7 @@ public partial class SearchViewModel : ObservableObject
         ErrorMessage = string.Empty;
         HasError     = false;
 
-        if (string.IsNullOrWhiteSpace(SearchQuery))
+        if (SearchQuery.HasNoValue())
         {
             await FileLogger.WriteLogAsync("[Search] Search query is empty or whitespace. Returning.");
             ErrorMessage = "Search query cannot be empty.";
@@ -105,7 +105,7 @@ public partial class SearchViewModel : ObservableObject
     {
         if (param is MovieSearchResult searchResult)
         {
-            if (searchResult.PrimarySourceApi == "Google" && !string.IsNullOrWhiteSpace(searchResult.WebUrl))
+            if (searchResult.PrimarySourceApi == "Google" && searchResult.WebUrl.HasValue())
             {
                 try
                 {

@@ -1,4 +1,4 @@
-using WatchLists.MVVM.ViewModels;
+﻿using WatchLists.MVVM.ViewModels;
 
 namespace WatchLists.MVVM.Views;
 
@@ -20,7 +20,7 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
                                ? watchItemId?.ToString()
                                : null); // No ID means we're adding a new item
 
-        if (query.TryGetValue("PreFilledTitle", out object? preFilledTitleObj) && preFilledTitleObj is string preFilledTitle && !string.IsNullOrWhiteSpace(preFilledTitle))
+        if (query.TryGetValue("PreFilledTitle", out object? preFilledTitleObj) && preFilledTitleObj is string preFilledTitle && preFilledTitle.HasValue())
         {
             viewModel.MovieTitle = preFilledTitle;
             if (viewModel.EditableItem != null)

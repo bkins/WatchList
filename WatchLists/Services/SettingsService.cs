@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Services.Enums;
@@ -54,7 +54,7 @@ public class SettingsService
         {
             var json = await File.ReadAllTextAsync(filePath);
             var val  = JsonSerializer.Deserialize<string>(json);
-            return string.IsNullOrWhiteSpace(val) ? "Finished Watching" : val;
+            return val.HasNoValue() ? "Finished Watching" : val;
         }
         catch
         {

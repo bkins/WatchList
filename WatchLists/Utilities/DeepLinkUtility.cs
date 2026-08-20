@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.RegularExpressions;
 
 namespace WatchLists.Utilities;
@@ -7,7 +7,7 @@ public static class DeepLinkUtility
 {
     public static string GenerateDeepLink(string providerName, string title, string? webUrl = null)
     {
-        if (string.IsNullOrWhiteSpace(providerName))
+        if (providerName.HasNoValue())
         {
             return webUrl ?? string.Empty;
         }
@@ -15,7 +15,7 @@ public static class DeepLinkUtility
         var normalizedProvider = providerName.ToLowerInvariant().Trim();
 
         // 1. If we have a direct web URL, try to convert it to a deep link URI
-        if (!string.IsNullOrWhiteSpace(webUrl))
+        if (webUrl.HasValue())
         {
             if (normalizedProvider.Contains("netflix"))
             {
@@ -116,6 +116,6 @@ public static class DeepLinkUtility
             return $"https://www.peacocktv.com/watch/search?q={escapedTitle}";
         }
 
-        return !string.IsNullOrWhiteSpace(webUrl) ? webUrl : $"https://www.google.com/search?q={escapedTitle}+watch+online";
+        return webUrl.HasValue() ? webUrl : $"https://www.google.com/search?q={escapedTitle}+watch+online";
     }
 }

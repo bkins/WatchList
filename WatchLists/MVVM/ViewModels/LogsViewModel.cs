@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using WatchLists.Logger;
@@ -27,7 +27,7 @@ public class LogsViewModel : BindableObject
 
         foreach (var line in lines)
         {
-            if (!string.IsNullOrWhiteSpace(line))
+            if (line.HasValue())
             {
                 Logs.Add(line);
             }

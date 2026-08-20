@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
@@ -26,7 +26,7 @@ public class CloudApiSyncProvider : IRemoteSyncProvider
             if (response.IsSuccessStatusCode && response.Headers.Location != null)
             {
                 var location = response.Headers.Location.ToString();
-                if (! location.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (! location.StartsWithIgnoreCase("http"))
                 {
                     location = "https://jsonblob.com" + location;
                 }
@@ -119,15 +119,15 @@ public class CloudApiSyncProvider : IRemoteSyncProvider
         var cleanCode = syncCode.Trim();
 
         // 1. Full URL provided
-        if (cleanUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        if (cleanUrl.StartsWithIgnoreCase("http"))
         {
-            if (cleanUrl.Contains("/jsonBlob/", StringComparison.OrdinalIgnoreCase) || cleanUrl.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            if (cleanUrl.ContainsIgnoreCase("/jsonBlob/") || cleanUrl.EndsWithIgnoreCase(".json"))
             {
                 return cleanUrl;
             }
 
-            if (cleanUrl.Contains("firebaseio.com", StringComparison.OrdinalIgnoreCase) ||
-                cleanUrl.Contains("firebasedatabase.app", StringComparison.OrdinalIgnoreCase))
+            if (cleanUrl.ContainsIgnoreCase("firebaseio.com") ||
+                cleanUrl.ContainsIgnoreCase("firebasedatabase.app"))
             {
                 return $"{cleanUrl}/watchlist/{Uri.EscapeDataString(cleanCode)}.json";
             }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -61,7 +61,7 @@ public class MovieDataAggregator : IMovieDataAggregator
                                           }
                                };
 
-        if (string.IsNullOrWhiteSpace(query))
+        if (query.HasNoValue())
         {
             return aggregatedResult;
         }
@@ -108,7 +108,7 @@ public class MovieDataAggregator : IMovieDataAggregator
 
         // Group by normalized title to deduplicate
         var groupedResults = allResults.GroupBy(result => NormalizeTitle(result.Item.Title))
-                                       .Where(group => !string.IsNullOrEmpty(group.Key));
+                                       .Where(group => group.Key.HasValue());
 
         var mergedResults = new List<MovieSearchResult>();
 
@@ -159,7 +159,7 @@ public class MovieDataAggregator : IMovieDataAggregator
 
                 foreach (var providerName in result.Item
                                                    .StreamingProviders
-                                                   .Where(providerName => !string.IsNullOrWhiteSpace(providerName)))
+                                                   .Where(providerName => providerName.HasValue()))
                 {
                     allProvidersForGroup.Add(providerName);
                 }
@@ -177,7 +177,7 @@ public class MovieDataAggregator : IMovieDataAggregator
 
         var sortedMergedResults = mergedResults.OrderBy(item => item.PrimarySourceApi == "Google" ? 1 : 0)
                                                .ThenByDescending(item => item.Title.EqualsIgnoreCase(query))
-                                               .ThenBy(item => item.Title.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                                               .ThenBy(item => item.Title.StartsWithIgnoreCase(query) ? 0 : 1)
                                                .ToList();
 
         aggregatedResult.Data.Results = sortedMergedResults;
@@ -232,7 +232,7 @@ public class MovieDataAggregator : IMovieDataAggregator
 
     private static string NormalizeTitle(string title)
     {
-        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
+        if (title.HasNoValue()) return string.Empty;
 
         var normalized = title.ToLowerInvariant();
         var chars = normalized.Where(c => char.IsLetterOrDigit(c)).ToArray();

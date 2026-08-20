@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -127,7 +127,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
             return;
         }
 
-        var posterUrl = string.IsNullOrWhiteSpace(MovieDetail.PosterPath)
+        var posterUrl = MovieDetail.PosterPath.HasNoValue()
             ? string.Empty
             : MovieDetail.PosterPath.StartsWith("http")
                 ? MovieDetail.PosterPath

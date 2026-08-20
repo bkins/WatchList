@@ -31,7 +31,7 @@ public partial class LogsPage : ContentPage
     //         await Task.Delay(1000); // give it time to flush
     //
     //         var content = await File.ReadAllTextAsync(LogConfig.LogFilePath);
-    //         LogOutput.Text = string.IsNullOrWhiteSpace(content)
+    //         LogOutput.Text = content.HasNoValue()
     //                 ? "Log file is empty."
     //                 : content;
     //     }

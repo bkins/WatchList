@@ -79,6 +79,7 @@
 		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.8" />
+		<ProjectReference Include="..\..\CP.Shared.Primitives\CP.Shared.Primitives\CP.Shared.Primitives.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

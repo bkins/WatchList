@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WatchLists.DataAccess.Interfaces;
@@ -15,7 +15,7 @@ public class GoogleSearchFallbackProvider : IMovieDataProvider
     {
         var result = new AggregatedResult<MovieSearchResponse?>();
 
-        if (string.IsNullOrWhiteSpace(query))
+        if (query.HasNoValue())
         {
             return result;
         }

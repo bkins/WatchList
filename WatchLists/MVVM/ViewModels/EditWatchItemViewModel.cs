@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -170,11 +170,11 @@ public partial class EditWatchItemViewModel : ObservableObject
             var finalDeepLink   = defaultDeepLink;
 
             var currentService = SelectedStreamingService;
-            if (!string.IsNullOrWhiteSpace(currentService) && _providerLinks.TryGetValue(currentService, out var matchedUrl) && !string.IsNullOrWhiteSpace(matchedUrl))
+            if (currentService.HasValue() && _providerLinks.TryGetValue(currentService, out var matchedUrl) && matchedUrl.HasValue())
             {
                 finalDeepLink = DeepLinkUtility.GenerateDeepLink(currentService, movie?.Title ?? string.Empty, matchedUrl);
             }
-            else if (!string.IsNullOrWhiteSpace(currentService))
+            else if (currentService.HasValue())
             {
                 finalDeepLink = DeepLinkUtility.GenerateDeepLink(currentService, movie?.Title ?? string.Empty);
             }
@@ -623,7 +623,7 @@ public partial class EditWatchItemViewModel : ObservableObject
         if (providers == null) return;
         foreach (var provider in providers)
         {
-            if (provider != null && !string.IsNullOrWhiteSpace(provider.ProviderName))
+            if (provider != null && provider.ProviderName.HasValue())
             {
                 _providerLinks[provider.ProviderName] = provider.Url ?? string.Empty;
             }
@@ -632,10 +632,10 @@ public partial class EditWatchItemViewModel : ObservableObject
 
     private void UpdateDeepLinkForSelectedService(string serviceName)
     {
-        if (EditableItem == null || string.IsNullOrWhiteSpace(MovieTitle)) return;
+        if (EditableItem == null || MovieTitle.HasNoValue()) return;
 
         string finalDeepLink;
-        if (!string.IsNullOrWhiteSpace(serviceName) && _providerLinks.TryGetValue(serviceName, out var matchedUrl) && !string.IsNullOrWhiteSpace(matchedUrl))
+        if (serviceName.HasValue() && _providerLinks.TryGetValue(serviceName, out var matchedUrl) && matchedUrl.HasValue())
         {
             finalDeepLink = DeepLinkUtility.GenerateDeepLink(serviceName, MovieTitle, matchedUrl);
         }
@@ -644,7 +644,7 @@ public partial class EditWatchItemViewModel : ObservableObject
             finalDeepLink = DeepLinkUtility.GenerateDeepLink(serviceName, MovieTitle);
         }
 
-        if (string.IsNullOrWhiteSpace(finalDeepLink))
+        if (finalDeepLink.HasNoValue())
         {
             return;
         }

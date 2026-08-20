@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -27,7 +27,7 @@ public class WikipediaMovieProvider : IMovieDataProvider
     {
         var result = new AggregatedResult<MovieSearchResponse?>();
 
-        if (string.IsNullOrWhiteSpace(query))
+        if (query.HasNoValue())
         {
             return result;
         }

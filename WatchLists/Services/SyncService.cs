@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
@@ -113,7 +113,7 @@ public class SyncService
                 }
 
                 var success = await _remoteSyncProvider.UploadBundleAsync(url, syncCode, bundle);
-                if (! success && (url.Contains("firebaseio.com", StringComparison.OrdinalIgnoreCase) || ! url.StartsWith("https://jsonblob.com", StringComparison.OrdinalIgnoreCase)))
+                if (! success && (url.ContainsIgnoreCase("firebaseio.com") || ! url.StartsWithIgnoreCase("https://jsonblob.com")))
                 {
                     await FileLogger.WriteLogAsync($"ExportSyncBundleAsync: Cloud endpoint '{url}' failed. Auto-provisioning live cloud endpoint...");
                     var newUrl = await _remoteSyncProvider.CreateNewCloudSyncBlobAsync();
@@ -236,7 +236,7 @@ public class SyncService
                 totalUpdatedCount      += updated;
                 processedFilesCount++;
 
-                if (Path.GetFileName(filePath).Contains("conflict", StringComparison.OrdinalIgnoreCase))
+                if (Path.GetFileName(filePath).ContainsIgnoreCase("conflict"))
                 {
                     try
                     {

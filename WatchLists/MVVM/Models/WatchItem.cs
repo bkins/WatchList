@@ -1,4 +1,4 @@
-using SQLite;
+﻿using SQLite;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WatchLists.ExtensionMethods;
 
@@ -84,7 +84,7 @@ public class WatchItem : ObservableObject
     public bool HasAggregatedData => AggregatedData != null && AggregatedData.Count > 0;
 
     [Ignore]
-    public bool HasAvailableStreamingServices => ! string.IsNullOrWhiteSpace(AvailableStreamingServices);
+    public bool HasAvailableStreamingServices => AvailableStreamingServices.HasValue();
 
     [Ignore]
     public string AvailableStreamingServicesDisplay => HasAvailableStreamingServices

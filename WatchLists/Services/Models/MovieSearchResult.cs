@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace WatchLists.Services.Models;
 
@@ -20,7 +20,7 @@ public class MovieSearchResult
     public string MediaType { get; set; } = string.Empty;
 
     [JsonIgnore]
-    public string PosterUrl => string.IsNullOrWhiteSpace(PosterPath)
+    public string PosterUrl => PosterPath.HasNoValue()
         ? string.Empty
         : PosterPath.StartsWith("http") ? PosterPath : $"https://image.tmdb.org/t/p/w500{PosterPath}";
 

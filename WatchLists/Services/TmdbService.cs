@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.ExtensionMethods;
@@ -166,7 +166,7 @@ public class TmdbService : IMovieDataProvider
                         movie.SourceApis = new List<string> { "TMDB" };
                     }
                     movie.PrimarySourceApi = "TMDB";
-                    if (string.IsNullOrEmpty(movie.WebUrl))
+                    if (movie.WebUrl.IsNullOrEmpty())
                     {
                         movie.WebUrl = $"https://www.themoviedb.org/movie/{movie.Id}";
                     }

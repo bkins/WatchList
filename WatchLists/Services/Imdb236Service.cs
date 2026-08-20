@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -31,7 +31,7 @@ public class Imdb236Service : IMovieDataProvider
         _httpClient = httpClient;
         ApiKey      = configuration["Imdb236:ApiKey"] ?? string.Empty;
 
-        if (!string.IsNullOrWhiteSpace(ApiKey))
+        if (ApiKey.HasValue())
         {
             _httpClient.DefaultRequestHeaders.Add("x-rapidapi-key", ApiKey);
             _httpClient.DefaultRequestHeaders.Add("x-rapidapi-host", "imdb236.p.rapidapi.com");
@@ -101,7 +101,7 @@ public class Imdb236Service : IMovieDataProvider
 
                 foreach (var rawResult in response.Results)
                 {
-                    if (rawResult == null || string.IsNullOrWhiteSpace(rawResult.Id))
+                    if (rawResult == null || rawResult.Id.HasNoValue())
                     {
                         continue;
                     }
