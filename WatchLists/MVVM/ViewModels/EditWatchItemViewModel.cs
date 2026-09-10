@@ -362,9 +362,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
 
         // If marking as watched, and if the current category isn't the watched one:
-        if (EditableItem.Category
-                        .IsEqualTo(watchedCategory
-                                 , StringComparison.OrdinalIgnoreCase)) return;
+        if (EditableItem.Category.EqualsIgnoreCase(watchedCategory)) return;
 
         EditableItem.PreviousCategory = EditableItem.Category; // backup the current category
         EditableItem.Category         = watchedCategory;
