@@ -13,7 +13,6 @@ public class SyncService
     private readonly WatchListService    _watchListService;
     private readonly SettingsService     _settingsService;
     private readonly IRemoteSyncProvider _remoteSyncProvider;
-    private readonly SemaphoreSlim        _exportLock = new(1, 1);
 
     public SyncService (WatchListService       watchListService
                       , SettingsService        settingsService
@@ -32,7 +31,7 @@ public class SyncService
         {
             _ = Task.Run(async () =>
             {
-                await ExportSyncBundleAsync();
+                await ExportAutomaticAsync();
             });
         }
     }
@@ -54,7 +53,12 @@ public class SyncService
         return $"watchlist_sync_{safeName}.json";
     }
 
-    public async Task<string?> CreateNewCloudSyncEndpointAsync()
+    public Task<string?> CreateNewCloudSyncEndpointAsync()
+    {
+        return _watchListService.SyncAndImportGate.RunAsync(CreateNewCloudSyncEndpointInternalAsync);
+    }
+
+    private async Task<string?> CreateNewCloudSyncEndpointInternalAsync()
     {
         var endpointUrl = await _remoteSyncProvider.CreateNewCloudSyncBlobAsync();
         if (endpointUrl.HasValue())
@@ -65,17 +69,18 @@ public class SyncService
         return endpointUrl;
     }
 
-    public async Task<bool> ExportSyncBundleAsync()
+    public Task<bool> ExportSyncBundleAsync()
     {
-        await _exportLock.WaitAsync();
-        try
+        return _watchListService.SyncAndImportGate.RunAsync(ExportSyncBundleInternalAsync);
+    }
+
+    public Task<bool> ExportAutomaticAsync()
+    {
+        return _watchListService.SyncAndImportGate.RunAsync(async () =>
         {
+            if (!_settingsService.GetAutoSyncEnabled()) return false;
             return await ExportSyncBundleInternalAsync();
-        }
-        finally
-        {
-            _exportLock.Release();
-        }
+        });
     }
 
     private async Task<bool> ExportSyncBundleInternalAsync()
@@ -156,7 +161,21 @@ public class SyncService
         }
     }
 
-    public async Task<string> ImportAndMergeSyncBundleAsync()
+    public Task<string> ImportAndMergeSyncBundleAsync()
+    {
+        return _watchListService.SyncAndImportGate.RunAsync(ImportAndMergeSyncBundleInternalAsync);
+    }
+
+    public Task<string> ImportAutomaticAsync()
+    {
+        return _watchListService.SyncAndImportGate.RunAsync(async () =>
+        {
+            if (!_settingsService.GetAutoSyncEnabled()) return "Automatic sync is off.";
+            return await ImportAndMergeSyncBundleInternalAsync();
+        });
+    }
+
+    private async Task<string> ImportAndMergeSyncBundleInternalAsync()
     {
         var mode = _settingsService.GetSyncMode();
 
@@ -174,7 +193,7 @@ public class SyncService
             if (bundle == null)
             {
                 await FileLogger.WriteLogAsync($"Cloud API Sync: No existing remote payload found for '{syncCode}'. Uploading local dataset to initialize cloud.");
-                var exported = await ExportSyncBundleAsync();
+                var exported = await ExportSyncBundleInternalAsync();
                 if (exported)
                 {
                     var itemCount = _watchListService.GetWatchItems().Count;
@@ -183,7 +202,7 @@ public class SyncService
                     return initMsg;
                 }
 
-                var newUrl = await CreateNewCloudSyncEndpointAsync();
+                var newUrl = await CreateNewCloudSyncEndpointInternalAsync();
                 if (newUrl.HasValue())
                 {
                     var itemCount = _watchListService.GetWatchItems().Count;

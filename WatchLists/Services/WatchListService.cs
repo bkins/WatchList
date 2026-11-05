@@ -14,6 +14,8 @@ public class WatchListService : IDisposable
     private readonly SQLiteConnection _dbConnection;
     private bool _disposed;
 
+    public AsyncOperationGate SyncAndImportGate { get; } = new();
+
     public WatchListService (SettingsService settingsService, string? dbPath = null)
     {
         _settingsService = settingsService;
@@ -82,7 +84,12 @@ public class WatchListService : IDisposable
         return _dbConnection.Table<WatchItem>().ToList();
     }
 
-    public MuseImportReceipt ApplyMuseImport(MuseImportBatch batch)
+    public Task<MuseImportReceipt> ApplyMuseImportAsync(MuseImportBatch batch)
+    {
+        return SyncAndImportGate.RunAsync(() => Task.FromResult(ApplyMuseImport(batch)));
+    }
+
+    private MuseImportReceipt ApplyMuseImport(MuseImportBatch batch)
     {
         var folder = Path.GetDirectoryName(_dbConnection.DatabasePath);
         if (string.IsNullOrWhiteSpace(folder)) throw new InvalidOperationException("The watchlist backup directory is unavailable.");

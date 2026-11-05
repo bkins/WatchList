@@ -297,13 +297,13 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
     }
 
-    public void ImportConfirmed(MuseImportBatch batch)
+    public async Task ImportConfirmedAsync(MuseImportBatch batch)
     {
         if (IsBusy) return;
         IsBusy = true;
         try
         {
-            var receipt = _watchListService.ApplyMuseImport(batch);
+            var receipt = await _watchListService.ApplyMuseImportAsync(batch);
             _review = new MuseImportReview(Recommendations.ToList());
             _approvalLabels.Clear();
             UpdateApprovalSummary();

@@ -22,6 +22,6 @@ public partial class MuseImportPreviewPage : ContentPage
                                            "Automatic sync must be off; older clients can overwrite recommendation sources."
                                          , "Import"
                                          , "Cancel");
-        if (confirmed) viewModel.ImportConfirmed(batch);
+        if (confirmed) await viewModel.ImportConfirmedAsync(batch);
     }
 }
