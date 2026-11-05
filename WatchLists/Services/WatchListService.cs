@@ -74,7 +74,12 @@ public class WatchListService : IDisposable
 
     public List<MovieRecommendation> GetRecommendationsForSync()
     {
-        return new RecommendationStore(_dbConnection).GetAll().ToList();
+        return RecommendationStore.ReadExisting(_dbConnection);
+    }
+
+    public List<WatchItem> GetItemsForImportReview()
+    {
+        return _dbConnection.Table<WatchItem>().ToList();
     }
 
     public WatchItemSyncResult MergeSyncItems(IEnumerable<WatchItem> items

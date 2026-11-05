@@ -18,6 +18,13 @@ public sealed class RecommendationStore
         return _connection.Table<MovieRecommendation>().ToList();
     }
 
+    public static List<MovieRecommendation> ReadExisting(SQLiteConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        var exists = connection.ExecuteScalar<int>("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", "MovieRecommendation");
+        return exists == 0 ? [] : connection.Table<MovieRecommendation>().ToList();
+    }
+
     public int Apply(IEnumerable<RecommendationImportEntry> entries, DateTime observedUtc)
     {
         ArgumentNullException.ThrowIfNull(entries);

@@ -13,6 +13,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private readonly WatchListService _watchListService;
     private readonly TmdbService _tmdbService;
     private MuseImportReview? _review;
+    private bool _selectedRowCanBeReviewed;
     private readonly Dictionary<int, string> _approvalLabels = new();
 
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
@@ -80,6 +81,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
     {
+        _selectedRowCanBeReviewed = false;
         ExistingMatches.Clear();
         ProviderMatches.Clear();
         SelectedExisting = null;
@@ -90,14 +92,28 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             return;
         }
 
-        Details = $"{value.Section} · line {value.LineNumber}\n{value.Description}\nSources: {string.Join(", ", value.SourceUrls)}";
-        var items = _watchListService.GetAllWatchItemsIncludingDeleted();
-        var candidates = new MusePreviewBuilder().Build([value]
-            , items.Select(item => new MuseExistingItem(item.Id, item.Title, item.IsDeleted, item.MovieId, item.ApiSource)));
-        var ids = candidates[0].PossibleMatches.Select(item => item.Id).ToHashSet();
-        foreach (var item in items.Where(item => ids.Contains(item.Id)))
+        try
         {
-            ExistingMatches.Add(item);
+            var items = _watchListService.GetItemsForImportReview();
+            var sources = _watchListService.GetRecommendationsForSync();
+            var candidates = new MusePreviewBuilder().Build([value]
+                , items.Select(item => new MuseExistingItem(item.Id, item.Title, item.IsDeleted, item.MovieId, item.ApiSource)));
+            var ids = candidates[0].PossibleMatches.Select(item => item.Id).ToHashSet();
+            foreach (var item in items.Where(item => ids.Contains(item.Id))) ExistingMatches.Add(item);
+
+            var associations = new MuseSourceInspector().Find(value, sources, items);
+            var savedDetails = associations.Count == 0
+                ? "No saved associations for these source URLs."
+                : string.Join(Environment.NewLine, associations.Select(association =>
+                    $"{association.SourceUrl} → {association.ItemTitle}" + (association.IsDeleted ? " (deleted)" : string.Empty)));
+            Details = $"{value.Section} · line {value.LineNumber}\n{value.Description}\nSources: {string.Join(", ", value.SourceUrls)}\n" +
+                      $"Saved source associations (review identity):\n{savedDetails}";
+            _selectedRowCanBeReviewed = true;
+        }
+        catch (Exception exception)
+        {
+            Details = "Could not read saved items or source associations. Approval is disabled for this row.";
+            Status = $"Review unavailable: {exception.Message}";
         }
     }
 
@@ -153,7 +169,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private void ApproveExisting()
     {
-        if (_review == null || SelectedRecommendation == null || SelectedExisting == null) return;
+        if (_review == null || SelectedRecommendation == null || SelectedExisting == null || !_selectedRowCanBeReviewed) return;
         try
         {
             _review.ApproveExisting(Recommendations.IndexOf(SelectedRecommendation), SelectedExisting);
@@ -170,7 +186,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private void ApproveProvider()
     {
-        if (_review == null || SelectedRecommendation == null || SelectedProvider == null) return;
+        if (_review == null || SelectedRecommendation == null || SelectedProvider == null || !_selectedRowCanBeReviewed) return;
         try
         {
             var item = new WatchItem
