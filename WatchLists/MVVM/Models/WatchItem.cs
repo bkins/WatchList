@@ -46,6 +46,9 @@ public class WatchItem : ObservableObject
 
     public string   AggregatedDataJson         { get; set; } = string.Empty;
 
+    [Ignore]
+    public string ImportReviewDisplay => $"{Title} · {Type} · {ApiSource} {MovieId}" + (IsDeleted ? " (deleted)" : string.Empty);
+
     private bool _isSelected;
 
     [Ignore]

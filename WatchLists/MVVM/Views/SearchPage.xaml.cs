@@ -13,4 +13,9 @@ public partial class SearchPage : ContentPage
         _ = FileLogger.WriteLogAsync($"[SearchPage] Constructor. viewModel: {viewModel?.GetHashCode()}");
     }
 
+    private async void OpenMusePreview(object? sender, EventArgs eventArgs)
+    {
+        await Shell.Current.GoToAsync(nameof(MuseImportPreviewPage));
+    }
+
 }

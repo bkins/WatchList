@@ -20,6 +20,9 @@ namespace WatchLists
             Routing.RegisterRoute(nameof(SearchPage)
                                 , typeof(SearchPage));
 
+            Routing.RegisterRoute(nameof(MuseImportPreviewPage)
+                                , typeof(MuseImportPreviewPage));
+
             Routing.RegisterRoute(nameof(MovieDetailsPage)
                                 , typeof(MovieDetailsPage));
 

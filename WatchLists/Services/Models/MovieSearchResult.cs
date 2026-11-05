@@ -16,6 +16,12 @@ public class MovieSearchResult
     [JsonPropertyName("overview")]
     public string Overview { get; set; }
 
+    [JsonPropertyName("release_date")]
+    public string ReleaseDate { get; set; } = string.Empty;
+
+    [JsonIgnore]
+    public string ImportReviewDisplay => $"{Title} ({ReleaseDate}) · TMDB {Id}";
+
     [JsonIgnore]
     public string MediaType { get; set; } = string.Empty;
 
