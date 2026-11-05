@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using System.IO;
 using WatchLists.Utilities;
+using WatchLists.Services.MuseImport;
 
 
 namespace WatchLists;
@@ -77,6 +78,7 @@ public static class MauiProgram
 
         // Register HTTP Clients (but without API keys yet)
         builder.Services.AddHttpClient<TmdbService>();
+        builder.Services.AddHttpClient<TvMazeImportSearch>();
         builder.Services.AddHttpClient<OmdbService>();
         builder.Services.AddHttpClient<FmDbService>();
         builder.Services.AddHttpClient<Imdb236Service>();

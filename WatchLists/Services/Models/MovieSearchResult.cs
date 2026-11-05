@@ -20,9 +20,6 @@ public class MovieSearchResult
     public string ReleaseDate { get; set; } = string.Empty;
 
     [JsonIgnore]
-    public string ImportReviewDisplay => $"{Title} ({ReleaseDate}) · TMDB {Id}";
-
-    [JsonIgnore]
     public string MediaType { get; set; } = string.Empty;
 
     [JsonIgnore]

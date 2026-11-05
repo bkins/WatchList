@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.MVVM.Models;
 using WatchLists.Services;
-using WatchLists.Services.Models;
 using WatchLists.Services.MuseImport;
 
 namespace WatchLists.MVVM.ViewModels;
@@ -12,17 +11,18 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 {
     private readonly WatchListService _watchListService;
     private readonly TmdbService _tmdbService;
+    private readonly TvMazeImportSearch _tvMazeSearch;
     private MuseImportReview? _review;
     private bool _selectedRowCanBeReviewed;
     private readonly Dictionary<int, string> _approvalLabels = new();
 
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
     public ObservableCollection<WatchItem> ExistingMatches { get; } = new();
-    public ObservableCollection<MovieSearchResult> ProviderMatches { get; } = new();
+    public ObservableCollection<MuseProviderCandidate> ProviderMatches { get; } = new();
 
     private MuseRecommendation? _selectedRecommendation;
     private WatchItem? _selectedExisting;
-    private MovieSearchResult? _selectedProvider;
+    private MuseProviderCandidate? _selectedProvider;
     private string _status = "Select a Muse Markdown file to review. No data is changed by preview.";
     private string _details = string.Empty;
     private string _approvalSummary = "No rows approved.";
@@ -43,7 +43,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         set => SetProperty(ref _selectedExisting, value);
     }
 
-    public MovieSearchResult? SelectedProvider
+    public MuseProviderCandidate? SelectedProvider
     {
         get => _selectedProvider;
         set => SetProperty(ref _selectedProvider, value);
@@ -73,10 +73,13 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         set => SetProperty(ref _approvalSummary, value);
     }
 
-    public MuseImportPreviewViewModel(WatchListService watchListService, TmdbService tmdbService)
+    public MuseImportPreviewViewModel(WatchListService watchListService
+                                    , TmdbService tmdbService
+                                    , TvMazeImportSearch tvMazeSearch)
     {
         _watchListService = watchListService;
         _tmdbService      = tmdbService;
+        _tvMazeSearch     = tvMazeSearch;
     }
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
@@ -153,12 +156,48 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             var result = await _tmdbService.SearchMoviesAsync(row.Title);
             if (!ReferenceEquals(row, SelectedRecommendation)) return;
             ProviderMatches.Clear();
-            foreach (var candidate in result.Data?.Results ?? []) ProviderMatches.Add(candidate);
+            if (result.Data == null)
+            {
+                Status = "TMDB search did not return results. Check the connection and provider configuration.";
+                return;
+            }
+            foreach (var candidate in result.Data.Results ?? [])
+            {
+                ProviderMatches.Add(new MuseProviderCandidate(candidate.Id, candidate.Title, candidate.ReleaseDate
+                                                            , candidate.Overview ?? string.Empty, candidate.PosterUrl
+                                                            , "TMDB", "Movie"));
+            }
             Status = $"Found {ProviderMatches.Count} TMDB movie results. Verify the title and year before selecting.";
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            Status = $"Provider search failed: {exception.Message}";
+            ProviderMatches.Clear();
+            Status = "TMDB search failed. Check the connection and provider configuration.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SearchShowsAsync()
+    {
+        if (SelectedRecommendation == null || IsBusy) return;
+        var row = SelectedRecommendation;
+        IsBusy = true;
+        try
+        {
+            var results = await _tvMazeSearch.SearchAsync(row.Title);
+            if (!ReferenceEquals(row, SelectedRecommendation)) return;
+            ProviderMatches.Clear();
+            foreach (var candidate in results) ProviderMatches.Add(candidate);
+            Status = $"Found {ProviderMatches.Count} TVMaze shows. Verify the title and premiere date before selecting.";
+        }
+        catch (Exception)
+        {
+            ProviderMatches.Clear();
+            Status = "TVMaze search failed. Check the connection and try again.";
         }
         finally
         {
@@ -189,17 +228,27 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         if (_review == null || SelectedRecommendation == null || SelectedProvider == null || !_selectedRowCanBeReviewed) return;
         try
         {
+            var existing = _watchListService.GetItemsForImportReview()
+                                            .Where(item => item.MovieId == SelectedProvider.Id &&
+                                                           string.Equals(item.ApiSource, SelectedProvider.Provider, StringComparison.OrdinalIgnoreCase))
+                                            .ToList();
+            if (existing.Count > 0)
+            {
+                Status = "This provider identity already exists. Review the existing item; deleted items cannot be imported.";
+                foreach (var match in existing.Where(item => !ExistingMatches.Any(candidate => candidate.Id == item.Id))) ExistingMatches.Add(match);
+                return;
+            }
             var item = new WatchItem
                        {
                            Title     = SelectedProvider.Title
                          , MovieId   = SelectedProvider.Id
-                         , ApiSource = "TMDB"
-                         , Type      = "Movie"
+                         , ApiSource = SelectedProvider.Provider
+                         , Type      = SelectedProvider.MediaType
                          , Overview  = SelectedProvider.Overview ?? string.Empty
                          , PosterUrl = SelectedProvider.PosterUrl
                        };
             _review.ApproveNew(Recommendations.IndexOf(SelectedRecommendation), item);
-            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → {SelectedProvider.ImportReviewDisplay}";
+            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → {SelectedProvider.Display}";
             UpdateApprovalSummary();
             Status = $"Approved {_review.ApprovedCount} rows for later import. No data has been changed.";
         }

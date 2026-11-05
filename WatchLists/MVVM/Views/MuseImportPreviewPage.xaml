@@ -4,7 +4,6 @@
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
              xmlns:models="clr-namespace:WatchLists.MVVM.Models"
              xmlns:import="clr-namespace:WatchLists.Services.MuseImport"
-             xmlns:services="clr-namespace:WatchLists.Services.Models"
              x:Class="WatchLists.MVVM.Views.MuseImportPreviewPage"
              x:DataType="viewmodels:MuseImportPreviewViewModel"
              Title="Muse import preview">
@@ -30,9 +29,10 @@
                         ItemDisplayBinding="{Binding ImportReviewDisplay, x:DataType=models:WatchItem}" SelectedItem="{Binding SelectedExisting}" />
                 <Button Text="Approve existing item" Command="{Binding ApproveExistingCommand}" />
                 <Button Text="Search TMDB movies" Command="{Binding SearchProviderCommand}" />
-                <Picker Title="TMDB result" ItemsSource="{Binding ProviderMatches}"
-                        ItemDisplayBinding="{Binding ImportReviewDisplay, x:DataType=services:MovieSearchResult}" SelectedItem="{Binding SelectedProvider}" />
-                <Button Text="Approve TMDB movie" Command="{Binding ApproveProviderCommand}" />
+                <Button Text="Search TVMaze shows" Command="{Binding SearchShowsCommand}" />
+                <Picker Title="Provider result" ItemsSource="{Binding ProviderMatches}"
+                        ItemDisplayBinding="{Binding Display, x:DataType=import:MuseProviderCandidate}" SelectedItem="{Binding SelectedProvider}" />
+                <Button Text="Approve provider result" Command="{Binding ApproveProviderCommand}" />
                 <Button Text="Clear approval for selected row" Command="{Binding ClearApprovalCommand}" />
                 <Label Text="Approved rows:" FontAttributes="Bold" />
                 <Label Text="{Binding ApprovalSummary}" />
