@@ -89,6 +89,7 @@ public class SyncService
                              ExportedAtUtc     = DateTime.UtcNow
                            , DeviceId          = DeviceInfo.Name
                            , Items             = _watchListService.GetAllWatchItemsIncludingDeleted()
+                           , Recommendations   = _watchListService.GetRecommendationsForSync()
                            , Categories        = await _settingsService.GetOptionsAsync(SettingType.Categories)
                            , StreamingServices = await _settingsService.GetOptionsAsync(SettingType.StreamingServices)
                            , Types             = await _settingsService.GetOptionsAsync(SettingType.Types)
@@ -194,8 +195,8 @@ public class SyncService
                 return $"Cloud API Sync error: No remote payload found for '{syncCode}' and failed to initialize cloud.";
             }
 
-            var (insertedCount, updatedCount) = await MergeBundleIntoLocalDbAsync(bundle);
-            if (insertedCount > 0 || updatedCount > 0)
+            var (insertedCount, updatedCount, recommendationCount) = await MergeBundleIntoLocalDbAsync(bundle);
+            if (insertedCount > 0 || updatedCount > 0 || recommendationCount > 0)
             {
                 _watchListService.NotifyWatchListChanged();
             }
@@ -220,6 +221,7 @@ public class SyncService
 
         var totalInsertedCount  = 0;
         var totalUpdatedCount   = 0;
+        var totalRecommendationCount = 0;
         var processedFilesCount = 0;
 
         foreach (var filePath in files)
@@ -231,9 +233,10 @@ public class SyncService
 
                 if (bundle == null) continue;
 
-                var (inserted, updated) = await MergeBundleIntoLocalDbAsync(bundle);
+                var (inserted, updated, recommendations) = await MergeBundleIntoLocalDbAsync(bundle);
                 totalInsertedCount     += inserted;
                 totalUpdatedCount      += updated;
+                totalRecommendationCount += recommendations;
                 processedFilesCount++;
 
                 if (Path.GetFileName(filePath).ContainsIgnoreCase("conflict"))
@@ -255,7 +258,7 @@ public class SyncService
             }
         }
 
-        if (totalInsertedCount > 0 || totalUpdatedCount > 0)
+        if (totalInsertedCount > 0 || totalUpdatedCount > 0 || totalRecommendationCount > 0)
         {
             _watchListService.NotifyWatchListChanged();
         }
@@ -266,44 +269,10 @@ public class SyncService
         return resultMsg;
     }
 
-    private async Task<(int Inserted, int Updated)> MergeBundleIntoLocalDbAsync (SyncBundle bundle)
+    private async Task<(int Inserted, int Updated, int Recommendations)> MergeBundleIntoLocalDbAsync (SyncBundle bundle)
     {
-        var insertedCount = 0;
-        var updatedCount  = 0;
-        var localItems    = _watchListService.GetAllWatchItemsIncludingDeleted();
-
-        if (bundle.Items != null && bundle.Items.Count > 0)
-        {
-            foreach (var incomingItem in bundle.Items)
-            {
-                var localMatch = FindLocalMatch(incomingItem, localItems);
-
-                if (localMatch == null)
-                {
-                    _watchListService.UpsertWatchItemFromSync(incomingItem);
-                    localItems.Add(incomingItem);
-                    insertedCount++;
-                    await FileLogger.WriteLogAsync($"Sync inserted new item: '{incomingItem.Title}' (ID: {incomingItem.Id})");
-                }
-                else
-                {
-                    var incomingUtc = ToUniversalUtc(incomingItem.LastUpdated);
-                    var localUtc    = ToUniversalUtc(localMatch.LastUpdated);
-
-                    if (incomingUtc > localUtc)
-                    {
-                        incomingItem.Id = localMatch.Id;
-                        _watchListService.UpsertWatchItemFromSync(incomingItem);
-
-                        var index = localItems.IndexOf(localMatch);
-                        if (index >= 0) localItems[index] = incomingItem;
-
-                        updatedCount++;
-                        await FileLogger.WriteLogAsync($"Sync updated item: '{incomingItem.Title}' (Remote UTC: {incomingUtc} > Local UTC: {localUtc})");
-                    }
-                }
-            }
-        }
+        var result = _watchListService.MergeSyncItems(bundle.Items ?? []
+                                                    , bundle.Recommendations ?? []);
 
         await MergeOptionsAsync(SettingType.Categories, bundle.Categories);
         await MergeOptionsAsync(SettingType.StreamingServices, bundle.StreamingServices);
@@ -318,32 +287,7 @@ public class SyncService
             }
         }
 
-        return (insertedCount, updatedCount);
-    }
-
-    private static WatchItem? FindLocalMatch (WatchItem incoming, List<WatchItem> localItems)
-    {
-        // 1. Match by exact GUID Id
-        var match = localItems.FirstOrDefault(item => item.Id == incoming.Id);
-        if (match != null) return match;
-
-        // 2. Match by MovieId (if non-zero)
-        if (incoming.MovieId > 0)
-        {
-            match = localItems.FirstOrDefault(item => item.MovieId == incoming.MovieId &&
-                                                      (item.ApiSource.IsEmptyNullOrWhiteSpace() || incoming.ApiSource.IsEmptyNullOrWhiteSpace() || item.ApiSource.EqualsIgnoreCase(incoming.ApiSource)));
-            if (match != null) return match;
-        }
-
-        // 3. Match by Title + Type (case-insensitive)
-        if (incoming.Title.HasValue())
-        {
-            match = localItems.FirstOrDefault(item => item.Title.EqualsIgnoreCase(incoming.Title) &&
-                                                      (item.Type.IsEmptyNullOrWhiteSpace() || incoming.Type.IsEmptyNullOrWhiteSpace() || item.Type.EqualsIgnoreCase(incoming.Type)));
-            if (match != null) return match;
-        }
-
-        return null;
+        return (result.InsertedItems, result.UpdatedItems, result.InsertedRecommendations);
     }
 
     private async Task MergeOptionsAsync (SettingType settingType, List<string>? incomingOptions)
@@ -368,10 +312,4 @@ public class SyncService
         }
     }
 
-    private static DateTime ToUniversalUtc (DateTime dateTime)
-    {
-        if (dateTime.Kind == DateTimeKind.Utc) return dateTime;
-        if (dateTime.Kind == DateTimeKind.Local) return dateTime.ToUniversalTime();
-        return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
-    }
 }

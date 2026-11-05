@@ -37,6 +37,62 @@ public sealed class RecommendationStore
         return insertedCount;
     }
 
+    public int MergeFromSync(IEnumerable<MovieRecommendation> incoming
+                           , IReadOnlyDictionary<Guid, Guid> itemMapping)
+    {
+        ArgumentNullException.ThrowIfNull(incoming);
+        ArgumentNullException.ThrowIfNull(itemMapping);
+
+        var batch = incoming.ToList();
+        var insertedCount = 0;
+        _connection.RunInTransaction(() =>
+        {
+            foreach (var recommendation in batch)
+            {
+                if (!itemMapping.TryGetValue(recommendation.WatchItemId, out var localId) || localId == Guid.Empty ||
+                    _connection.ExecuteScalar<int>("SELECT COUNT(*) FROM WatchItems WHERE Id = ?", localId) != 1)
+                {
+                    throw new InvalidOperationException("Recommendation sync has no uniquely identified local item.");
+                }
+
+                var descriptions = JsonSerializer.Deserialize<List<string>>(recommendation.DescriptionsJson);
+                if (descriptions == null || descriptions.Count == 0 || descriptions.Any(string.IsNullOrWhiteSpace))
+                {
+                    throw new InvalidOperationException("Recommendation sync has invalid descriptions.");
+                }
+
+                var firstSeen = ToUtc(recommendation.FirstImportedUtc);
+                var lastSeen  = ToUtc(recommendation.LastSeenUtc);
+                if (firstSeen == default || lastSeen < firstSeen)
+                {
+                    throw new InvalidOperationException("Recommendation sync has invalid timestamps.");
+                }
+
+                foreach (var description in descriptions)
+                {
+                    if (AddOrUpdate(localId, recommendation.SourceUrl, description, lastSeen)) insertedCount++;
+                }
+
+                var sourceKey = RecommendationSourceKey.Create(recommendation.SourceUrl);
+                var merged = _connection.Table<MovieRecommendation>()
+                                        .First(item => item.WatchItemId == localId && item.SourceKey == sourceKey);
+                if (firstSeen < ToUtc(merged.FirstImportedUtc))
+                {
+                    merged.FirstImportedUtc = firstSeen;
+                    _connection.Update(merged);
+                }
+            }
+        });
+        return insertedCount;
+    }
+
+    private static DateTime ToUtc(DateTime value)
+    {
+        return value.Kind == DateTimeKind.Local
+            ? value.ToUniversalTime()
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+    }
+
     private bool AddOrUpdate(Guid watchItemId, string sourceUrl, string description, DateTime observedUtc)
     {
         if (watchItemId == Guid.Empty) throw new ArgumentException("A watch item is required.", nameof(watchItemId));

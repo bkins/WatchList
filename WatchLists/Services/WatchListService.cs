@@ -4,6 +4,7 @@ using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
 using WatchLists.Services.Enums;
+using WatchLists.Services.MuseImport;
 
 namespace WatchLists.Services;
 
@@ -70,6 +71,17 @@ public class WatchListService : IDisposable
     }
 
     public event EventHandler? WatchListChanged;
+
+    public List<MovieRecommendation> GetRecommendationsForSync()
+    {
+        return new RecommendationStore(_dbConnection).GetAll().ToList();
+    }
+
+    public WatchItemSyncResult MergeSyncItems(IEnumerable<WatchItem> items
+                                            , IEnumerable<MovieRecommendation> recommendations)
+    {
+        return new WatchItemSyncMerger(_dbConnection).Merge(items, recommendations);
+    }
 
     public List<WatchItem> GetCurrentWatchItems() => GetWatchItems();
 
