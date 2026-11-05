@@ -82,6 +82,25 @@ public class WatchListService : IDisposable
         return _dbConnection.Table<WatchItem>().ToList();
     }
 
+    public MuseImportReceipt ApplyMuseImport(MuseImportBatch batch)
+    {
+        var folder = Path.GetDirectoryName(_dbConnection.DatabasePath);
+        if (string.IsNullOrWhiteSpace(folder)) throw new InvalidOperationException("The watchlist backup directory is unavailable.");
+
+        var coordinator = new MuseImportCoordinator(_dbConnection, _settingsService.GetAutoSyncEnabled);
+        var receipt = coordinator.Apply(batch, Path.Combine(folder, "ImportBackups"), DateTime.UtcNow);
+        try
+        {
+            WatchListChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception exception)
+        {
+            _ = FileLogger.WriteLogAsync($"Import saved; refresh notification failed: {exception.Message}");
+        }
+
+        return receipt;
+    }
+
     public WatchItemSyncResult MergeSyncItems(IEnumerable<WatchItem> items
                                             , IEnumerable<MovieRecommendation> recommendations)
     {

@@ -36,7 +36,8 @@
                 <Button Text="Clear approval for selected row" Command="{Binding ClearApprovalCommand}" />
                 <Label Text="Approved rows:" FontAttributes="Bold" />
                 <Label Text="{Binding ApprovalSummary}" />
-                <Label Text="Preview only: import is not yet available." FontAttributes="Italic" />
+                <Label Text="Turn off automatic sync before import. Older app versions can overwrite recommendation sources." FontAttributes="Italic" />
+                <Button Text="Import approved rows" Clicked="ImportApproved" AutomationId="MuseImportButton" />
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

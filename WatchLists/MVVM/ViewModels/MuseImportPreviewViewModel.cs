@@ -282,4 +282,42 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             ? "No rows approved."
             : string.Join(Environment.NewLine, _approvalLabels.OrderBy(item => item.Key).Select(item => item.Value));
     }
+
+    public MuseImportBatch? PrepareImport()
+    {
+        if (_review == null || IsBusy) return null;
+        try
+        {
+            return _review.CreateBatch();
+        }
+        catch (Exception exception)
+        {
+            Status = exception.Message;
+            return null;
+        }
+    }
+
+    public void ImportConfirmed(MuseImportBatch batch)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            var receipt = _watchListService.ApplyMuseImport(batch);
+            _review = new MuseImportReview(Recommendations.ToList());
+            _approvalLabels.Clear();
+            UpdateApprovalSummary();
+            UpdateSelectedRecommendation(SelectedRecommendation);
+            Status = $"Imported {receipt.NewItems} new items and {receipt.NewRecommendations} new sources. " +
+                     $"Backup: {receipt.BackupPath}. Automatic sync remains off.";
+        }
+        catch (Exception exception)
+        {
+            Status = $"Import did not complete: {exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 }
