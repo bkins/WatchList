@@ -38,12 +38,14 @@ public sealed class MuseImportReviewTests
                             Title     = "Film"
                           , MovieId   = 123
                           , ApiSource = "TMDB"
+                          , Category  = "Consider Watching"
                         };
         var secondItem = new WatchItem
                          {
                              Title     = "Film"
                            , MovieId   = 123
                            , ApiSource = "tmdb"
+                           , Category  = "Consider Watching"
                          };
 
         review.ApproveNew(0, firstItem);
@@ -78,6 +80,7 @@ public sealed class MuseImportReviewTests
                            Title     = "First"
                          , MovieId   = 123
                          , ApiSource = "TMDB"
+                         , Category  = "Consider Watching"
                        };
         review.ApproveNew(0, proposed);
         review.ApproveExisting(1, new WatchItem { Title = "Second" });
@@ -87,5 +90,22 @@ public sealed class MuseImportReviewTests
 
         Assert.Empty(batch.NewItems);
         Assert.Single(batch.Recommendations);
+    }
+
+    [Fact]
+    public void ApproveNew_MissingCategory_RequiresExplicitCategory()
+    {
+        var row = new MuseRecommendation("Film", null, "note", "Films", ["https://example.com/one"], 1);
+        var review = new MuseImportReview([row]);
+        var item = new WatchItem
+                   {
+                       Title     = "Film"
+                     , MovieId   = 123
+                     , ApiSource = "TMDB"
+                   };
+
+        Assert.Throws<InvalidOperationException>(() => review.ApproveNew(0, item));
+
+        Assert.Equal(0, review.ApprovedCount);
     }
 }

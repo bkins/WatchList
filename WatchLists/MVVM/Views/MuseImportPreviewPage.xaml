@@ -32,6 +32,7 @@
                 <Button Text="Search TVMaze shows" Command="{Binding SearchShowsCommand}" />
                 <Picker Title="Provider result" ItemsSource="{Binding ProviderMatches}"
                         ItemDisplayBinding="{Binding Display, x:DataType=import:MuseProviderCandidate}" SelectedItem="{Binding SelectedProvider}" />
+                <Picker Title="Category for new items" ItemsSource="{Binding ImportCategories}" SelectedItem="{Binding SelectedCategory}" />
                 <Button Text="Approve provider result" Command="{Binding ApproveProviderCommand}" />
                 <Button Text="Clear approval for selected row" Command="{Binding ClearApprovalCommand}" />
                 <Label Text="Approved rows:" FontAttributes="Bold" />

@@ -49,9 +49,9 @@ public sealed class MuseImportWriter
     {
         ArgumentNullException.ThrowIfNull(item);
         if (item.Id == Guid.Empty || string.IsNullOrWhiteSpace(item.Title) || item.IsDeleted ||
-            item.MovieId <= 0 || string.IsNullOrWhiteSpace(item.ApiSource))
+            item.MovieId <= 0 || string.IsNullOrWhiteSpace(item.ApiSource) || string.IsNullOrWhiteSpace(item.Category))
         {
-            throw new InvalidOperationException("A new item needs an active identity and a confirmed provider ID.");
+            throw new InvalidOperationException("A new item needs an active identity, category and confirmed provider ID.");
         }
 
         var matches = _connection.Table<WatchItem>()

@@ -33,9 +33,9 @@ public sealed class MuseImportReview
         ValidateRow(index);
         ArgumentNullException.ThrowIfNull(item);
         if (item.Id == Guid.Empty || item.IsDeleted || item.MovieId <= 0 ||
-            string.IsNullOrWhiteSpace(item.Title) || string.IsNullOrWhiteSpace(item.ApiSource))
+            string.IsNullOrWhiteSpace(item.Title) || string.IsNullOrWhiteSpace(item.ApiSource) || string.IsNullOrWhiteSpace(item.Category))
         {
-            throw new InvalidOperationException("A new item requires an explicitly selected provider identity.");
+            throw new InvalidOperationException("A new item requires an explicitly selected provider identity and category.");
         }
 
         var sameIdentity = _newItems.Values.FirstOrDefault(existing => existing.MovieId == item.MovieId &&

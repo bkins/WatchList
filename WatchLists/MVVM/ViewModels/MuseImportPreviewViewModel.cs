@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using WatchLists.MVVM.Models;
 using WatchLists.Services;
 using WatchLists.Services.MuseImport;
+using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -12,6 +13,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private readonly WatchListService _watchListService;
     private readonly TmdbService _tmdbService;
     private readonly TvMazeImportSearch _tvMazeSearch;
+    private readonly SettingsService _settingsService;
     private MuseImportReview? _review;
     private bool _selectedRowCanBeReviewed;
     private readonly Dictionary<int, string> _approvalLabels = new();
@@ -19,6 +21,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
     public ObservableCollection<WatchItem> ExistingMatches { get; } = new();
     public ObservableCollection<MuseProviderCandidate> ProviderMatches { get; } = new();
+    public ObservableCollection<string> ImportCategories { get; } = new();
 
     private MuseRecommendation? _selectedRecommendation;
     private WatchItem? _selectedExisting;
@@ -27,6 +30,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private string _details = string.Empty;
     private string _approvalSummary = "No rows approved.";
     private bool _isBusy;
+    private string? _selectedCategory;
 
     public MuseRecommendation? SelectedRecommendation
     {
@@ -73,13 +77,42 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         set => SetProperty(ref _approvalSummary, value);
     }
 
+    public string? SelectedCategory
+    {
+        get => _selectedCategory;
+        set => SetProperty(ref _selectedCategory, value);
+    }
+
     public MuseImportPreviewViewModel(WatchListService watchListService
                                     , TmdbService tmdbService
-                                    , TvMazeImportSearch tvMazeSearch)
+                                    , TvMazeImportSearch tvMazeSearch
+                                    , SettingsService settingsService)
     {
         _watchListService = watchListService;
         _tmdbService      = tmdbService;
         _tvMazeSearch     = tvMazeSearch;
+        _settingsService  = settingsService;
+    }
+
+    public async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
+            var watchedCategory = await _settingsService.GetWatchedCategoryAsync();
+            ImportCategories.Clear();
+            foreach (var category in categories.Where(category => !string.Equals(category, watchedCategory, StringComparison.OrdinalIgnoreCase)))
+            {
+                ImportCategories.Add(category);
+            }
+            SelectedCategory = ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception)
+        {
+            ImportCategories.Clear();
+            SelectedCategory = null;
+            Status = "Could not load categories. New items cannot be approved until categories are available.";
+        }
     }
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
@@ -228,6 +261,11 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         if (_review == null || SelectedRecommendation == null || SelectedProvider == null || !_selectedRowCanBeReviewed) return;
         try
         {
+            if (string.IsNullOrWhiteSpace(SelectedCategory) || !ImportCategories.Contains(SelectedCategory))
+            {
+                Status = "Choose a category for new recommendations before approving a provider result.";
+                return;
+            }
             var existing = _watchListService.GetItemsForImportReview()
                                             .Where(item => item.MovieId == SelectedProvider.Id &&
                                                            string.Equals(item.ApiSource, SelectedProvider.Provider, StringComparison.OrdinalIgnoreCase))
@@ -244,11 +282,12 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                          , MovieId   = SelectedProvider.Id
                          , ApiSource = SelectedProvider.Provider
                          , Type      = SelectedProvider.MediaType
+                         , Category  = SelectedCategory
                          , Overview  = SelectedProvider.Overview ?? string.Empty
                          , PosterUrl = SelectedProvider.PosterUrl
                        };
             _review.ApproveNew(Recommendations.IndexOf(SelectedRecommendation), item);
-            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → {SelectedProvider.Display}";
+            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → {SelectedProvider.Display} · {SelectedCategory}";
             UpdateApprovalSummary();
             Status = $"Approved {_review.ApprovedCount} rows for later import. No data has been changed.";
         }

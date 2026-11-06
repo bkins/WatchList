@@ -30,6 +30,7 @@ public sealed class MuseImportWriterTests
                               Title     = "New film"
                             , MovieId   = 123
                             , ApiSource = "TMDB"
+                            , Category  = "Consider Watching"
                           };
             var batch = new MuseImportBatch([newItem]
                                           , [new(newItem.Id, "https://instagram.com/reel/one", "Recommendation")]);
@@ -73,6 +74,7 @@ public sealed class MuseImportWriterTests
                               Title     = "Same film"
                             , MovieId   = 123
                             , ApiSource = "tmdb"
+                            , Category  = "Consider Watching"
                           };
             var batch = new MuseImportBatch([newItem], [new(newItem.Id, "https://example.com/source", "Recommendation")]);
 
@@ -102,6 +104,7 @@ public sealed class MuseImportWriterTests
                            Title     = "New film"
                          , MovieId   = 456
                          , ApiSource = "TMDB"
+                         , Category  = "Consider Watching"
                        };
             var batch = new MuseImportBatch([item], [new(item.Id, "not a URL", "Recommendation")]);
 
@@ -134,6 +137,7 @@ public sealed class MuseImportWriterTests
                            Title     = "Film"
                          , MovieId   = 456
                          , ApiSource = "TMDB"
+                         , Category  = "Consider Watching"
                        };
             var firstReview = new MuseImportReview(rows);
             firstReview.ApproveNew(0, item);

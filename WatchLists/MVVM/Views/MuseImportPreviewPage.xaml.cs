@@ -10,6 +10,12 @@ public partial class MuseImportPreviewPage : ContentPage
         BindingContext = viewModel;
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is MuseImportPreviewViewModel viewModel) await viewModel.LoadCategoriesAsync();
+    }
+
     private async void ImportApproved(object? sender, EventArgs eventArgs)
     {
         if (BindingContext is not MuseImportPreviewViewModel viewModel) return;
