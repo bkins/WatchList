@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Include="..\..\WatchLists\Services\MuseImport\*.cs" Link="MuseImport\%(Filename)%(Extension)" />
     <Compile Include="..\..\WatchLists\MVVM\Models\WatchItem.cs" Link="WatchItem.cs" />
+    <Compile Include="..\..\WatchLists\Services\Models\SyncBundle.cs" Link="SyncBundle.cs" />
     <Compile Include="..\..\WatchLists\ExtensionMethods\ObservableCollectionExtensions.cs" Link="ObservableCollectionExtensions.cs" />
     <ProjectReference Include="..\..\..\CP.Shared.Primitives\CP.Shared.Primitives\CP.Shared.Primitives.csproj" />
   </ItemGroup>

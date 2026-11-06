@@ -5,6 +5,7 @@ namespace WatchLists.Services.Models;
 
 public class SyncBundle
 {
+    public int? SchemaVersion { get; set; }
     public DateTime        ExportedAtUtc     { get; set; } = DateTime.UtcNow;
     public string          DeviceId          { get; set; } = string.Empty;
     public List<WatchItem>           Items           { get; set; } = new();

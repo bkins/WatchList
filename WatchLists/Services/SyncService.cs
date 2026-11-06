@@ -5,6 +5,7 @@ using WatchLists.MVVM.Models;
 using WatchLists.Services.Enums;
 using WatchLists.Services.Interfaces;
 using WatchLists.Services.Models;
+using WatchLists.Services.MuseImport;
 
 namespace WatchLists.Services;
 
@@ -63,15 +64,20 @@ public class SyncService
         var endpointUrl = await _remoteSyncProvider.CreateNewCloudSyncBlobAsync();
         if (endpointUrl.HasValue())
         {
+            var previousUrl = _settingsService.GetApiEndpointUrl();
             await _settingsService.SaveApiEndpointUrlAsync(endpointUrl);
-            await ExportSyncBundleInternalAsync();
+            if (!await ExportSyncBundleInternalAsync(allowNewEndpoint: true))
+            {
+                await _settingsService.SaveApiEndpointUrlAsync(previousUrl);
+                return null;
+            }
         }
         return endpointUrl;
     }
 
     public Task<bool> ExportSyncBundleAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(ExportSyncBundleInternalAsync);
+        return _watchListService.SyncAndImportGate.RunAsync(() => ExportSyncBundleInternalAsync());
     }
 
     public Task<bool> ExportAutomaticAsync()
@@ -83,7 +89,7 @@ public class SyncService
         });
     }
 
-    private async Task<bool> ExportSyncBundleInternalAsync()
+    private async Task<bool> ExportSyncBundleInternalAsync(bool allowNewEndpoint = false)
     {
         try
         {
@@ -91,9 +97,10 @@ public class SyncService
 
             var bundle = new SyncBundle
                          {
-                             ExportedAtUtc     = DateTime.UtcNow
+                             SchemaVersion     = SyncSchemaGuard.CurrentVersion
+                           , ExportedAtUtc     = DateTime.UtcNow
                            , DeviceId          = DeviceInfo.Name
-                           , Items             = _watchListService.GetAllWatchItemsIncludingDeleted()
+                           , Items             = _watchListService.GetItemsForImportReview()
                            , Recommendations   = _watchListService.GetRecommendationsForSync()
                            , Categories        = await _settingsService.GetOptionsAsync(SettingType.Categories)
                            , StreamingServices = await _settingsService.GetOptionsAsync(SettingType.StreamingServices)
@@ -118,17 +125,22 @@ public class SyncService
                     return false;
                 }
 
-                var success = await _remoteSyncProvider.UploadBundleAsync(url, syncCode, bundle);
-                if (! success && (url.ContainsIgnoreCase("firebaseio.com") || ! url.StartsWithIgnoreCase("https://jsonblob.com")))
-                {
-                    await FileLogger.WriteLogAsync($"ExportSyncBundleAsync: Cloud endpoint '{url}' failed. Auto-provisioning live cloud endpoint...");
-                    var newUrl = await _remoteSyncProvider.CreateNewCloudSyncBlobAsync();
-                    if (newUrl.HasValue())
-                    {
-                        await _settingsService.SaveApiEndpointUrlAsync(newUrl);
-                        success = await _remoteSyncProvider.UploadBundleAsync(newUrl, syncCode, bundle);
-                    }
-                }
+                var coordinator = new CloudSyncUploadCoordinator();
+                var success = await coordinator.UploadAsync(bundle
+                    , () => _remoteSyncProvider.FetchLatestBundleAsync(url, syncCode)
+                    , async remote => { await MergeBundleIntoLocalDbAsync(remote); }
+                    , async () =>
+                      {
+                          bundle.Items             = _watchListService.GetItemsForImportReview();
+                          bundle.Recommendations   = _watchListService.GetRecommendationsForSync();
+                          bundle.Categories        = await _settingsService.GetOptionsAsync(SettingType.Categories);
+                          bundle.StreamingServices = await _settingsService.GetOptionsAsync(SettingType.StreamingServices);
+                          bundle.Types             = await _settingsService.GetOptionsAsync(SettingType.Types);
+                          bundle.WatchedCategory   = await _settingsService.GetWatchedCategoryAsync();
+                          return bundle;
+                      }
+                    , current => _remoteSyncProvider.UploadBundleAsync(url, syncCode, current)
+                    , allowNewEndpoint);
 
                 if (success)
                 {
@@ -192,26 +204,16 @@ public class SyncService
             var bundle = await _remoteSyncProvider.FetchLatestBundleAsync(url, syncCode);
             if (bundle == null)
             {
-                await FileLogger.WriteLogAsync($"Cloud API Sync: No existing remote payload found for '{syncCode}'. Uploading local dataset to initialize cloud.");
-                var exported = await ExportSyncBundleInternalAsync();
-                if (exported)
-                {
-                    var itemCount = _watchListService.GetWatchItems().Count;
-                    var initMsg   = $"Cloud payload initialized! Uploaded {itemCount} items to cloud.";
-                    await FileLogger.WriteLogAsync(initMsg);
-                    return initMsg;
-                }
+                return "Cloud sync could not read the remote payload. No data was uploaded; check the connection or create new sync storage explicitly.";
+            }
 
-                var newUrl = await CreateNewCloudSyncEndpointInternalAsync();
-                if (newUrl.HasValue())
-                {
-                    var itemCount = _watchListService.GetWatchItems().Count;
-                    var autoMsg   = $"Cloud storage created! Uploaded {itemCount} items to live cloud URL: {newUrl}";
-                    await FileLogger.WriteLogAsync(autoMsg);
-                    return autoMsg;
-                }
-
-                return $"Cloud API Sync error: No remote payload found for '{syncCode}' and failed to initialize cloud.";
+            try
+            {
+                SyncSchemaGuard.Validate(bundle.SchemaVersion);
+            }
+            catch (InvalidDataException exception)
+            {
+                return exception.Message;
             }
 
             var (insertedCount, updatedCount, recommendationCount) = await MergeBundleIntoLocalDbAsync(bundle);
@@ -242,6 +244,7 @@ public class SyncService
         var totalUpdatedCount   = 0;
         var totalRecommendationCount = 0;
         var processedFilesCount = 0;
+        var failedFilesCount = 0;
 
         foreach (var filePath in files)
         {
@@ -251,6 +254,8 @@ public class SyncService
                 var bundle = JsonSerializer.Deserialize<SyncBundle>(json);
 
                 if (bundle == null) continue;
+
+                SyncSchemaGuard.Validate(bundle.SchemaVersion);
 
                 var (inserted, updated, recommendations) = await MergeBundleIntoLocalDbAsync(bundle);
                 totalInsertedCount     += inserted;
@@ -273,6 +278,7 @@ public class SyncService
             }
             catch (Exception ex)
             {
+                failedFilesCount++;
                 await FileLogger.WriteLogAsync($"Error importing {filePath}: {ex.Message}");
             }
         }
@@ -283,7 +289,7 @@ public class SyncService
         }
 
         var activeItemsCount = _watchListService.GetWatchItems().Count;
-        var resultMsg        = $"Sync complete across {processedFilesCount} files: {totalInsertedCount} inserted, {totalUpdatedCount} updated. Active items: {activeItemsCount}.";
+        var resultMsg        = $"Sync complete across {processedFilesCount} files: {totalInsertedCount} inserted, {totalUpdatedCount} updated. Active items: {activeItemsCount}. Files requiring attention: {failedFilesCount}.";
         await FileLogger.WriteLogAsync(resultMsg);
         return resultMsg;
     }
