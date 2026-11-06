@@ -6,7 +6,8 @@ public sealed class MuseSuggestionPlanner
 {
     public async Task<IReadOnlyList<MuseSuggestionResult>> SuggestAsync(IReadOnlyList<MuseRecommendation> recommendations
                                                                       , Func<string, CancellationToken, Task<IReadOnlyList<MuseProviderCandidate>>> search
-                                                                      , CancellationToken cancellationToken = default)
+                                                                      , CancellationToken cancellationToken = default
+                                                                      , Action<MuseSuggestionResult>? onCompleted = null)
     {
         ArgumentNullException.ThrowIfNull(recommendations);
         ArgumentNullException.ThrowIfNull(search);
@@ -28,12 +29,13 @@ public sealed class MuseSuggestionPlanner
 
         async Task<MuseSuggestionResult> SuggestRow(MuseRecommendation row)
         {
+            MuseSuggestionResult result;
             try
             {
                 var pending = cache.GetOrAdd(row.Title.Trim(), title => new Lazy<Task<IReadOnlyList<MuseProviderCandidate>>>(() => SearchOnce(title)));
                 var candidates = await pending.Value;
                 var ranked = candidates.OrderBy(candidate => Rank(row, candidate)).ToList();
-                return new MuseSuggestionResult(row, ranked, null);
+                result = new MuseSuggestionResult(row, ranked, null);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -41,8 +43,10 @@ public sealed class MuseSuggestionPlanner
             }
             catch (Exception)
             {
-                return new MuseSuggestionResult(row, [], "Search failed; retry or review manually.");
+                result = new MuseSuggestionResult(row, [], "Search failed; retry or review manually.");
             }
+            onCompleted?.Invoke(result);
+            return result;
         }
 
         return await Task.WhenAll(recommendations.Select(SuggestRow));

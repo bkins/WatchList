@@ -40,4 +40,25 @@ public sealed class MuseSuggestionPlannerTests
         Assert.NotNull(Assert.Single(result).Error);
         Assert.Empty(result[0].Candidates);
     }
+
+    [Fact]
+    public async Task SuggestAsync_OneSearchFinishes_ReportsBeforeOtherSearchCompletes()
+    {
+        var first = new MuseRecommendation("First", null, "note", "Films", ["https://example.com/one"], 1);
+        var second = new MuseRecommendation("Second", null, "note", "Films", ["https://example.com/two"], 2);
+        var delayed = new TaskCompletionSource<IReadOnlyList<MuseProviderCandidate>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reported = new TaskCompletionSource<MuseSuggestionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<IReadOnlyList<MuseProviderCandidate>> Search(string title, CancellationToken token)
+        {
+            return title == "First" ? Task.FromResult<IReadOnlyList<MuseProviderCandidate>>([]) : delayed.Task;
+        }
+
+        var all = new MuseSuggestionPlanner().SuggestAsync([first, second], Search, onCompleted: result => reported.TrySetResult(result));
+        var firstResult = await reported.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal("First", firstResult.Recommendation.Title);
+        Assert.False(all.IsCompleted);
+        delayed.SetResult([]);
+        Assert.Equal(2, (await all).Count);
+    }
 }
