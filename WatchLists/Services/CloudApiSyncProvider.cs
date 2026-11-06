@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+using System.Net;
+using WatchLists.Services.MuseImport;
 using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
@@ -14,35 +15,6 @@ public class CloudApiSyncProvider : IRemoteSyncProvider
     public CloudApiSyncProvider (HttpClient? httpClient = null)
     {
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-    }
-
-    public async Task<string?> CreateNewCloudSyncBlobAsync()
-    {
-        try
-        {
-            var content  = new StringContent("{\"items\":[]}", System.Text.Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("https://jsonblob.com/api/jsonBlob", content);
-
-            if (response.IsSuccessStatusCode && response.Headers.Location != null)
-            {
-                var location = response.Headers.Location.ToString();
-                if (! location.StartsWithIgnoreCase("http"))
-                {
-                    location = "https://jsonblob.com" + location;
-                }
-
-                await FileLogger.WriteLogAsync($"CreateNewCloudSyncBlobAsync: Created cloud endpoint {location}");
-                return location;
-            }
-
-            await FileLogger.WriteLogAsync($"CreateNewCloudSyncBlobAsync HTTP {(int)response.StatusCode}: {response.ReasonPhrase}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            await FileLogger.WriteLogAsync($"CreateNewCloudSyncBlobAsync error: {ex.Message}");
-            return null;
-        }
     }
 
     public async Task<SyncBundle?> FetchLatestBundleAsync (string endpointUrl, string syncCode)
@@ -80,39 +52,66 @@ public class CloudApiSyncProvider : IRemoteSyncProvider
         }
     }
 
-    public async Task<bool> UploadBundleAsync (string endpointUrl, string syncCode, SyncBundle bundle)
+    public async Task<CloudSyncReadResult?> FetchConditionalAsync (string endpointUrl, string syncCode)
     {
-        var requestUrl = BuildRequestUrl(endpointUrl, syncCode);
-        if (requestUrl.IsEmptyNullOrWhiteSpace())
-        {
-            await FileLogger.WriteLogAsync("UploadBundleAsync: Unable to construct valid endpoint URL.");
-            return false;
-        }
+        var requestUrl = BuildFirebaseRequestUrl(endpointUrl, syncCode);
+        if (requestUrl == null) return null;
 
         try
         {
-            var json    = JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = false });
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.TryAddWithoutValidation("X-Firebase-ETag", "true");
+            using var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode || !response.Headers.TryGetValues("ETag", out var values)) return null;
 
-            var response = await _httpClient.PutAsync(requestUrl, content);
-
-            if (! response.IsSuccessStatusCode)
-            {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                await FileLogger.WriteLogAsync($"UploadBundleAsync HTTP {(int)response.StatusCode}: {response.ReasonPhrase} - {errorBody}");
-                return false;
-            }
-
-            await FileLogger.WriteLogAsync($"UploadBundleAsync: Successfully uploaded {bundle.Items.Count} items to cloud ({requestUrl}).");
-            return true;
+            var etag = values.SingleOrDefault();
+            if (string.IsNullOrWhiteSpace(etag)) return null;
+            var json = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            var bundle = json.Trim() == "null" ? null : JsonSerializer.Deserialize<SyncBundle>(json);
+            return new CloudSyncReadResult(bundle, etag);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            await FileLogger.WriteLogAsync($"UploadBundleAsync exception: {ex.Message}");
-            return false;
+            await FileLogger.WriteLogAsync($"Conditional cloud read failed: {exception.GetType().Name}");
+            return null;
         }
     }
 
+    public async Task<CloudSyncWriteResult> UploadConditionalAsync (string endpointUrl
+                                                                  , string syncCode
+                                                                  , SyncBundle bundle
+                                                                  , string etag)
+    {
+        var requestUrl = BuildFirebaseRequestUrl(endpointUrl, syncCode);
+        if (requestUrl == null || string.IsNullOrWhiteSpace(etag)) return CloudSyncWriteResult.Failed;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Put, requestUrl);
+            request.Headers.TryAddWithoutValidation("if-match", etag);
+            request.Content = new StringContent(JsonSerializer.Serialize(bundle), System.Text.Encoding.UTF8, "application/json");
+            using var response = await _httpClient.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.PreconditionFailed) return CloudSyncWriteResult.Conflict;
+            return response.IsSuccessStatusCode ? CloudSyncWriteResult.Success : CloudSyncWriteResult.Failed;
+        }
+        catch (Exception exception)
+        {
+            await FileLogger.WriteLogAsync($"Conditional cloud upload failed: {exception.GetType().Name}");
+            return CloudSyncWriteResult.Failed;
+        }
+    }
+
+    private static string? BuildFirebaseRequestUrl (string endpointUrl, string syncCode)
+    {
+        if (!Uri.TryCreate(endpointUrl, UriKind.Absolute, out var endpoint) || endpoint.Scheme != Uri.UriSchemeHttps)
+            return null;
+        var host = endpoint.Host;
+        if (!host.EndsWith(".firebaseio.com", StringComparison.OrdinalIgnoreCase)
+            && !host.EndsWith(".firebasedatabase.app", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!string.IsNullOrEmpty(endpoint.Query) || !string.IsNullOrEmpty(endpoint.Fragment)) return null;
+        return BuildRequestUrl(endpointUrl, syncCode);
+    }
     public static string BuildRequestUrl (string endpointUrl, string syncCode)
     {
         var cleanUrl  = endpointUrl.Trim().TrimEnd('/');

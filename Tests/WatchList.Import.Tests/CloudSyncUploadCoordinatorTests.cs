@@ -9,48 +9,97 @@ public sealed class CloudSyncUploadCoordinatorTests
     [Fact]
     public async Task UploadAsync_UnreadableRemote_DoesNotUpload()
     {
-        var uploaded = false;
+        var uploads = 0;
         var coordinator = new CloudSyncUploadCoordinator();
-        var bundle = new SyncBundle { SchemaVersion = 2 };
 
-        var result = await coordinator.UploadAsync(bundle, () => Task.FromResult<SyncBundle?>(null)
-                                                 , remote => Task.CompletedTask, () => Task.FromResult(bundle)
-                                                 , current => { uploaded = true; return Task.FromResult(true); }, false);
+        var result = await coordinator.UploadAsync(() => Task.FromResult<CloudSyncReadResult?>(null)
+            , remote => Task.CompletedTask
+            , () => Task.FromResult(new SyncBundle())
+            , (bundle, etag) => { uploads++; return Task.FromResult(CloudSyncWriteResult.Success); }, false);
 
         Assert.False(result);
-        Assert.False(uploaded);
+        Assert.Equal(0, uploads);
     }
 
     [Fact]
     public async Task UploadAsync_LegacyRemote_RejectsBeforeUpload()
     {
-        var uploaded = false;
+        var uploads = 0;
         var coordinator = new CloudSyncUploadCoordinator();
-        var bundle = new SyncBundle { SchemaVersion = 2 };
-        var legacy = new SyncBundle();
 
-        await Assert.ThrowsAsync<InvalidDataException>(() => coordinator.UploadAsync(bundle, () => Task.FromResult<SyncBundle?>(legacy)
-            , remote => Task.CompletedTask, () => Task.FromResult(bundle)
-            , current => { uploaded = true; return Task.FromResult(true); }, false));
+        await Assert.ThrowsAsync<InvalidDataException>(() => coordinator.UploadAsync(
+            () => Task.FromResult<CloudSyncReadResult?>(new(new SyncBundle(), "revision"))
+            , remote => Task.CompletedTask
+            , () => Task.FromResult(new SyncBundle())
+            , (bundle, etag) => { uploads++; return Task.FromResult(CloudSyncWriteResult.Success); }, false));
 
-        Assert.False(uploaded);
+        Assert.Equal(0, uploads);
     }
 
     [Fact]
-    public async Task UploadAsync_CurrentRemote_MergesBeforeTakingUploadSnapshot()
+    public async Task UploadAsync_Conflict_MergesLatestBeforeRetry()
     {
+        var reads = 0;
+        var localCategories = new HashSet<string> { "local" };
         var coordinator = new CloudSyncUploadCoordinator();
-        var initial = new SyncBundle { SchemaVersion = 2 };
-        var remote = new SyncBundle { SchemaVersion = 2 };
-        var merged = false;
-        var uploadedMerged = false;
+        SyncBundle? uploaded = null;
+        var tags = new List<string>();
 
-        var result = await coordinator.UploadAsync(initial, () => Task.FromResult<SyncBundle?>(remote)
-            , value => { merged = true; return Task.CompletedTask; }
-            , () => Task.FromResult(new SyncBundle { SchemaVersion = merged ? 2 : 0 })
-            , value => { uploadedMerged = value.SchemaVersion == 2 && merged; return Task.FromResult(true); }, false);
+        var result = await coordinator.UploadAsync(
+            () => Task.FromResult<CloudSyncReadResult?>(new(new SyncBundle
+                { SchemaVersion = 2, Categories = [++reads == 1 ? "first" : "second"] }, $"revision-{reads}"))
+            , remote => { localCategories.UnionWith(remote.Categories); return Task.CompletedTask; }
+            , () => Task.FromResult(new SyncBundle { SchemaVersion = 2, Categories = localCategories.ToList() })
+            , (bundle, etag) => { uploaded = bundle; tags.Add(etag); return Task.FromResult(tags.Count == 1 ? CloudSyncWriteResult.Conflict : CloudSyncWriteResult.Success); }
+            , false);
 
         Assert.True(result);
-        Assert.True(uploadedMerged);
+        Assert.Equal(new[] { "revision-1", "revision-2" }, tags);
+        Assert.Contains("local", uploaded!.Categories);
+        Assert.Contains("first", uploaded.Categories);
+        Assert.Contains("second", uploaded.Categories);
+    }
+
+    [Fact]
+    public async Task UploadAsync_RepeatedConflicts_StopsAfterThreeAttempts()
+    {
+        var uploads = 0;
+        var coordinator = new CloudSyncUploadCoordinator();
+
+        var result = await coordinator.UploadAsync(() => Task.FromResult<CloudSyncReadResult?>(new(new SyncBundle { SchemaVersion = 2 }, "revision"))
+            , remote => Task.CompletedTask
+            , () => Task.FromResult(new SyncBundle { SchemaVersion = 2 })
+            , (bundle, etag) => { uploads++; return Task.FromResult(CloudSyncWriteResult.Conflict); }, false);
+
+        Assert.False(result);
+        Assert.Equal(3, uploads);
+    }
+
+    [Fact]
+    public async Task UploadAsync_NewDestination_BlocksExistingOrMissingRevision()
+    {
+        var uploads = 0;
+        var coordinator = new CloudSyncUploadCoordinator();
+        var result = await coordinator.UploadAsync(() => Task.FromResult<CloudSyncReadResult?>(new(new SyncBundle { SchemaVersion = 2 }, "revision"))
+            , remote => Task.CompletedTask
+            , () => Task.FromResult(new SyncBundle())
+            , (bundle, etag) => { uploads++; return Task.FromResult(CloudSyncWriteResult.Success); }, true);
+
+        Assert.False(result);
+        Assert.Equal(0, uploads);
+    }
+    [Fact]
+    public async Task UploadAsync_EmptyNewDestination_UsesObservedRevision()
+    {
+        string? usedRevision = null;
+        var coordinator = new CloudSyncUploadCoordinator();
+
+        var result = await coordinator.UploadAsync(() => Task.FromResult<CloudSyncReadResult?>(new(null, "null_etag"))
+            , remote => throw new InvalidOperationException("Empty destinations must not be merged.")
+            , () => Task.FromResult(new SyncBundle { SchemaVersion = 2 })
+            , (bundle, etag) => { usedRevision = etag; return Task.FromResult(CloudSyncWriteResult.Success); }, true);
+
+        Assert.True(result);
+        Assert.Equal("null_etag", usedRevision);
     }
 }

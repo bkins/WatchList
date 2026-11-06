@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Services.Enums;
@@ -312,6 +312,13 @@ public class SettingsService
         await SaveSyncSettingsConfigAsync(config);
     }
 
+    public async Task SaveCloudSyncDestinationAsync (string endpointUrl, string syncCode)
+    {
+        var config            = LoadSyncSettingsConfig();
+        config.ApiEndpointUrl = endpointUrl;
+        config.SyncCode       = syncCode;
+        await SaveSyncSettingsConfigAsync(config);
+    }
     public string GetSyncCode()
     {
         return LoadSyncSettingsConfig().SyncCode;

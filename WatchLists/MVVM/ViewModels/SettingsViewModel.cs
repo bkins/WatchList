@@ -98,14 +98,16 @@ public partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsFileSystemMode));
     }
 
+    private bool _updatingCloudDestination;
+
     partial void OnApiEndpointUrlChanged (string value)
     {
-        _ = _settingsService.SaveApiEndpointUrlAsync(value);
+        if (!_updatingCloudDestination) _ = _settingsService.SaveApiEndpointUrlAsync(value);
     }
 
     partial void OnSyncCodeChanged (string value)
     {
-        _ = _settingsService.SaveSyncCodeAsync(value);
+        if (!_updatingCloudDestination) _ = _settingsService.SaveSyncCodeAsync(value);
     }
 
     partial void OnSyncFolderPathChanged (string value)
@@ -127,12 +129,15 @@ public partial class SettingsViewModel : ObservableObject
 
         if (newUrl.HasValue())
         {
-            ApiEndpointUrl    = newUrl;
-            SyncStatusMessage = $"Created cloud storage! Copy this Endpoint URL to your phone to sync: {newUrl}";
+            _updatingCloudDestination = true;
+            ApiEndpointUrl            = newUrl;
+            SyncCode                  = _settingsService.GetSyncCode();
+            _updatingCloudDestination = false;
+            SyncStatusMessage = "Created Firebase sync storage. Copy the endpoint URL and sync code to each upgraded device.";
         }
         else
         {
-            SyncStatusMessage = "Failed to create cloud storage. Please check internet connection.";
+            SyncStatusMessage = "Could not create Firebase storage. Check the connection, cloud mode and Firebase access rules; existing settings were retained.";
         }
     }
 
@@ -229,7 +234,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             if (importResult.Contains("Sync complete") || importResult.Contains("initialized") || importResult.Contains("created"))
             {
-                SyncStatusMessage = $"{importResult} (Cloud Upload Pending)";
+                SyncStatusMessage = $"{importResult} (Cloud upload failed or conditional writes are unavailable. Check Firebase settings and try again.)";
             }
             else
             {

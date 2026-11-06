@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
@@ -61,17 +61,12 @@ public class SyncService
 
     private async Task<string?> CreateNewCloudSyncEndpointInternalAsync()
     {
-        var endpointUrl = await _remoteSyncProvider.CreateNewCloudSyncBlobAsync();
-        if (endpointUrl.HasValue())
-        {
-            var previousUrl = _settingsService.GetApiEndpointUrl();
-            await _settingsService.SaveApiEndpointUrlAsync(endpointUrl);
-            if (!await ExportSyncBundleInternalAsync(allowNewEndpoint: true))
-            {
-                await _settingsService.SaveApiEndpointUrlAsync(previousUrl);
-                return null;
-            }
-        }
+        var endpointUrl = "https://watchlist-faa16-default-rtdb.firebaseio.com/";
+        var syncCode    = Guid.NewGuid().ToString("N");
+        if (!_settingsService.GetSyncMode().EqualsIgnoreCase("CloudApi")) return null;
+        if (!await ExportSyncBundleInternalAsync(true, endpointUrl, syncCode)) return null;
+
+        await _settingsService.SaveCloudSyncDestinationAsync(endpointUrl, syncCode);
         return endpointUrl;
     }
 
@@ -89,7 +84,7 @@ public class SyncService
         });
     }
 
-    private async Task<bool> ExportSyncBundleInternalAsync(bool allowNewEndpoint = false)
+    private async Task<bool> ExportSyncBundleInternalAsync(bool allowNewEndpoint = false, string? endpointOverride = null, string? codeOverride = null)
     {
         try
         {
@@ -110,14 +105,8 @@ public class SyncService
 
             if (mode.EqualsIgnoreCase("CloudApi"))
             {
-                var url      = _settingsService.GetApiEndpointUrl();
-                var syncCode = _settingsService.GetSyncCode();
-
-                if (url.IsEmptyNullOrWhiteSpace() && syncCode.HasValue())
-                {
-                    url = $"https://jsonblob.com/api/jsonBlob/{syncCode}";
-                    await _settingsService.SaveApiEndpointUrlAsync(url);
-                }
+                var url      = endpointOverride ?? _settingsService.GetApiEndpointUrl();
+                var syncCode = codeOverride ?? _settingsService.GetSyncCode();
 
                 if (url.IsEmptyNullOrWhiteSpace() || syncCode.IsEmptyNullOrWhiteSpace())
                 {
@@ -126,8 +115,7 @@ public class SyncService
                 }
 
                 var coordinator = new CloudSyncUploadCoordinator();
-                var success = await coordinator.UploadAsync(bundle
-                    , () => _remoteSyncProvider.FetchLatestBundleAsync(url, syncCode)
+                var success = await coordinator.UploadAsync(() => _remoteSyncProvider.FetchConditionalAsync(url, syncCode)
                     , async remote => { await MergeBundleIntoLocalDbAsync(remote); }
                     , async () =>
                       {
@@ -139,7 +127,7 @@ public class SyncService
                           bundle.WatchedCategory   = await _settingsService.GetWatchedCategoryAsync();
                           return bundle;
                       }
-                    , current => _remoteSyncProvider.UploadBundleAsync(url, syncCode, current)
+                    , (current, etag) => _remoteSyncProvider.UploadConditionalAsync(url, syncCode, current, etag)
                     , allowNewEndpoint);
 
                 if (success)
