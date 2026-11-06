@@ -32,6 +32,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private string _status = "Select a Muse Markdown file to review. No data is changed by preview.";
     private string _details = string.Empty;
     private string _approvalSummary = "No rows approved.";
+    private string _approvalFeedback = string.Empty;
     private bool _isBusy;
     private string? _selectedCategory;
 
@@ -80,6 +81,17 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         set => SetProperty(ref _approvalSummary, value);
     }
 
+    public string ApprovalFeedback
+    {
+        get => _approvalFeedback;
+        set => SetProperty(ref _approvalFeedback, value);
+    }
+
+    private void ShowApprovalFeedback(string message)
+    {
+        ApprovalFeedback = message;
+        Status = message;
+    }
     public string? SelectedCategory
     {
         get => _selectedCategory;
@@ -120,6 +132,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
     {
+        ApprovalFeedback = string.Empty;
         _selectedRowCanBeReviewed = false;
         ExistingMatches.Clear();
         ProviderMatches.Clear();
@@ -324,59 +337,77 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private void ApproveExisting()
     {
-        if (_review == null || SelectedRecommendation == null || SelectedExisting == null || !_selectedRowCanBeReviewed) return;
+        var message = MuseApprovalReadiness.GetMessage(_review != null, SelectedRecommendation != null
+                                                    , _selectedRowCanBeReviewed, SelectedExisting != null, true);
+        if (message != null)
+        {
+            ShowApprovalFeedback(message);
+            return;
+        }
+        var review = _review!;
+        var selectedRecommendation = SelectedRecommendation!;
+        var selectedExisting = SelectedExisting!;
         try
         {
-            _review.ApproveExisting(Recommendations.IndexOf(SelectedRecommendation), SelectedExisting);
-            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → existing {SelectedExisting.ImportReviewDisplay}";
+            review.ApproveExisting(Recommendations.IndexOf(selectedRecommendation), selectedExisting);
+            _approvalLabels[Recommendations.IndexOf(selectedRecommendation)] = $"{selectedRecommendation.Title} → existing {selectedExisting.ImportReviewDisplay}";
             UpdateApprovalSummary();
-            Status = $"Approved {_review.ApprovedCount} rows for later import. No data has been changed.";
+            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Scroll down and tap Import approved rows when ready.");
         }
         catch (Exception exception)
         {
-            Status = exception.Message;
+            ShowApprovalFeedback(exception.Message);
         }
     }
 
     [RelayCommand]
     private void ApproveProvider()
     {
-        if (_review == null || SelectedRecommendation == null || SelectedProvider == null || !_selectedRowCanBeReviewed) return;
+        var message = MuseApprovalReadiness.GetMessage(_review != null, SelectedRecommendation != null
+                                                    , _selectedRowCanBeReviewed, SelectedProvider != null, false);
+        if (message != null)
+        {
+            ShowApprovalFeedback(message);
+            return;
+        }
+        var review = _review!;
+        var selectedRecommendation = SelectedRecommendation!;
+        var selectedProvider = SelectedProvider!;
         try
         {
             if (string.IsNullOrWhiteSpace(SelectedCategory) || !ImportCategories.Contains(SelectedCategory))
             {
-                Status = "Choose a category for new recommendations before approving a provider result.";
+                ShowApprovalFeedback("Choose a category for the new item before approving it.");
                 return;
             }
             var existing = _watchListService.GetItemsForImportReview()
-                                            .Where(item => item.MovieId == SelectedProvider.Id &&
-                                                           string.Equals(item.ApiSource, SelectedProvider.Provider, StringComparison.OrdinalIgnoreCase))
+                                            .Where(item => item.MovieId == selectedProvider.Id &&
+                                                           string.Equals(item.ApiSource, selectedProvider.Provider, StringComparison.OrdinalIgnoreCase))
                                             .ToList();
             if (existing.Count > 0)
             {
-                Status = "This provider identity already exists. Review the existing item; deleted items cannot be imported.";
+                ShowApprovalFeedback("This title is already in your WatchList. Choose it under Already in your WatchList and approve it there. Deleted items cannot be imported.");
                 foreach (var match in existing.Where(item => !ExistingMatches.Any(candidate => candidate.Id == item.Id))) ExistingMatches.Add(match);
                 return;
             }
             var item = new WatchItem
                        {
-                           Title     = SelectedProvider.Title
-                         , MovieId   = SelectedProvider.Id
-                         , ApiSource = SelectedProvider.Provider
-                         , Type      = SelectedProvider.MediaType
+                           Title     = selectedProvider.Title
+                         , MovieId   = selectedProvider.Id
+                         , ApiSource = selectedProvider.Provider
+                         , Type      = selectedProvider.MediaType
                          , Category  = SelectedCategory
-                         , Overview  = SelectedProvider.Overview ?? string.Empty
-                         , PosterUrl = SelectedProvider.PosterUrl
+                         , Overview  = selectedProvider.Overview ?? string.Empty
+                         , PosterUrl = selectedProvider.PosterUrl
                        };
-            _review.ApproveNew(Recommendations.IndexOf(SelectedRecommendation), item);
-            _approvalLabels[Recommendations.IndexOf(SelectedRecommendation)] = $"{SelectedRecommendation.Title} → {SelectedProvider.Display} · {SelectedCategory}";
+            review.ApproveNew(Recommendations.IndexOf(selectedRecommendation), item);
+            _approvalLabels[Recommendations.IndexOf(selectedRecommendation)] = $"{selectedRecommendation.Title} → {selectedProvider.Display} · {SelectedCategory}";
             UpdateApprovalSummary();
-            Status = $"Approved {_review.ApprovedCount} rows for later import. No data has been changed.";
+            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Scroll down and tap Import approved rows when ready.");
         }
         catch (Exception exception)
         {
-            Status = exception.Message;
+            ShowApprovalFeedback(exception.Message);
         }
     }
 
@@ -390,7 +421,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             _review.ClearApproval(index);
             _approvalLabels.Remove(index);
             UpdateApprovalSummary();
-            Status = $"Approved {_review.ApprovedCount} rows for later import. No data has been changed.";
+            ShowApprovalFeedback($"Approval cleared. {_review.ApprovedCount} rows remain approved.");
         }
         catch (Exception exception)
         {
@@ -407,7 +438,16 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     public MuseImportBatch? PrepareImport()
     {
-        if (_review == null || IsBusy) return null;
+        if (_review == null)
+        {
+            Status = "Choose a Muse file and approve at least one row first.";
+            return null;
+        }
+        if (IsBusy)
+        {
+            Status = "Please wait for the current operation to finish.";
+            return null;
+        }
         try
         {
             return _review.CreateBatch();

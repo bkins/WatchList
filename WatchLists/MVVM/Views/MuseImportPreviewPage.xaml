@@ -24,19 +24,31 @@
         </CollectionView>
         <ScrollView Grid.Row="3">
             <VerticalStackLayout Spacing="6">
+                <Label Text="1. Select a recommendation above. 2. Choose a matching suggestion below. 3. Approve it, then import your approved rows." FontAttributes="Bold" />
                 <Label Text="{Binding Details}" />
-                <Button Text="Resume pending searches" Command="{Binding StartSuggestionsCommand}" />
-                <Button Text="Stop pending searches" Command="{Binding StopSuggestionsCommand}" />
-                <Button Text="End review" Clicked="EndReview" />
-                <Picker Title="Possible existing item" ItemsSource="{Binding ExistingMatches}"
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                    <Button Grid.Column="0" Text="Stop searches" Command="{Binding StopSuggestionsCommand}" />
+                    <Button Grid.Column="1" Text="Resume searches" Command="{Binding StartSuggestionsCommand}" />
+                </Grid>
+                <Label Text="Add a new item" FontAttributes="Bold" />
+                <Label Text="Choose the correct title, year and type from the suggested matches." />
+                <Picker Title="Choose a suggested match" ItemsSource="{Binding ProviderMatches}"
+                        AutomationId="MuseProviderPicker"
+                        ItemDisplayBinding="{Binding Display, x:DataType=import:MuseProviderCandidate}" SelectedItem="{Binding SelectedProvider}" />
+                <Picker Title="Choose a category for the new item" ItemsSource="{Binding ImportCategories}" SelectedItem="{Binding SelectedCategory}" />
+                <Button Text="Approve new item" Command="{Binding ApproveProviderCommand}" AutomationId="MuseApproveNewButton" />
+                <Label Text="{Binding ApprovalFeedback}" AutomationId="MuseNewApprovalFeedback" />
+                <Label Text="Already in your WatchList?" FontAttributes="Bold" />
+                <Label Text="Choose the saved item instead of adding a duplicate." />
+                <Picker Title="Choose an existing item" ItemsSource="{Binding ExistingMatches}"
+                        AutomationId="MuseExistingPicker"
                         ItemDisplayBinding="{Binding ImportReviewDisplay, x:DataType=models:WatchItem}" SelectedItem="{Binding SelectedExisting}" />
-                <Button Text="Approve existing item" Command="{Binding ApproveExistingCommand}" />
+                <Button Text="Approve existing item" Command="{Binding ApproveExistingCommand}" AutomationId="MuseApproveExistingButton" />
+                <Label Text="{Binding ApprovalFeedback}" AutomationId="MuseExistingApprovalFeedback" />
+                <Label Text="Need a different match?" FontAttributes="Bold" />
                 <Button Text="Search TMDB movies" Command="{Binding SearchProviderCommand}" />
                 <Button Text="Search TVMaze shows" Command="{Binding SearchShowsCommand}" />
-                <Picker Title="Provider result" ItemsSource="{Binding ProviderMatches}"
-                        ItemDisplayBinding="{Binding Display, x:DataType=import:MuseProviderCandidate}" SelectedItem="{Binding SelectedProvider}" />
-                <Picker Title="Category for new items" ItemsSource="{Binding ImportCategories}" SelectedItem="{Binding SelectedCategory}" />
-                <Button Text="Approve provider result" Command="{Binding ApproveProviderCommand}" />
+                <Button Text="End review" Clicked="EndReview" />
                 <Button Text="Clear approval for selected row" Command="{Binding ClearApprovalCommand}" />
                 <Label Text="Approved rows:" FontAttributes="Bold" />
                 <Label Text="{Binding ApprovalSummary}" />

@@ -20,7 +20,11 @@ public partial class MuseImportPreviewPage : ContentPage
     {
         if (BindingContext is not MuseImportPreviewViewModel viewModel) return;
         var batch = viewModel.PrepareImport();
-        if (batch == null) return;
+        if (batch == null)
+        {
+            await DisplayAlert("Cannot import yet", viewModel.Status, "OK");
+            return;
+        }
 
         var confirmed = await DisplayAlert("Import reviewed recommendations?"
                                          , $"Add {batch.NewItems.Count} new items and process {batch.Recommendations.Count} source links. " +
