@@ -19,6 +19,9 @@
     <Compile Include="..\..\WatchLists\MVVM\Models\WatchItem.cs" Link="WatchItem.cs" />
     <Compile Include="..\..\WatchLists\Services\Models\SyncBundle.cs" Link="SyncBundle.cs" />
     <Compile Include="..\..\WatchLists\Services\CloudApiSyncProvider.cs" Link="CloudApiSyncProvider.cs" />
+    <Compile Include="..\..\WatchLists\Services\SettingsService.cs" Link="SettingsService.cs" />
+    <Compile Include="..\..\WatchLists\Services\Enums\SettingType.cs" Link="SettingType.cs" />
+    <Compile Include="..\..\WatchLists\Utilities\Avails.cs" Link="Avails.cs" />
     <Compile Include="..\..\WatchLists\Services\Interfaces\IRemoteSyncProvider.cs" Link="IRemoteSyncProvider.cs" />
     <Compile Include="..\..\WatchLists\ExtensionMethods\ObservableCollectionExtensions.cs" Link="ObservableCollectionExtensions.cs" />
     <ProjectReference Include="..\..\..\CP.Shared.Primitives\CP.Shared.Primitives\CP.Shared.Primitives.csproj" />

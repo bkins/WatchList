@@ -12,6 +12,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _settingsService;
     private readonly SyncService?    _syncService;
+    private bool _loadingSyncSettings;
 
     [ObservableProperty] private string _selectedStreamingService = string.Empty;
     [ObservableProperty] private string _selectedCategory         = string.Empty;
@@ -84,16 +85,22 @@ public partial class SettingsViewModel : ObservableObject
 
         SelectedWatchedCategory = await _settingsService.GetWatchedCategoryAsync();
 
+        _loadingSyncSettings = true;
         SyncMode        = _settingsService.GetSyncMode();
         ApiEndpointUrl  = _settingsService.GetApiEndpointUrl();
         SyncCode        = _settingsService.GetSyncCode();
         SyncFolderPath  = _settingsService.GetSyncFolderPath();
         AutoSyncEnabled = _settingsService.GetAutoSyncEnabled();
+        _loadingSyncSettings = false;
     }
 
+    partial void OnAutoSyncEnabledChanged (bool value)
+    {
+        if (!_loadingSyncSettings) _ = _settingsService.SaveAutoSyncEnabledAsync(value);
+    }
     partial void OnSyncModeChanged (string value)
     {
-        _ = _settingsService.SaveSyncModeAsync(value);
+        if (!_loadingSyncSettings) _ = _settingsService.SaveSyncModeAsync(value);
         OnPropertyChanged(nameof(IsCloudApiMode));
         OnPropertyChanged(nameof(IsFileSystemMode));
     }
@@ -102,17 +109,17 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnApiEndpointUrlChanged (string value)
     {
-        if (!_updatingCloudDestination) _ = _settingsService.SaveApiEndpointUrlAsync(value);
+        if (!_loadingSyncSettings && !_updatingCloudDestination) _ = _settingsService.SaveApiEndpointUrlAsync(value);
     }
 
     partial void OnSyncCodeChanged (string value)
     {
-        if (!_updatingCloudDestination) _ = _settingsService.SaveSyncCodeAsync(value);
+        if (!_loadingSyncSettings && !_updatingCloudDestination) _ = _settingsService.SaveSyncCodeAsync(value);
     }
 
     partial void OnSyncFolderPathChanged (string value)
     {
-        _ = _settingsService.SaveSyncFolderPathAsync(value);
+        if (!_loadingSyncSettings) _ = _settingsService.SaveSyncFolderPathAsync(value);
     }
 
     [RelayCommand]
