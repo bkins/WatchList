@@ -7,7 +7,7 @@ public sealed class MuseSuggestionSession
     private readonly Dictionary<MuseRecommendation, MuseSuggestionResult> _completed = new();
     private bool _running;
 
-    public MuseImportReview Review { get; }
+    public MuseImportReview Review { get; private set; }
 
     public MuseSuggestionSession(IReadOnlyList<MuseRecommendation> rows)
     {
@@ -21,6 +21,11 @@ public sealed class MuseSuggestionSession
         {
             lock (_sync) return new Dictionary<MuseRecommendation, MuseSuggestionResult>(_completed);
         }
+    }
+
+    public void ResetApprovals()
+    {
+        Review = new MuseImportReview(_rows);
     }
 
     public async Task SearchPendingAsync(Func<string, CancellationToken, Task<IReadOnlyList<MuseProviderCandidate>>> search

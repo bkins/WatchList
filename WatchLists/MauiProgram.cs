@@ -71,7 +71,7 @@ public static class MauiProgram
         builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<SearchViewModel>();
         builder.Services.AddTransient<MuseImportPreviewPage>();
-        builder.Services.AddTransient<MuseImportPreviewViewModel>();
+        builder.Services.AddSingleton<MuseImportPreviewViewModel>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<SettingsViewModel>();
 

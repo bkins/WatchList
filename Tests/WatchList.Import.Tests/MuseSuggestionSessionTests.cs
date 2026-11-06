@@ -36,4 +36,18 @@ public sealed class MuseSuggestionSessionTests
         Assert.Equal(2, session.Completed.Count);
         Assert.Equal(1, session.Review.ApprovedCount);
     }
+
+    [Fact]
+    public async Task ResetApprovals_AfterSearch_PreservesCompletedSuggestions()
+    {
+        var row = new MuseRecommendation("First", null, "note", "Films", ["https://example.com/one"], 1);
+        var session = new MuseSuggestionSession([row]);
+        session.Review.ApproveExisting(0, new WatchItem { Title = "First" });
+        await session.SearchPendingAsync((title, token) => Task.FromResult<IReadOnlyList<MuseProviderCandidate>>([]), result => { });
+
+        session.ResetApprovals();
+
+        Assert.Equal(0, session.Review.ApprovedCount);
+        Assert.Single(session.Completed);
+    }
 }

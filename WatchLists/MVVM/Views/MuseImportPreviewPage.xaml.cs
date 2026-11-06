@@ -30,4 +30,11 @@ public partial class MuseImportPreviewPage : ContentPage
                                          , "Cancel");
         if (confirmed) await viewModel.ImportConfirmedAsync(batch);
     }
+
+    private async void EndReview(object? sender, EventArgs eventArgs)
+    {
+        if (BindingContext is not MuseImportPreviewViewModel viewModel) return;
+        if (await DisplayAlert("End this review?", "Discard staged approvals and suggestions for this review?", "End review", "Keep reviewing"))
+            viewModel.AbandonReview();
+    }
 }

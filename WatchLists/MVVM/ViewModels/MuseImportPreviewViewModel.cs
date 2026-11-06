@@ -15,6 +15,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private readonly TvMazeImportSearch _tvMazeSearch;
     private readonly SettingsService _settingsService;
     private MuseImportReview? _review;
+    private MuseSuggestionSession? _suggestionSession;
+    private CancellationTokenSource? _searchCancellation;
     private bool _selectedRowCanBeReviewed;
     private readonly Dictionary<int, string> _approvalLabels = new();
 
@@ -128,6 +130,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             return;
         }
 
+        ShowSavedSuggestions(value);
+
         try
         {
             var items = _watchListService.GetItemsForImportReview();
@@ -156,6 +160,11 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenFileAsync()
     {
+        if (_suggestionSession != null)
+        {
+            Status = "End the current review before opening another file.";
+            return;
+        }
         try
         {
             var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Select Muse Markdown" });
@@ -165,17 +174,84 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             var result = new MuseMarkdownParser().Parse(await reader.ReadToEndAsync());
             Recommendations.Clear();
             foreach (var item in result.Recommendations) Recommendations.Add(item);
-            _review = new MuseImportReview(result.Recommendations);
+            _suggestionSession = new MuseSuggestionSession(result.Recommendations);
+            _review = _suggestionSession.Review;
             _approvalLabels.Clear();
             UpdateApprovalSummary();
             SelectedRecommendation = null;
             Status = $"{result.Recommendations.Count} rows loaded; {result.Warnings.Count} warnings. " +
                      (result.Warnings.Count > 0 ? string.Join(" ", result.Warnings) : "Select a row to review.");
+            _ = StartSuggestionsAsync();
         }
         catch (Exception exception)
         {
             Status = $"Could not open file: {exception.Message}";
         }
+    }
+
+    [RelayCommand]
+    private async Task StartSuggestionsAsync()
+    {
+        var session = _suggestionSession;
+        if (session == null || _searchCancellation != null) return;
+        var cancellation = new CancellationTokenSource();
+        _searchCancellation = cancellation;
+        try
+        {
+            await session.SearchPendingAsync(SearchProvidersAsync, result => MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (ReferenceEquals(session, _suggestionSession) && ReferenceEquals(result.Recommendation, SelectedRecommendation))
+                    ShowSavedSuggestions(result.Recommendation);
+            }), cancellation.Token);
+            if (ReferenceEquals(session, _suggestionSession)) Status = "Suggestion searches finished. Review and approve each match.";
+        }
+        catch (OperationCanceledException)
+        {
+            if (ReferenceEquals(session, _suggestionSession)) Status = "Searches stopped. Completed results and approvals remain; resume to retry pending rows.";
+        }
+        catch (Exception)
+        {
+            if (ReferenceEquals(session, _suggestionSession)) Status = "Suggestion searches failed. Completed results and approvals remain.";
+        }
+        finally
+        {
+            if (ReferenceEquals(_searchCancellation, cancellation)) _searchCancellation = null;
+            cancellation.Dispose();
+        }
+    }
+
+    private async Task<IReadOnlyList<MuseProviderCandidate>> SearchProvidersAsync(string title, CancellationToken cancellationToken)
+    {
+        var movies = _tmdbService.SearchImportMoviesAsync(title, cancellationToken);
+        var shows = _tvMazeSearch.SearchAsync(title, cancellationToken);
+        await Task.WhenAll(movies, shows);
+        return (await movies).Concat(await shows).ToList();
+    }
+
+    private void ShowSavedSuggestions(MuseRecommendation row)
+    {
+        if (_suggestionSession == null || !_suggestionSession.Completed.TryGetValue(row, out var result)) return;
+        ProviderMatches.Clear();
+        foreach (var candidate in result.Candidates) ProviderMatches.Add(candidate);
+        Status = result.Error ?? $"{result.Candidates.Count} suggestions. Verify title, date and type; approval is required.";
+    }
+
+    [RelayCommand]
+    private void StopSuggestions()
+    {
+        _searchCancellation?.Cancel();
+    }
+
+    public void AbandonReview()
+    {
+        _searchCancellation?.Cancel();
+        _suggestionSession = null;
+        _review = null;
+        Recommendations.Clear();
+        SelectedRecommendation = null;
+        _approvalLabels.Clear();
+        UpdateApprovalSummary();
+        Status = "Review ended. Select a file to start another review.";
     }
 
     [RelayCommand]
@@ -343,7 +419,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         try
         {
             var receipt = await _watchListService.ApplyMuseImportAsync(batch);
-            _review = new MuseImportReview(Recommendations.ToList());
+            _suggestionSession?.ResetApprovals();
+            _review = _suggestionSession?.Review;
             _approvalLabels.Clear();
             UpdateApprovalSummary();
             UpdateSelectedRecommendation(SelectedRecommendation);

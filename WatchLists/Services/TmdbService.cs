@@ -91,6 +91,20 @@ public class TmdbService : IMovieDataProvider
 
     #region Movies
 
+    public async Task<IReadOnlyList<WatchLists.Services.MuseImport.MuseProviderCandidate>> SearchImportMoviesAsync(string query
+                                                                                                                  , CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(ApiKey)) throw new InvalidOperationException("TMDB is not configured.");
+        var url = $"{BaseUrl}/search/movie?api_key={Uri.EscapeDataString(ApiKey)}&query={Uri.EscapeDataString(query)}";
+        var response = await _httpClient.GetFromJsonAsync<MovieSearchResponse>(url, cancellationToken);
+        if (response?.Results == null) throw new InvalidOperationException("TMDB returned an invalid response.");
+        return response.Results.Where(movie => movie.Id > 0 && !string.IsNullOrWhiteSpace(movie.Title))
+                       .Select(movie => new WatchLists.Services.MuseImport.MuseProviderCandidate(movie.Id, movie.Title, movie.ReleaseDate
+                                                                                               , movie.Overview ?? string.Empty, movie.PosterUrl
+                                                                                               , "TMDB", "Movie"))
+                       .ToList();
+    }
+
     public async Task<AggregatedResult<MovieSearchResponse>> SearchMoviesAsync(string query)
     {
         var result = new AggregatedResult<MovieSearchResponse>();
