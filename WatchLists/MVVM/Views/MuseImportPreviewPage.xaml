@@ -7,7 +7,7 @@
              x:Class="WatchLists.MVVM.Views.MuseImportPreviewPage"
              x:DataType="viewmodels:MuseImportPreviewViewModel"
              Title="Muse import preview">
-    <Grid Padding="12" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
+    <Grid Padding="12" RowDefinitions="Auto,Auto,2*,3*" RowSpacing="8">
         <Button Grid.Row="0" Text="Choose Muse file" Command="{Binding OpenFileCommand}" />
         <Label Grid.Row="1" Text="{Binding Status}" />
         <CollectionView Grid.Row="2" ItemsSource="{Binding Recommendations}"
@@ -22,7 +22,7 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <ScrollView Grid.Row="3" MaximumHeightRequest="300">
+        <ScrollView Grid.Row="3">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding Details}" />
                 <Button Text="Resume pending searches" Command="{Binding StartSuggestionsCommand}" />
