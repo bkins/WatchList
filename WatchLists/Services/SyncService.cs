@@ -56,7 +56,7 @@ public class SyncService
 
     public Task<string?> CreateNewCloudSyncEndpointAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(CreateNewCloudSyncEndpointInternalAsync);
+        return SyncSafetyGate.RunAsync(() => _watchListService.SyncAndImportGate.RunAsync(CreateNewCloudSyncEndpointInternalAsync), (string?)null);
     }
 
     private async Task<string?> CreateNewCloudSyncEndpointInternalAsync()
@@ -72,16 +72,16 @@ public class SyncService
 
     public Task<bool> ExportSyncBundleAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(() => ExportSyncBundleInternalAsync());
+        return SyncSafetyGate.RunAsync(() => _watchListService.SyncAndImportGate.RunAsync(() => ExportSyncBundleInternalAsync()), false);
     }
 
     public Task<bool> ExportAutomaticAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(async () =>
+        return SyncSafetyGate.RunAsync(() => _watchListService.SyncAndImportGate.RunAsync(async () =>
         {
             if (!_settingsService.GetAutoSyncEnabled()) return false;
             return await ExportSyncBundleInternalAsync();
-        });
+        }), false);
     }
 
     private async Task<bool> ExportSyncBundleInternalAsync(bool allowNewEndpoint = false, string? endpointOverride = null, string? codeOverride = null)
@@ -163,16 +163,16 @@ public class SyncService
 
     public Task<string> ImportAndMergeSyncBundleAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(ImportAndMergeSyncBundleInternalAsync);
+        return SyncSafetyGate.RunAsync(() => _watchListService.SyncAndImportGate.RunAsync(ImportAndMergeSyncBundleInternalAsync), SyncSafetyGate.PausedMessage);
     }
 
     public Task<string> ImportAutomaticAsync()
     {
-        return _watchListService.SyncAndImportGate.RunAsync(async () =>
+        return SyncSafetyGate.RunAsync(() => _watchListService.SyncAndImportGate.RunAsync(async () =>
         {
             if (!_settingsService.GetAutoSyncEnabled()) return "Automatic sync is off.";
             return await ImportAndMergeSyncBundleInternalAsync();
-        });
+        }), SyncSafetyGate.PausedMessage);
     }
 
     private async Task<string> ImportAndMergeSyncBundleInternalAsync()

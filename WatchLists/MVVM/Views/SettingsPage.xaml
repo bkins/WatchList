@@ -100,6 +100,7 @@
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
+                    <Label Text="Synchronization is paused while reliability work is completed. Turn off auto-sync to import recommendations." FontSize="12" />
                     <Label Text="Sync Mode" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
                     <Border Padding="4">
                         <Picker AutomationId="SyncModePicker"
@@ -126,7 +127,7 @@
                                        Placeholder="HTTPS REST Endpoint URL or tap Create..."
                                        FontSize="12" />
                             </Border>
-                            <Button AutomationId="CreateCloudEndpointButton"
+                            <Button IsEnabled="False" AutomationId="CreateCloudEndpointButton"
                                     Grid.Column="1"
                                     Text="➕ Create Storage"
                                     Command="{Binding CreateNewCloudEndpointCommand}"
@@ -160,14 +161,14 @@
                     <Grid ColumnDefinitions="*, Auto" Margin="0,4">
                         <StackLayout Grid.Column="0" VerticalOptions="Center">
                             <Label Text="Auto-Sync Data" FontSize="14" FontAttributes="Bold" />
-                            <Label Text="Automatically import on launch and export on changes" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                            <Label Text="Preference retained; synchronization is currently paused" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
                         </StackLayout>
                         <Switch AutomationId="AutoSyncSwitch"
                                 Grid.Column="1"
                                 IsToggled="{Binding AutoSyncEnabled, Mode=TwoWay}" />
                     </Grid>
 
-                    <Button AutomationId="SyncNowButton"
+                    <Button IsEnabled="False" AutomationId="SyncNowButton"
                             Text="⚡ Sync Now"
                             Command="{Binding SyncNowCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" />
