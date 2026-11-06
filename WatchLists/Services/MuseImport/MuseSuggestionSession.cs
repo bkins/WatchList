@@ -46,8 +46,21 @@ public sealed class MuseSuggestionSession
         {
             await new MuseSuggestionPlanner().SuggestAsync(pending, search, cancellationToken, result =>
             {
-                lock (_sync) _completed[result.Recommendation] = result;
-                onCompleted(result);
+                MuseSuggestionResult combined;
+                lock (_sync)
+                {
+                    if (_completed.TryGetValue(result.Recommendation, out var previous))
+                    {
+                        var candidates = result.Candidates.Concat(previous.Candidates)
+                                               .GroupBy(candidate => (candidate.Provider.ToUpperInvariant(), candidate.MediaType.ToUpperInvariant(), candidate.Id))
+                                               .Select(group => group.First())
+                                               .ToList();
+                        combined = new MuseSuggestionResult(result.Recommendation, candidates, result.Error);
+                    }
+                    else combined = result;
+                    _completed[result.Recommendation] = combined;
+                }
+                onCompleted(combined);
             });
         }
         finally

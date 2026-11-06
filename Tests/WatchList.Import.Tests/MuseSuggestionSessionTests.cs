@@ -50,4 +50,21 @@ public sealed class MuseSuggestionSessionTests
         Assert.Equal(0, session.Review.ApprovedCount);
         Assert.Single(session.Completed);
     }
+
+    [Fact]
+    public async Task SearchPendingAsync_PartialRetryRetainsEarlierProviderCandidates()
+    {
+        var row = new MuseRecommendation("Film", null, "note", "Films", ["https://example.com/one"], 1);
+        var session = new MuseSuggestionSession([row]);
+        var movie = new MuseProviderCandidate(1, "Film", "2020", "", "", "TMDB", "Movie");
+        var show = new MuseProviderCandidate(2, "Film", "2021", "", "", "TVMaze", "Show");
+        Task<IReadOnlyList<MuseProviderCandidate>> First(string title, CancellationToken token) => throw new PartialProviderSearchException("TVMaze failed", [movie]);
+        Task<IReadOnlyList<MuseProviderCandidate>> Second(string title, CancellationToken token) => throw new PartialProviderSearchException("TMDB failed", [show]);
+
+        await session.SearchPendingAsync(First, result => { });
+        await session.SearchPendingAsync(Second, result => { });
+
+        Assert.Equal(2, session.Completed[row].Candidates.Count);
+        Assert.NotNull(session.Completed[row].Error);
+    }
 }

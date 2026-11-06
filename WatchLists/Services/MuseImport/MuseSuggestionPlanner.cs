@@ -41,6 +41,10 @@ public sealed class MuseSuggestionPlanner
             {
                 throw;
             }
+            catch (PartialProviderSearchException exception)
+            {
+                result = new MuseSuggestionResult(row, exception.Candidates.OrderBy(candidate => Rank(row, candidate)).ToList(), exception.Message);
+            }
             catch (Exception)
             {
                 result = new MuseSuggestionResult(row, [], "Search failed; retry or review manually.");

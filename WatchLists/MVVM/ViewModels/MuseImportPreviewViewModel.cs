@@ -16,6 +16,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private readonly SettingsService _settingsService;
     private MuseImportReview? _review;
     private MuseSuggestionSession? _suggestionSession;
+    private MuseProviderSearch _providerSearch = new();
     private CancellationTokenSource? _searchCancellation;
     private bool _selectedRowCanBeReviewed;
     private readonly Dictionary<int, string> _approvalLabels = new();
@@ -175,6 +176,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             Recommendations.Clear();
             foreach (var item in result.Recommendations) Recommendations.Add(item);
             _suggestionSession = new MuseSuggestionSession(result.Recommendations);
+            _providerSearch = new MuseProviderSearch();
             _review = _suggestionSession.Review;
             _approvalLabels.Clear();
             UpdateApprovalSummary();
@@ -203,7 +205,11 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                 if (ReferenceEquals(session, _suggestionSession) && ReferenceEquals(result.Recommendation, SelectedRecommendation))
                     ShowSavedSuggestions(result.Recommendation);
             }), cancellation.Token);
-            if (ReferenceEquals(session, _suggestionSession)) Status = "Suggestion searches finished. Review and approve each match.";
+            if (ReferenceEquals(session, _suggestionSession))
+            {
+                var failedCount = session.Completed.Values.Count(result => result.Error != null);
+                Status = $"Suggestion searches finished; {failedCount} rows have provider failures. Review and approve each match.";
+            }
         }
         catch (OperationCanceledException)
         {
@@ -222,10 +228,10 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private async Task<IReadOnlyList<MuseProviderCandidate>> SearchProvidersAsync(string title, CancellationToken cancellationToken)
     {
-        var movies = _tmdbService.SearchImportMoviesAsync(title, cancellationToken);
-        var shows = _tvMazeSearch.SearchAsync(title, cancellationToken);
-        await Task.WhenAll(movies, shows);
-        return (await movies).Concat(await shows).ToList();
+        return await _providerSearch.SearchAsync(title
+                                               , _tmdbService.SearchImportMoviesAsync
+                                               , _tvMazeSearch.SearchAsync
+                                               , cancellationToken);
     }
 
     private void ShowSavedSuggestions(MuseRecommendation row)
@@ -246,6 +252,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     {
         _searchCancellation?.Cancel();
         _suggestionSession = null;
+        _providerSearch = new MuseProviderSearch();
         _review = null;
         Recommendations.Clear();
         SelectedRecommendation = null;
