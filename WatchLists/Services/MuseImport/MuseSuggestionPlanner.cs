@@ -53,7 +53,9 @@ public sealed class MuseSuggestionPlanner
             return result;
         }
 
-        return await Task.WhenAll(recommendations.Select(SuggestRow));
+        var results = await Task.WhenAll(recommendations.Select(SuggestRow));
+        cancellationToken.ThrowIfCancellationRequested();
+        return results;
     }
 
     private static int Rank(MuseRecommendation row, MuseProviderCandidate candidate)

@@ -109,4 +109,43 @@ public sealed class MuseSuggestionSessionTests
         Assert.Equal(1, searches["Shared pending title"]);
         Assert.Equal(198, searches.Count);
     }
+    [Fact]
+    public async Task SearchPendingAsync_OneProviderCompletesBeforeCancellation_PreservesPartialResultForReview()
+    {
+        var row = new MuseRecommendation("Synthetic film", 2020, "note", "Films", ["https://example.com/source"], 1);
+        var session = new MuseSuggestionSession([row]);
+        session.Review.ApproveExisting(0, new WatchItem { Title = "Synthetic film" });
+        var provider = new MuseProviderSearch();
+        var candidate = new MuseProviderCandidate(42, "Synthetic film", "2020", "", "", "TMDB", "Movie");
+        var pendingStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var movieCalls = 0;
+        using var cancellation = new CancellationTokenSource();
+        Task<IReadOnlyList<MuseProviderCandidate>> Movies(string title, CancellationToken token)
+        {
+            movieCalls++;
+            return Task.FromResult<IReadOnlyList<MuseProviderCandidate>>([candidate]);
+        }
+        async Task<IReadOnlyList<MuseProviderCandidate>> PendingShow(string title, CancellationToken token)
+        {
+            pendingStarted.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return [];
+        }
+
+        var running = session.SearchPendingAsync((title, token) => provider.SearchAsync(title, Movies, PendingShow, token)
+                                               , result => { }
+                                               , cancellation.Token);
+        await pendingStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => running);
+
+        var partial = Assert.Single(session.Completed).Value;
+        Assert.Equal(candidate, Assert.Single(partial.Candidates));
+        Assert.NotNull(partial.Error);
+        Assert.Equal(1, session.Review.ApprovedCount);
+        await session.SearchPendingAsync((title, token) => provider.SearchAsync(title, Movies
+            , (query, searchToken) => Task.FromResult<IReadOnlyList<MuseProviderCandidate>>([]), token), result => { });
+        Assert.Equal(1, movieCalls);
+        Assert.Equal(candidate, Assert.Single(session.Completed[row].Candidates));
+    }
 }

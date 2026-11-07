@@ -45,4 +45,51 @@ public sealed class MuseProviderSearchTests
         Assert.Equal(1, movieCalls);
         Assert.Equal(2, showCalls);
     }
+    [Fact]
+    public async Task SearchAsync_CompletedShowAndCancelledMovie_ReturnsPartialShow()
+    {
+        var service = new MuseProviderSearch();
+        var show = new MuseProviderCandidate(15, "Synthetic show", "2020", "", "", "TVMaze", "Show");
+        var pendingStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        async Task<IReadOnlyList<MuseProviderCandidate>> PendingMovie(string title, CancellationToken token)
+        {
+            pendingStarted.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return [];
+        }
+        Task<IReadOnlyList<MuseProviderCandidate>> FinishedShow(string title, CancellationToken token)
+        {
+            return Task.FromResult<IReadOnlyList<MuseProviderCandidate>>([show]);
+        }
+
+        var search = service.SearchAsync("Synthetic show", PendingMovie, FinishedShow, cancellation.Token);
+        await pendingStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+        var result = await Assert.ThrowsAsync<PartialProviderSearchException>(() => search);
+
+        Assert.Equal(show, Assert.Single(result.Candidates));
+        Assert.Contains("stopped", result.Message);
+    }
+
+    [Fact]
+    public async Task SearchAsync_BothProvidersCancelled_PropagatesCancellation()
+    {
+        var service = new MuseProviderSearch();
+        var started = 0;
+        var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        async Task<IReadOnlyList<MuseProviderCandidate>> Pending(string title, CancellationToken token)
+        {
+            if (Interlocked.Increment(ref started) == 2) bothStarted.TrySetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            return [];
+        }
+
+        var search = service.SearchAsync("Synthetic title", Pending, Pending, cancellation.Token);
+        await bothStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => search);
+    }
 }

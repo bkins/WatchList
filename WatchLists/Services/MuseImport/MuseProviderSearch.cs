@@ -35,7 +35,36 @@ public sealed class MuseProviderSearch
 
         var movies = SearchProvider(movieSearch, _movieCache);
         var shows  = SearchProvider(showSearch, _showCache);
-        await Task.WhenAll(movies, shows);
+        try
+        {
+            await Task.WhenAll(movies, shows);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            var completedCandidates = new List<MuseProviderCandidate>();
+            var completedProvider   = false;
+            if (movies.IsCompletedSuccessfully)
+            {
+                var completedMovies = await movies;
+                if (!completedMovies.Failed)
+                {
+                    completedProvider = true;
+                    completedCandidates.AddRange(completedMovies.Candidates);
+                }
+            }
+            if (shows.IsCompletedSuccessfully)
+            {
+                var completedShows = await shows;
+                if (!completedShows.Failed)
+                {
+                    completedProvider = true;
+                    completedCandidates.AddRange(completedShows.Candidates);
+                }
+            }
+            if (!completedProvider) throw;
+            throw new PartialProviderSearchException("Searches stopped; completed suggestions are shown. Resume to retry pending providers."
+                                                   , completedCandidates);
+        }
         var movieResult = await movies;
         var showResult  = await shows;
         var candidates = movieResult.Candidates.Concat(showResult.Candidates).ToList();
