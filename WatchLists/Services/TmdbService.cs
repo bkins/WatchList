@@ -18,7 +18,6 @@ public class TmdbService : IMovieDataProvider
         get => _apiKey;
         set
         {
-            Console.WriteLine($"ApiKey set: {value}");
             _apiKey = value;
         }
     }
@@ -29,8 +28,6 @@ public class TmdbService : IMovieDataProvider
     {
         _httpClient = httpClient;
         ApiKey      = configuration["TMDb:ApiKey"];
-        Console.WriteLine($"API Key: {ApiKey}");
-        Console.WriteLine($"TmdbService Instance: {this.GetHashCode()} - ApiKey: {ApiKey}");
     }
 
     #region Common API Methods
