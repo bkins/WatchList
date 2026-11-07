@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using WatchLists.MVVM.ViewModels;
 
 namespace WatchLists.MVVM.Views;
@@ -13,7 +14,26 @@ public partial class MuseImportPreviewPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (BindingContext is MuseImportPreviewViewModel viewModel) await viewModel.LoadCategoriesAsync();
+        if (BindingContext is MuseImportPreviewViewModel viewModel)
+        {
+            viewModel.PropertyChanged -= ReviewSelectionChanged;
+            viewModel.PropertyChanged += ReviewSelectionChanged;
+            await viewModel.LoadCategoriesAsync();
+            await WizardScroll.ScrollToAsync(0, 0, false);
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        if (BindingContext is MuseImportPreviewViewModel viewModel)
+            viewModel.PropertyChanged -= ReviewSelectionChanged;
+        base.OnDisappearing();
+    }
+
+    private async void ReviewSelectionChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName == nameof(MuseImportPreviewViewModel.SelectedRecommendation))
+            await WizardScroll.ScrollToAsync(0, 0, false);
     }
 
     private async void ImportApproved(object? sender, EventArgs eventArgs)

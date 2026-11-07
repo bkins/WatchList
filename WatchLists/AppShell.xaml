@@ -20,7 +20,7 @@
             <Tab.Icon>
                 <FontImageSource Glyph="{StaticResource SearchIcon}" FontFamily="MaterialIcons" Size="20" />
             </Tab.Icon>
-            <ShellContent ContentTemplate="{DataTemplate views:SearchPage}" Route="SearchPage" />
+            <ShellContent ContentTemplate="{DataTemplate views:SearchPage}" Route="Discover" />
         </Tab>
 
         <Tab Title="Settings">

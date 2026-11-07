@@ -2,6 +2,14 @@ namespace WatchLists.Services.MuseImport;
 
 public sealed class MuseSuggestedMatchSelector
 {
+    public MuseExistingItem? FindExistingIdentity(MuseProviderCandidate candidate, IReadOnlyList<MuseExistingItem> existingItems)
+    {
+        var matches = existingItems.Where(item => item.MovieId == candidate.Id &&
+                                                 string.Equals(item.ApiSource, candidate.Provider, StringComparison.OrdinalIgnoreCase))
+                                   .ToList();
+        return matches.Count == 1 ? matches[0] : null;
+    }
+
     public MuseProviderCandidate? SelectUnambiguous(MuseRecommendation row, IReadOnlyList<MuseProviderCandidate> candidates)
     {
         var exactMatches = candidates.Where(candidate => string.Equals(row.Title.Trim(), candidate.Title.Trim(), StringComparison.OrdinalIgnoreCase))

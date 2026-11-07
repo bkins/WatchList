@@ -19,7 +19,7 @@
     </ContentPage.ToolbarItems>
     <Grid Padding="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
         <Label Text="{Binding StepHeading}" FontSize="20" FontAttributes="Bold" AutomationId="MuseWizardStep" />
-        <ScrollView Grid.Row="1">
+        <ScrollView x:Name="WizardScroll" Grid.Row="1">
             <VerticalStackLayout Spacing="12" IsEnabled="{Binding CanChangeReview}">
                 <VerticalStackLayout IsVisible="{Binding IsFileStep}" Spacing="16">
                     <Label Text="Bring your recommendations into WatchList" FontSize="24" FontAttributes="Bold" />

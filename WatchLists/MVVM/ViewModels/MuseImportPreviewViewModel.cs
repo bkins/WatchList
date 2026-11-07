@@ -130,12 +130,15 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         {
             var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
             var watchedCategory = await _settingsService.GetWatchedCategoryAsync();
+            var selectedCategory = SelectedCategory;
             ImportCategories.Clear();
             foreach (var category in categories.Where(category => !string.Equals(category, watchedCategory, StringComparison.OrdinalIgnoreCase)))
             {
                 ImportCategories.Add(category);
             }
-            SelectedCategory = ImportCategories.Contains(SelectedCategory ?? string.Empty) ? SelectedCategory : ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
+            SelectedCategory = ImportCategories.Contains(selectedCategory ?? string.Empty)
+                ? selectedCategory
+                : ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception)
         {
@@ -284,8 +287,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         ProviderMatches.Clear();
         foreach (var candidate in candidates) ProviderMatches.Add(candidate);
         SelectedProvider = previous;
-        if (previous == null && SelectedExisting == null && !_rowSelections.ContainsKey(CurrentIndex) && ExistingMatches.Count == 0)
-            SelectedProvider = new MuseSuggestedMatchSelector().SelectUnambiguous(row, ProviderMatches);
+        if (previous == null && SelectedExisting == null && !_rowSelections.ContainsKey(CurrentIndex))
+            SelectSuggestedMatch(row);
         _restoringSelection = wasRestoring;
         RefreshWizard();
     }

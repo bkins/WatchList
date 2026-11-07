@@ -125,6 +125,12 @@ Tap-WizardText $ui 'Summary'
 $ui = Read-WizardUi
 $importButton = Find-WizardText $ui 'Import 1 approved recommendations'
 if (!$importButton -or $importButton.enabled -ne 'false') { throw 'Import must remain disabled while rows are pending.' }
+Tap-WizardText $ui 'Review decisions'
+$ui = Read-WizardUi
+Tap-WizardText $ui 'Fringe'
+$ui = Read-WizardUi
+Assert-WizardContains $ui 'Staged existing item: Fringe'
+Assert-WizardContains $ui 'Recommendation 1 of 201'
 $report = "PASS: 201-row wizard opened progressively; approved Fringe; stopped active searches ($beforeStop); approval survived Previous, Resume and Stop; summary refused undecided rows. No import or database reset was performed."
 $report | Set-Content -LiteralPath (Join-Path $EvidencePath 'result.txt') -Encoding utf8
 Write-Output $report

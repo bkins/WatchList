@@ -106,7 +106,7 @@ public partial class MuseImportPreviewViewModel
         get
         {
             var completed = _suggestionSession?.Completed.Values.ToList() ?? [];
-            var problems = completed.Count(result => result.Error != null || result.Candidates.Count == 0);
+            var problems = completed.Count(result => result.NeedsAttention);
             var state = _searchCancellation != null ? "Searching" : completed.Count == Recommendations.Count && completed.All(result => result.Error == null) ? "Finished" : "Paused";
             return $"{state} · {completed.Count}/{Recommendations.Count} searched · {problems} need attention";
         }
@@ -172,12 +172,28 @@ public partial class MuseImportPreviewViewModel
             SelectedProvider = selection.Provider;
             SelectedCategory = selection.Category;
         }
-        else if (ExistingMatches.Count == 1) SelectedExisting = ExistingMatches[0];
-        else if (ExistingMatches.Count == 0 && SelectedRecommendation != null)
-            SelectedProvider = new MuseSuggestedMatchSelector().SelectUnambiguous(SelectedRecommendation, ProviderMatches);
+        else
+        {
+            SelectedExisting = null;
+            SelectedProvider = null;
+        }
+        if (SelectedExisting == null && SelectedProvider == null && SelectedRecommendation != null)
+            SelectSuggestedMatch(SelectedRecommendation);
         _restoringSelection = false;
         SearchQuery = SelectedRecommendation?.Title ?? string.Empty;
         RefreshWizard();
+    }
+
+    private void SelectSuggestedMatch(MuseRecommendation row)
+    {
+        var selector = new MuseSuggestedMatchSelector();
+        var candidate = selector.SelectUnambiguous(row, ProviderMatches);
+        if (candidate == null) return;
+        var existing = selector.FindExistingIdentity(candidate
+                                                    , ExistingMatches.Select(item => new MuseExistingItem(item.Id, item.Title, item.IsDeleted, item.MovieId, item.ApiSource))
+                                                                     .ToList());
+        if (existing != null) SelectedExisting = ExistingMatches.First(item => item.Id == existing.Id);
+        else SelectedProvider = candidate;
     }
 
     private void SynchronizeApprovedCategories()
@@ -268,7 +284,7 @@ public partial class MuseImportPreviewViewModel
             };
             if (decision.Status == MuseReviewDecisionStatus.Pending && _suggestionSession != null &&
                 _suggestionSession.Completed.TryGetValue(Recommendations[index], out var result) &&
-                (result.Error != null || result.Candidates.Count != 1)) state = "Pending · needs attention";
+                result.NeedsAttention) state = "Pending · needs attention";
             ReviewRows.Add(new MuseReviewRow(index, Recommendations[index].Title, state, decision.ItemTitle.Length == 0 ? string.Empty
                 : $"{decision.ItemTitle} · {decision.Provider} {decision.ProviderId} · {decision.MediaType} · {decision.Category}"));
         }
