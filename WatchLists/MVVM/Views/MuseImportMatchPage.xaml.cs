@@ -20,4 +20,16 @@ public partial class MuseImportMatchPage : ContentPage
         }
         await Navigation.PopModalAsync();
     }
+
+    private async void BackToReview(object? sender, EventArgs eventArgs)
+    {
+        await Navigation.PopModalAsync();
+    }
+
+    private async void SkipRecommendation(object? sender, EventArgs eventArgs)
+    {
+        if (BindingContext is not MuseImportPreviewViewModel viewModel || !viewModel.CanChangeReview) return;
+        viewModel.SkipAndNextCommand.Execute(null);
+        await Navigation.PopModalAsync();
+    }
 }

@@ -39,6 +39,13 @@
                 <Label Text="{Binding Status}" />
             </VerticalStackLayout>
         </ScrollView>
-        <Button Grid.Row="2" Text="Use selected match" Clicked="UseMatch" IsEnabled="{Binding CanChangeReview}" />
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
+            <Button Text="Use selected match" Clicked="UseMatch" IsEnabled="{Binding CanChangeReview}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Text="Back to review" Clicked="BackToReview" AutomationId="MuseMatchBack" />
+                <Button Grid.Column="1" Text="Skip recommendation" Clicked="SkipRecommendation"
+                        IsEnabled="{Binding CanChangeReview}" AutomationId="MuseMatchSkip" />
+            </Grid>
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>
