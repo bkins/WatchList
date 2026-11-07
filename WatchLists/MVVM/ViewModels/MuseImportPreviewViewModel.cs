@@ -19,7 +19,6 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private MuseProviderSearch _providerSearch = new();
     private CancellationTokenSource? _searchCancellation;
     private bool _selectedRowCanBeReviewed;
-    private readonly Dictionary<int, string> _approvalLabels = new();
 
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
     public ObservableCollection<WatchItem> ExistingMatches { get; } = new();
@@ -31,7 +30,6 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private MuseProviderCandidate? _selectedProvider;
     private string _status = "Select a Muse Markdown file to review. No data is changed by preview.";
     private string _details = string.Empty;
-    private string _approvalSummary = "No rows approved.";
     private string _approvalFeedback = string.Empty;
     private bool _isBusy;
     private string? _selectedCategory;
@@ -48,13 +46,25 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public WatchItem? SelectedExisting
     {
         get => _selectedExisting;
-        set => SetProperty(ref _selectedExisting, value);
+        set
+        {
+            if (!SetProperty(ref _selectedExisting, value)) return;
+            if (value != null) SetProperty(ref _selectedProvider, null, nameof(SelectedProvider));
+            SaveSelection();
+            RefreshWizard();
+        }
     }
 
     public MuseProviderCandidate? SelectedProvider
     {
         get => _selectedProvider;
-        set => SetProperty(ref _selectedProvider, value);
+        set
+        {
+            if (!SetProperty(ref _selectedProvider, value)) return;
+            if (value != null) SetProperty(ref _selectedExisting, null, nameof(SelectedExisting));
+            SaveSelection();
+            RefreshWizard();
+        }
     }
 
     public string Status
@@ -72,19 +82,19 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
-    }
-
-    public string ApprovalSummary
-    {
-        get => _approvalSummary;
-        set => SetProperty(ref _approvalSummary, value);
+        set
+        {
+            if (SetProperty(ref _isBusy, value)) RefreshWizard();
+        }
     }
 
     public string ApprovalFeedback
     {
         get => _approvalFeedback;
-        set => SetProperty(ref _approvalFeedback, value);
+        set
+        {
+            if (SetProperty(ref _approvalFeedback, value)) OnPropertyChanged(nameof(HasApprovalFeedback));
+        }
     }
 
     private void ShowApprovalFeedback(string message)
@@ -95,7 +105,12 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public string? SelectedCategory
     {
         get => _selectedCategory;
-        set => SetProperty(ref _selectedCategory, value);
+        set
+        {
+            if (!SetProperty(ref _selectedCategory, value)) return;
+            SaveSelection();
+            RefreshWizard();
+        }
     }
 
     public MuseImportPreviewViewModel(WatchListService watchListService
@@ -120,7 +135,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             {
                 ImportCategories.Add(category);
             }
-            SelectedCategory = ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
+            SelectedCategory = ImportCategories.Contains(SelectedCategory ?? string.Empty) ? SelectedCategory : ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception)
         {
@@ -132,6 +147,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
     {
+        _restoringSelection = true;
         ApprovalFeedback = string.Empty;
         _selectedRowCanBeReviewed = false;
         ExistingMatches.Clear();
@@ -141,6 +157,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         if (value == null)
         {
             Details = string.Empty;
+            _restoringSelection = false;
+            RefreshWizard();
             return;
         }
 
@@ -169,6 +187,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             Details = "Could not read saved items or source associations. Approval is disabled for this row.";
             Status = $"Review unavailable: {exception.Message}";
         }
+        RestoreSelection();
     }
 
     [RelayCommand]
@@ -191,9 +210,12 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             _suggestionSession = new MuseSuggestionSession(result.Recommendations);
             _providerSearch = new MuseProviderSearch();
             _review = _suggestionSession.Review;
-            _approvalLabels.Clear();
-            UpdateApprovalSummary();
+            RefreshWizard();
             SelectedRecommendation = null;
+            _fileName = file.FileName;
+            _fileInformation = $"{result.Recommendations.Count} recommendations · {result.Warnings.Count} warnings" +
+                               (result.Warnings.Count > 0 ? "\n" + string.Join("\n", result.Warnings) : string.Empty);
+            RefreshWizard();
             Status = $"{result.Recommendations.Count} rows loaded; {result.Warnings.Count} warnings. " +
                      (result.Warnings.Count > 0 ? string.Join(" ", result.Warnings) : "Select a row to review.");
             _ = StartSuggestionsAsync();
@@ -211,14 +233,16 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         if (session == null || _searchCancellation != null) return;
         var cancellation = new CancellationTokenSource();
         _searchCancellation = cancellation;
+        RefreshWizard();
         try
         {
             await session.SearchPendingAsync(SearchProvidersAsync, result => MainThread.BeginInvokeOnMainThread(() =>
             {
-                if (ReferenceEquals(session, _suggestionSession) && ReferenceEquals(result.Recommendation, SelectedRecommendation))
-                    ShowSavedSuggestions(result.Recommendation);
+                if (!ReferenceEquals(session, _suggestionSession) || _wizardStep == 4) return;
+                if (ReferenceEquals(result.Recommendation, SelectedRecommendation)) ShowSavedSuggestions(result.Recommendation);
+                RefreshWizard();
             }), cancellation.Token);
-            if (ReferenceEquals(session, _suggestionSession))
+            if (ReferenceEquals(session, _suggestionSession) && _wizardStep != 4)
             {
                 var failedCount = session.Completed.Values.Count(result => result.Error != null);
                 Status = $"Suggestion searches finished; {failedCount} rows have provider failures. Review and approve each match.";
@@ -226,16 +250,17 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            if (ReferenceEquals(session, _suggestionSession)) Status = "Searches stopped. Completed results and approvals remain; resume to retry pending rows.";
+            if (ReferenceEquals(session, _suggestionSession) && _wizardStep != 4) Status = "Searches stopped. Completed results and approvals remain; resume to retry pending rows.";
         }
         catch (Exception)
         {
-            if (ReferenceEquals(session, _suggestionSession)) Status = "Suggestion searches failed. Completed results and approvals remain.";
+            if (ReferenceEquals(session, _suggestionSession) && _wizardStep != 4) Status = "Suggestion searches failed. Completed results and approvals remain.";
         }
         finally
         {
             if (ReferenceEquals(_searchCancellation, cancellation)) _searchCancellation = null;
             cancellation.Dispose();
+            RefreshWizard();
         }
     }
 
@@ -249,10 +274,20 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private void ShowSavedSuggestions(MuseRecommendation row)
     {
-        if (_suggestionSession == null || !_suggestionSession.Completed.TryGetValue(row, out var result)) return;
+        IReadOnlyList<MuseProviderCandidate> candidates;
+        if (_correctedResults.TryGetValue(Recommendations.IndexOf(row), out var corrected)) candidates = corrected;
+        else if (_suggestionSession != null && _suggestionSession.Completed.TryGetValue(row, out var result)) candidates = result.Candidates;
+        else return;
+        var previous = SelectedProvider;
+        var wasRestoring = _restoringSelection;
+        _restoringSelection = true;
         ProviderMatches.Clear();
-        foreach (var candidate in result.Candidates) ProviderMatches.Add(candidate);
-        Status = result.Error ?? $"{result.Candidates.Count} suggestions. Verify title, date and type; approval is required.";
+        foreach (var candidate in candidates) ProviderMatches.Add(candidate);
+        SelectedProvider = previous;
+        if (previous == null && SelectedExisting == null && !_rowSelections.ContainsKey(CurrentIndex) && ExistingMatches.Count == 0)
+            SelectedProvider = new MuseSuggestedMatchSelector().SelectUnambiguous(row, ProviderMatches);
+        _restoringSelection = wasRestoring;
+        RefreshWizard();
     }
 
     [RelayCommand]
@@ -264,13 +299,18 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public void AbandonReview()
     {
         _searchCancellation?.Cancel();
+        _searchCancellation = null;
         _suggestionSession = null;
         _providerSearch = new MuseProviderSearch();
         _review = null;
         Recommendations.Clear();
         SelectedRecommendation = null;
-        _approvalLabels.Clear();
-        UpdateApprovalSummary();
+        _rowSelections.Clear();
+        _correctedResults.Clear();
+        _fileName = string.Empty;
+        _fileInformation = string.Empty;
+        SetWizardStep(1);
+        RefreshWizard();
         Status = "Review ended. Select a file to start another review.";
     }
 
@@ -282,7 +322,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var result = await _tmdbService.SearchMoviesAsync(row.Title);
+            var result = await _tmdbService.SearchMoviesAsync(SearchQuery);
             if (!ReferenceEquals(row, SelectedRecommendation)) return;
             ProviderMatches.Clear();
             if (result.Data == null)
@@ -296,6 +336,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                                                             , candidate.Overview ?? string.Empty, candidate.PosterUrl
                                                             , "TMDB", "Movie"));
             }
+            _correctedResults[CurrentIndex] = ProviderMatches.ToList();
+            RefreshWizard();
             Status = $"Found {ProviderMatches.Count} TMDB movie results. Verify the title and year before selecting.";
         }
         catch (Exception)
@@ -317,10 +359,12 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var results = await _tvMazeSearch.SearchAsync(row.Title);
+            var results = await _tvMazeSearch.SearchAsync(SearchQuery);
             if (!ReferenceEquals(row, SelectedRecommendation)) return;
             ProviderMatches.Clear();
             foreach (var candidate in results) ProviderMatches.Add(candidate);
+            _correctedResults[CurrentIndex] = ProviderMatches.ToList();
+            RefreshWizard();
             Status = $"Found {ProviderMatches.Count} TVMaze shows. Verify the title and premiere date before selecting.";
         }
         catch (Exception)
@@ -334,15 +378,14 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private void ApproveExisting()
+    private bool ApproveExisting()
     {
         var message = MuseApprovalReadiness.GetMessage(_review != null, SelectedRecommendation != null
                                                     , _selectedRowCanBeReviewed, SelectedExisting != null, true);
         if (message != null)
         {
             ShowApprovalFeedback(message);
-            return;
+            return false;
         }
         var review = _review!;
         var selectedRecommendation = SelectedRecommendation!;
@@ -350,25 +393,26 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         try
         {
             review.ApproveExisting(Recommendations.IndexOf(selectedRecommendation), selectedExisting);
-            _approvalLabels[Recommendations.IndexOf(selectedRecommendation)] = $"{selectedRecommendation.Title} → existing {selectedExisting.ImportReviewDisplay}";
-            UpdateApprovalSummary();
-            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Scroll down and tap Import approved rows when ready.");
+            SaveSelection();
+            RefreshWizard();
+            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Continue reviewing or open the summary when ready.");
+            return true;
         }
         catch (Exception exception)
         {
             ShowApprovalFeedback(exception.Message);
         }
+        return false;
     }
 
-    [RelayCommand]
-    private void ApproveProvider()
+    private bool ApproveProvider()
     {
         var message = MuseApprovalReadiness.GetMessage(_review != null, SelectedRecommendation != null
                                                     , _selectedRowCanBeReviewed, SelectedProvider != null, false);
         if (message != null)
         {
             ShowApprovalFeedback(message);
-            return;
+            return false;
         }
         var review = _review!;
         var selectedRecommendation = SelectedRecommendation!;
@@ -378,7 +422,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(SelectedCategory) || !ImportCategories.Contains(SelectedCategory))
             {
                 ShowApprovalFeedback("Choose a category for the new item before approving it.");
-                return;
+                return false;
             }
             var existing = _watchListService.GetItemsForImportReview()
                                             .Where(item => item.MovieId == selectedProvider.Id &&
@@ -386,9 +430,14 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                                             .ToList();
             if (existing.Count > 0)
             {
-                ShowApprovalFeedback("This title is already in your WatchList. Choose it under Already in your WatchList and approve it there. Deleted items cannot be imported.");
                 foreach (var match in existing.Where(item => !ExistingMatches.Any(candidate => candidate.Id == item.Id))) ExistingMatches.Add(match);
-                return;
+                if (existing.Count == 1 && !existing[0].IsDeleted)
+                {
+                    SelectedExisting = existing[0];
+                    return ApproveExisting();
+                }
+                else ShowApprovalFeedback("This identity has existing or deleted matches. Open Change match and choose the saved item explicitly. Deleted items cannot be imported.");
+                return false;
             }
             var item = new WatchItem
                        {
@@ -401,14 +450,17 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                          , PosterUrl = selectedProvider.PosterUrl
                        };
             review.ApproveNew(Recommendations.IndexOf(selectedRecommendation), item);
-            _approvalLabels[Recommendations.IndexOf(selectedRecommendation)] = $"{selectedRecommendation.Title} → {selectedProvider.Display} · {SelectedCategory}";
-            UpdateApprovalSummary();
-            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Scroll down and tap Import approved rows when ready.");
+            SaveSelection();
+            SynchronizeApprovedCategories();
+            RefreshWizard();
+            ShowApprovalFeedback($"Approved {review.ApprovedCount} {(review.ApprovedCount == 1 ? "row" : "rows")}. Continue reviewing or open the summary when ready.");
+            return true;
         }
         catch (Exception exception)
         {
             ShowApprovalFeedback(exception.Message);
         }
+        return false;
     }
 
     [RelayCommand]
@@ -419,21 +471,13 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         try
         {
             _review.ClearApproval(index);
-            _approvalLabels.Remove(index);
-            UpdateApprovalSummary();
+            RefreshWizard();
             ShowApprovalFeedback($"Approval cleared. {_review.ApprovedCount} rows remain approved.");
         }
         catch (Exception exception)
         {
             Status = exception.Message;
         }
-    }
-
-    private void UpdateApprovalSummary()
-    {
-        ApprovalSummary = _approvalLabels.Count == 0
-            ? "No rows approved."
-            : string.Join(Environment.NewLine, _approvalLabels.OrderBy(item => item.Key).Select(item => item.Value));
     }
 
     public MuseImportBatch? PrepareImport()
@@ -450,7 +494,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
         try
         {
-            return _review.CreateBatch();
+            return _review.CreateFinalBatch();
         }
         catch (Exception exception)
         {
@@ -465,14 +509,18 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            var skippedRows = _review?.GetSummary().SkippedRows ?? 0;
             var receipt = await _watchListService.ApplyMuseImportAsync(batch);
+            _importBackupPath = receipt.BackupPath;
+            _wizardStep = 4;
+            _searchCancellation?.Cancel();
             _suggestionSession?.ResetApprovals();
             _review = _suggestionSession?.Review;
-            _approvalLabels.Clear();
-            UpdateApprovalSummary();
+            RefreshWizard();
             UpdateSelectedRecommendation(SelectedRecommendation);
-            Status = $"Imported {receipt.NewItems} new items and {receipt.NewRecommendations} new sources. " +
-                     $"Backup: {receipt.BackupPath}. Automatic sync remains off.";
+            Status = $"Added {receipt.NewItems} new items and {receipt.NewRecommendations} source links. " +
+                     $"{batch.Recommendations.Count - receipt.NewRecommendations} source-link proposals were already present or duplicates. " +
+                     $"{skippedRows} recommendations skipped. Cloud sync remains paused.";
         }
         catch (Exception exception)
         {

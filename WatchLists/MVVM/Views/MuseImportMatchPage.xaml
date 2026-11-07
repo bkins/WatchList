@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
+             xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             xmlns:import="clr-namespace:WatchLists.Services.MuseImport"
+             x:Class="WatchLists.MVVM.Views.MuseImportMatchPage"
+             x:DataType="viewmodels:MuseImportPreviewViewModel" Title="Choose a match">
+    <Grid Padding="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Label Text="{Binding RecommendationTitle}" FontSize="20" FontAttributes="Bold" />
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Select the correct title, year and type. This changes the proposed match; approve it on the review screen." />
+                <Label Text="Already in your WatchList" FontAttributes="Bold" />
+                <CollectionView HeightRequest="140" ItemsSource="{Binding ExistingMatches}" SelectionMode="Single" SelectedItem="{Binding SelectedExisting}">
+                    <CollectionView.EmptyView><Label Text="No saved match found." /></CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:WatchItem"><Label Padding="10" Text="{Binding ImportReviewDisplay}" /></DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label Text="Provider suggestions" FontAttributes="Bold" />
+                <CollectionView HeightRequest="260" ItemsSource="{Binding ProviderMatches}" SelectionMode="Single" SelectedItem="{Binding SelectedProvider}" AutomationId="MuseMatchChoices">
+                    <CollectionView.EmptyView><Label Text="No suggestions yet. Resume searches or try a corrected title below." /></CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="import:MuseProviderCandidate">
+                            <VerticalStackLayout Padding="10" Spacing="4">
+                                <Label Text="{Binding Display}" FontAttributes="Bold" />
+                                <Label Text="{Binding Overview}" MaxLines="2" LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+                <Label Text="Search a different title" FontAttributes="Bold" />
+                <Entry Text="{Binding SearchQuery}" Placeholder="Title to search" AutomationId="MuseSearchQuery" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding CanChangeReview}">
+                    <Button Text="Find movies" Command="{Binding SearchProviderCommand}" />
+                    <Button Grid.Column="1" Text="Find TV shows" Command="{Binding SearchShowsCommand}" />
+                </Grid>
+                <Label Text="{Binding Status}" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <Button Grid.Row="2" Text="Use selected match" Clicked="UseMatch" IsEnabled="{Binding CanChangeReview}" />
+    </Grid>
+</ContentPage>

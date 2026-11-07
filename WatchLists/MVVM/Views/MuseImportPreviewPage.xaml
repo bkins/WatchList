@@ -2,59 +2,87 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
-             xmlns:models="clr-namespace:WatchLists.MVVM.Models"
-             xmlns:import="clr-namespace:WatchLists.Services.MuseImport"
              x:Class="WatchLists.MVVM.Views.MuseImportPreviewPage"
-             x:DataType="viewmodels:MuseImportPreviewViewModel"
-             Title="Muse import preview">
-    <Grid Padding="12" RowDefinitions="Auto,Auto,2*,3*" RowSpacing="8">
-        <Button Grid.Row="0" Text="Choose Muse file" Command="{Binding OpenFileCommand}" />
-        <Label Grid.Row="1" Text="{Binding Status}" />
-        <CollectionView Grid.Row="2" ItemsSource="{Binding Recommendations}"
-                        SelectionMode="Single" SelectedItem="{Binding SelectedRecommendation}"
-                        AutomationId="MuseRecommendations">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="import:MuseRecommendation">
-                    <VerticalStackLayout Padding="8" Spacing="2">
-                        <Label Text="{Binding Title}" FontAttributes="Bold" />
-                        <Label Text="{Binding Description}" MaxLines="2" LineBreakMode="TailTruncation" />
-                    </VerticalStackLayout>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-        <ScrollView Grid.Row="3">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="1. Select a recommendation above. 2. Choose a matching suggestion below. 3. Approve it, then import your approved rows." FontAttributes="Bold" />
-                <Label Text="{Binding Details}" />
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
-                    <Button Grid.Column="0" Text="Stop searches" Command="{Binding StopSuggestionsCommand}" />
-                    <Button Grid.Column="1" Text="Resume searches" Command="{Binding StartSuggestionsCommand}" />
-                </Grid>
-                <Label Text="Add a new item" FontAttributes="Bold" />
-                <Label Text="Choose the correct title, year and type from the suggested matches." />
-                <Picker Title="Choose a suggested match" ItemsSource="{Binding ProviderMatches}"
-                        AutomationId="MuseProviderPicker"
-                        ItemDisplayBinding="{Binding Display, x:DataType=import:MuseProviderCandidate}" SelectedItem="{Binding SelectedProvider}" />
-                <Picker Title="Choose a category for the new item" ItemsSource="{Binding ImportCategories}" SelectedItem="{Binding SelectedCategory}" />
-                <Button Text="Approve new item" Command="{Binding ApproveProviderCommand}" AutomationId="MuseApproveNewButton" />
-                <Label Text="{Binding ApprovalFeedback}" AutomationId="MuseNewApprovalFeedback" />
-                <Label Text="Already in your WatchList?" FontAttributes="Bold" />
-                <Label Text="Choose the saved item instead of adding a duplicate." />
-                <Picker Title="Choose an existing item" ItemsSource="{Binding ExistingMatches}"
-                        AutomationId="MuseExistingPicker"
-                        ItemDisplayBinding="{Binding ImportReviewDisplay, x:DataType=models:WatchItem}" SelectedItem="{Binding SelectedExisting}" />
-                <Button Text="Approve existing item" Command="{Binding ApproveExistingCommand}" AutomationId="MuseApproveExistingButton" />
-                <Label Text="{Binding ApprovalFeedback}" AutomationId="MuseExistingApprovalFeedback" />
-                <Label Text="Need a different match?" FontAttributes="Bold" />
-                <Button Text="Search TMDB movies" Command="{Binding SearchProviderCommand}" />
-                <Button Text="Search TVMaze shows" Command="{Binding SearchShowsCommand}" />
-                <Button Text="End review" Clicked="EndReview" />
-                <Button Text="Clear approval for selected row" Command="{Binding ClearApprovalCommand}" />
-                <Label Text="Approved rows:" FontAttributes="Bold" />
-                <Label Text="{Binding ApprovalSummary}" />
-                <Label Text="Turn off automatic sync before import. Older app versions can overwrite recommendation sources." FontAttributes="Italic" />
-                <Button Text="Import approved rows" Clicked="ImportApproved" AutomationId="MuseImportButton" />
+             x:DataType="viewmodels:MuseImportPreviewViewModel" Title="Import from Muse">
+    <ContentPage.Resources>
+        <Style x:Key="SecondaryAction" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#334155, Dark=#CBD5E1}" />
+            <Setter Property="BorderColor" Value="#64748B" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinimumHeightRequest" Value="44" />
+        </Style>
+    </ContentPage.Resources>
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Review options" Clicked="ReviewOptions" />
+    </ContentPage.ToolbarItems>
+    <Grid Padding="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Label Text="{Binding StepHeading}" FontSize="20" FontAttributes="Bold" AutomationId="MuseWizardStep" />
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="12" IsEnabled="{Binding CanChangeReview}">
+                <VerticalStackLayout IsVisible="{Binding IsFileStep}" Spacing="16">
+                    <Label Text="Bring your recommendations into WatchList" FontSize="24" FontAttributes="Bold" />
+                    <Label Text="Choose your Muse Markdown file, review the suggested matches, then confirm what to import." />
+                    <Button Text="Choose Markdown file" Clicked="ChooseFile" AutomationId="MuseChooseFile" />
+                    <Label Text="{Binding FileName}" FontAttributes="Bold" />
+                    <Label Text="{Binding FileInformation}" />
+                    <Button Text="Start review" Command="{Binding BeginReviewCommand}" IsVisible="{Binding HasFile}" />
+                    <Label Text="{Binding Status}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsReviewStep}" Spacing="12">
+                    <Label Text="{Binding RecommendationPosition}" FontAttributes="Bold" />
+                    <Label Text="{Binding ReviewProgress}" />
+                    <Label Text="{Binding RecommendationTitle}" FontSize="24" FontAttributes="Bold" AutomationId="MuseCurrentTitle" />
+                    <Label Text="{Binding RecommendationDescription}" MaxLines="3" LineBreakMode="TailTruncation" />
+                    <Label Text="{Binding DecisionState}" FontAttributes="Bold" AutomationId="MuseDecisionState" />
+                    <Border Padding="14" StrokeShape="RoundRectangle 12">
+                        <VerticalStackLayout Spacing="8">
+                            <Label Text="Suggested match" FontAttributes="Bold" />
+                            <Label Text="{Binding MatchTitle}" FontSize="20" AutomationId="MuseMatchTitle" />
+                            <Label Text="{Binding MatchEffect}" />
+                            <Button Style="{StaticResource SecondaryAction}" Text="Change match" Clicked="ChangeMatch" />
+                            <Picker Title="Category for new item" ItemsSource="{Binding ImportCategories}"
+                                    SelectedItem="{Binding SelectedCategory}" IsVisible="{Binding NeedsCategory}" AutomationId="MuseCategory" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Label Text="{Binding RowSearchStatus}" />
+                    <Label Text="{Binding ApprovalBlockReason}" IsVisible="{Binding HasApprovalBlockReason}" />
+                    <Label Text="{Binding ApprovalFeedback}" IsVisible="{Binding HasApprovalFeedback}" AutomationId="MuseApprovalFeedback" />
+                    <Button Text="Approve &amp; next" Command="{Binding ApproveAndNextCommand}" IsEnabled="{Binding CanApprove}" AutomationId="MuseApproveNext" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Skip &amp; next" Command="{Binding SkipAndNextCommand}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Style="{StaticResource SecondaryAction}" Text="Previous" Command="{Binding PreviousRecommendationCommand}" IsEnabled="{Binding HasPrevious}" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryAction}" Text="Next" Command="{Binding NextRecommendationCommand}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Style="{StaticResource SecondaryAction}" Text="Review list" Clicked="OpenReviewList" />
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryAction}" Text="Summary" Command="{Binding ShowSummaryCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsSummaryStep}" Spacing="12">
+                    <Label Text="Ready to import?" FontSize="24" FontAttributes="Bold" />
+                    <Label Text="{Binding SummaryCounts}" AutomationId="MuseSummaryCounts" />
+                    <Label Text="Existing personal information stays unchanged. A local backup is created before import. Source links already saved will not be duplicated. Cloud sync remains paused." />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Review decisions" Clicked="OpenReviewList" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Skip remaining recommendations" Clicked="SkipRemaining" IsVisible="{Binding HasPending}" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Back to recommendations" Command="{Binding BeginReviewCommand}" />
+                    <Button Text="{Binding ImportAction}" Clicked="ImportApproved" IsEnabled="{Binding CanImport}" AutomationId="MuseImportButton" />
+                    <Label Text="{Binding Status}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout IsVisible="{Binding IsResultStep}" Spacing="16">
+                    <Label Text="Import complete" FontSize="24" FontAttributes="Bold" />
+                    <Label Text="{Binding Status}" AutomationId="MuseImportResults" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Backup details" Clicked="ShowBackupDetails" />
+                    <Button Text="View WatchList" Clicked="ViewWatchList" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="Import another file" Clicked="FinishReview" />
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsReviewStep}">
+            <Label Text="{Binding SearchProgress}" VerticalOptions="Center" FontSize="12" AutomationId="MuseSearchProgress" />
+            <Button Grid.Column="1" Style="{StaticResource SecondaryAction}" Text="{Binding SearchAction}"
+                    Command="{Binding ToggleSearchesCommand}" IsVisible="{Binding ShowSearchAction}" />
+        </Grid>
     </Grid>
 </ContentPage>

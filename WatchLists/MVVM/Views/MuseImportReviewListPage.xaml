@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
+             x:Class="WatchLists.MVVM.Views.MuseImportReviewListPage" Title="Review decisions">
+    <Grid Padding="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Picker x:Name="Filter" Title="Show recommendations" SelectedIndexChanged="FilterChanged">
+            <Picker.Items>
+                <x:String>All recommendations</x:String>
+                <x:String>Pending</x:String>
+                <x:String>Needs attention</x:String>
+                <x:String>Approved</x:String>
+                <x:String>Skipped</x:String>
+            </Picker.Items>
+        </Picker>
+        <CollectionView x:Name="Rows" Grid.Row="1" SelectionMode="Single" SelectionChanged="RowSelected">
+            <CollectionView.EmptyView><Label Text="No recommendations in this view." /></CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="viewmodels:MuseReviewRow">
+                    <VerticalStackLayout Padding="12" Spacing="4">
+                        <Label Text="{Binding Title}" FontAttributes="Bold" />
+                        <Label Text="{Binding State}" />
+                        <Label Text="{Binding Effect}" />
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Button Grid.Row="2" Text="Back" Clicked="CloseList" />
+    </Grid>
+</ContentPage>
