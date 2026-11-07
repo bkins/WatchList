@@ -15,6 +15,39 @@ public partial class MuseImportPreviewViewModel
     private string _fileName = string.Empty;
     private string _fileInformation = string.Empty;
     private string _searchQuery = string.Empty;
+    private bool _showOriginalEntries;
+
+    public bool ShowOriginalEntries
+    {
+        get => _showOriginalEntries;
+        set
+        {
+            if (SetProperty(ref _showOriginalEntries, value)) OnPropertyChanged(nameof(OriginalEntriesAction));
+        }
+    }
+    private MuseReviewGroup? CurrentGroup => CurrentIndex >= 0 && CurrentIndex < _reviewGroups.Count
+        ? _reviewGroups[CurrentIndex]
+        : null;
+    public bool IsGroupedRecommendation => CurrentGroup?.IsGrouped == true;
+    public string GroupingLabel => CurrentGroup?.GroupingLabel ?? string.Empty;
+    public string OriginalEntriesAction => ShowOriginalEntries ? "Hide original entries" : "Show original entries";
+    public string OriginalEntries
+    {
+        get
+        {
+            var group = CurrentGroup;
+            if (group == null) return string.Empty;
+
+            var entries = group.Members.Select(member =>
+                $"{member.Section} · line {member.LineNumber}\n{member.Title}" +
+                (member.ReleaseYear.HasValue ? $" ({member.ReleaseYear})" : string.Empty) +
+                $"\n{member.Description}\nSources: {string.Join("\n", member.SourceUrls)}");
+            return string.Join("\n\n", entries);
+        }
+    }
+
+    [RelayCommand]
+    private void ToggleOriginalEntries() => ShowOriginalEntries = !ShowOriginalEntries;
 
     public ObservableCollection<MuseReviewRow> ReviewRows { get; } = new();
     public int WizardStep => _wizardStep;
@@ -217,7 +250,8 @@ public partial class MuseImportPreviewViewModel
                                  , nameof(MatchTitle), nameof(MatchEffect), nameof(NeedsCategory), nameof(CanApprove), nameof(ApprovalBlockReason)
                                  , nameof(HasApprovalFeedback), nameof(HasApprovalBlockReason), nameof(ShowSearchAction)
                                  , nameof(HasPrevious), nameof(HasNext), nameof(SearchAction), nameof(SearchProgress), nameof(RowSearchStatus)
-                                 , nameof(ReviewProgress), nameof(SummaryCounts), nameof(HasPending), nameof(CanImport), nameof(ImportAction) })
+                                 , nameof(ReviewProgress), nameof(SummaryCounts), nameof(HasPending), nameof(CanImport), nameof(ImportAction)
+                                 , nameof(IsGroupedRecommendation), nameof(GroupingLabel), nameof(OriginalEntries) })
             OnPropertyChanged(name);
     }
 
@@ -285,7 +319,8 @@ public partial class MuseImportPreviewViewModel
             if (decision.Status == MuseReviewDecisionStatus.Pending && _suggestionSession != null &&
                 _suggestionSession.Completed.TryGetValue(Recommendations[index], out var result) &&
                 result.NeedsAttention) state = "Pending · needs attention";
-            ReviewRows.Add(new MuseReviewRow(index, Recommendations[index].Title, state, decision.ItemTitle.Length == 0 ? string.Empty
+            var title = Recommendations[index].Title + (_reviewGroups[index].IsGrouped ? $" · {_reviewGroups[index].GroupingLabel}" : string.Empty);
+            ReviewRows.Add(new MuseReviewRow(index, title, state, decision.ItemTitle.Length == 0 ? string.Empty
                 : $"{decision.ItemTitle} · {decision.Provider} {decision.ProviderId} · {decision.MediaType} · {decision.Category}"));
         }
     }

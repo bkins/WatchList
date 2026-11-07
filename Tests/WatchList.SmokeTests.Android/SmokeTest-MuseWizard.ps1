@@ -92,7 +92,7 @@ Tap-WizardText $ui 'Choose Markdown file'
 $ui = Read-WizardUi
 Tap-WizardText $ui $DocumentName
 $ui = Read-WizardUi
-Assert-WizardContains $ui '201 recommendations · 0 warnings'
+Assert-WizardContains $ui '201 document entries · 201 review items · 0 repeated entries grouped · 0 warnings'
 Tap-WizardText $ui 'Start review'
 $ui = Read-WizardUi
 Assert-WizardContains $ui 'Recommendation 1 of 201'

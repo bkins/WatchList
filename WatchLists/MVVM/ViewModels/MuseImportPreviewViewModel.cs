@@ -19,6 +19,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private MuseProviderSearch _providerSearch = new();
     private CancellationTokenSource? _searchCancellation;
     private bool _selectedRowCanBeReviewed;
+    private IReadOnlyList<MuseReviewGroup> _reviewGroups = [];
 
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
     public ObservableCollection<WatchItem> ExistingMatches { get; } = new();
@@ -150,6 +151,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
     {
+        ShowOriginalEntries = false;
         _restoringSelection = true;
         ApprovalFeedback = string.Empty;
         _selectedRowCanBeReviewed = false;
@@ -208,18 +210,21 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             await using var stream = await file.OpenReadAsync();
             using var reader = new StreamReader(stream);
             var result = new MuseMarkdownParser().Parse(await reader.ReadToEndAsync());
+            _reviewGroups = new MuseReviewGrouper().Group(result.Recommendations);
+            var reviewRecommendations = _reviewGroups.Select(group => group.Representative).ToList();
             Recommendations.Clear();
-            foreach (var item in result.Recommendations) Recommendations.Add(item);
-            _suggestionSession = new MuseSuggestionSession(result.Recommendations);
+            foreach (var item in reviewRecommendations) Recommendations.Add(item);
+            _suggestionSession = new MuseSuggestionSession(reviewRecommendations);
             _providerSearch = new MuseProviderSearch();
             _review = _suggestionSession.Review;
             RefreshWizard();
             SelectedRecommendation = null;
             _fileName = file.FileName;
-            _fileInformation = $"{result.Recommendations.Count} recommendations · {result.Warnings.Count} warnings" +
+            _fileInformation = $"{result.Recommendations.Count} document entries · {Recommendations.Count} review items · " +
+                               $"{result.Recommendations.Count - Recommendations.Count} repeated entries grouped · {result.Warnings.Count} warnings" +
                                (result.Warnings.Count > 0 ? "\n" + string.Join("\n", result.Warnings) : string.Empty);
             RefreshWizard();
-            Status = $"{result.Recommendations.Count} rows loaded; {result.Warnings.Count} warnings. " +
+            Status = $"{Recommendations.Count} review items loaded; {result.Warnings.Count} warnings. " +
                      (result.Warnings.Count > 0 ? string.Join(" ", result.Warnings) : "Select a row to review.");
             _ = StartSuggestionsAsync();
         }
@@ -306,6 +311,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         _suggestionSession = null;
         _providerSearch = new MuseProviderSearch();
         _review = null;
+        _reviewGroups = [];
         Recommendations.Clear();
         SelectedRecommendation = null;
         _rowSelections.Clear();

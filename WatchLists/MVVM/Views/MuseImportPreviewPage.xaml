@@ -34,6 +34,10 @@
                     <Label Text="{Binding RecommendationPosition}" FontAttributes="Bold" />
                     <Label Text="{Binding ReviewProgress}" />
                     <Label Text="{Binding RecommendationTitle}" FontSize="24" FontAttributes="Bold" AutomationId="MuseCurrentTitle" />
+                    <Label Text="{Binding GroupingLabel}" IsVisible="{Binding IsGroupedRecommendation}" FontAttributes="Bold" AutomationId="MuseGroupingLabel" />
+                    <Button Style="{StaticResource SecondaryAction}" Text="{Binding OriginalEntriesAction}"
+                            Command="{Binding ToggleOriginalEntriesCommand}" IsVisible="{Binding IsGroupedRecommendation}" AutomationId="MuseOriginalEntriesToggle" />
+                    <Label Text="{Binding OriginalEntries}" IsVisible="{Binding ShowOriginalEntries}" AutomationId="MuseOriginalEntries" />
                     <Label Text="{Binding RecommendationDescription}" MaxLines="3" LineBreakMode="TailTruncation" />
                     <Label Text="{Binding DecisionState}" FontAttributes="Bold" AutomationId="MuseDecisionState" />
                     <Border Padding="14" StrokeShape="RoundRectangle 12">
