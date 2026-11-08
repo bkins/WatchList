@@ -21,6 +21,8 @@
     <Compile Include="..\..\WatchLists\Services\MuseImport\*.cs" Link="MuseImport\%(Filename)%(Extension)" />
     <Compile Include="..\..\WatchLists\MVVM\Models\WatchItem.cs" Link="WatchItem.cs" />
     <Compile Include="..\..\WatchLists\Services\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
+    <Compile Include="..\..\WatchLists\Services\MovieDataAggregator.cs" Link="MovieDataAggregator.cs" />
+    <Compile Include="..\..\WatchLists\Services\Interfaces\IMovieDataAggregator.cs" Link="IMovieDataAggregator.cs" />
     <Compile Include="..\..\WatchLists\Services\TmdbService.cs" Link="TmdbService.cs" />
     <Compile Include="..\..\WatchLists\DataAccess\Interfaces\IMovieDataProvider.cs" Link="IMovieDataProvider.cs" />
     <Compile Include="..\..\WatchLists\Utilities\DeepLinkUtility.cs" Link="DeepLinkUtility.cs" />

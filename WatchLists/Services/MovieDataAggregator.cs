@@ -106,23 +106,27 @@ public class MovieDataAggregator : IMovieDataAggregator
                                          .Select(item => (completed.ProviderName, item)));
         }
 
-        // Group by normalized title to deduplicate
-        var groupedResults = allResults.GroupBy(result => NormalizeTitle(result.Item.Title))
-                                       .Where(group => group.Key.HasValue());
+        // A missing identity gets a unique key: titles and years alone never prove identity.
+        var groupedResults = allResults.Where(result => result.Item.Title.HasValue())
+                                       .GroupBy(result => (object?)SearchResultIdentity.Create(result.ProviderName, result.Item)
+                                                       ?? new object());
 
         var mergedResults = new List<MovieSearchResult>();
 
         foreach (var group in groupedResults)
         {
-            // Prefer TMDB first, then OMDB, then FM-DB for the primary representative
-            var primaryRepresentative = group.OrderBy(result => result.ProviderName == "TmdbService" ? 0
-                                                              : result.ProviderName == "OmdbService" ? 1
-                                                              : result.ProviderName == "FmDbService" ? 2
-                                                              : 3)
-                                             .Select(result => result.Item)
-                                             .FirstOrDefault();
-
-            if (primaryRepresentative == null) continue;
+            var original = group.First().Item;
+            var primaryRepresentative = new MovieSearchResult
+                                        {
+                                            Id               = original.Id
+                                          , Title            = original.Title
+                                          , PosterPath       = original.PosterPath
+                                          , Overview         = original.Overview
+                                          , ReleaseDate      = original.ReleaseDate
+                                          , MediaType        = original.MediaType
+                                          , PrimarySourceApi = original.PrimarySourceApi
+                                          , WebUrl           = original.WebUrl
+                                        };
 
             var aggregatedData = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
