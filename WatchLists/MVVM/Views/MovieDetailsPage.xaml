@@ -40,7 +40,7 @@
             </StackLayout>
 
             <!-- Select Movie Action Button -->
-            <Button Text="➕ Select &amp; Add to WatchList"
+            <Button Text="Add to WatchList"
                     Command="{Binding SelectMovieCommand}"
                     Style="{StaticResource PrimaryButtonStyle}"
                     HeightRequest="48"
@@ -50,7 +50,7 @@
             <!-- Overview Card -->
             <Frame Style="{StaticResource CardStyle}" Padding="16">
                 <StackLayout Spacing="8">
-                    <Label Text="Synopsis Overview"
+                    <Label Text="Overview"
                            FontSize="16"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
@@ -67,7 +67,7 @@
                 <StackLayout Spacing="8">
                     <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
                         <Label Grid.Column="0"
-                               Text="🌐 Aggregated Provider Data"
+                               Text="Provider details"
                                FontSize="16"
                                FontAttributes="Bold"
                                VerticalOptions="Center"
@@ -75,9 +75,10 @@
 
                         <Button Grid.Column="1"
                                 Text="{Binding AggregatedDataExpandIcon}"
+                                SemanticProperties.Description="Show or hide provider details"
                                 Command="{Binding ToggleAggregatedDataExpandedCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}"
-                                HeightRequest="32"
+                                MinimumHeightRequest="48"
                                 Padding="10,0"
                                 FontSize="11"
                                 VerticalOptions="Center" />
@@ -94,7 +95,7 @@
                                     IsVisible="{Binding IsAggregatedDataContentVisible}">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="collections:KeyValuePair(x:String,x:String)">
-                                <Grid ColumnDefinitions="160,*" Padding="0,4">
+                                <Grid ColumnDefinitions="*,2*" ColumnSpacing="12" Padding="0,4">
                                     <Label Grid.Column="0"
                                            Text="{Binding Key}"
                                            FontSize="12"

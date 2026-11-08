@@ -12,7 +12,7 @@
              Title="Discover Movies &amp; Shows">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Muse preview" Clicked="OpenMusePreview" />
+        <ToolbarItem Text="Import from Muse" Clicked="OpenMusePreview" />
     </ContentPage.ToolbarItems>
 
     <Grid Padding="12,10" RowDefinitions="Auto,Auto,*" RowSpacing="10">
@@ -23,11 +23,11 @@
                Padding="14,12"
                Margin="0,0,0,4">
             <StackLayout Spacing="8">
-                <Label Text="Discover &amp; Search"
+                <Label Text="Find movies and shows"
                        FontSize="20"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                <Label Text="Search TMDB, TVMaze, OMDB &amp; FM-DB concurrently"
+                <Label Text="Search by title, then choose a result."
                        FontSize="12"
                        TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
 
@@ -36,7 +36,7 @@
                             Padding="2"
                             BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}">
                         <SearchBar AutomationId="MovieSearchBar"
-                                   Placeholder="Search titles (e.g. Inception, Breaking Bad)..."
+                                   Placeholder="Movie or show title"
                                    Text="{Binding SearchQuery, Mode=TwoWay}"
                                    SearchCommand="{Binding SearchCommand}" />
                     </Border>
@@ -57,11 +57,11 @@
         <Border Grid.Row="1"
                 Padding="12"
                 IsVisible="{Binding HasError}"
-                BackgroundColor="#2A1519"
+                BackgroundColor="{AppThemeBinding Light=#FEF2F2, Dark=#2A1519}"
                 Stroke="#7F1D1D"
                 Margin="0,0,0,4">
             <Label Text="{Binding ErrorMessage}"
-                   TextColor="#FCA5A5"
+                   TextColor="{AppThemeBinding Light=#991B1B, Dark=#FCA5A5}"
                    HorizontalOptions="Center"
                    LineBreakMode="WordWrap"
                    FontSize="13" />
@@ -98,6 +98,14 @@
                                        FontSize="16"
                                        TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
 
+                                <Label Text="{Binding ReleaseDate, StringFormat='Released: {0}'}" FontSize="13"
+                                       IsVisible="{Binding ReleaseDate, Converter={StaticResource StringToBoolConverter}}" />
+                                <Button Text="View details"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Command="{Binding ViewModel.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}, x:DataType={x:Type views:SearchPage}}"
+                                        CommandParameter="{Binding}"
+                                        SemanticProperties.Description="{Binding Title, StringFormat='View details for {0}'}" />
+
                                 <Label Text="{Binding Overview}"
                                        LineBreakMode="TailTruncation"
                                        MaxLines="3"
@@ -121,7 +129,7 @@
                                         IsVisible="{Binding HasSourceApis}"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}">
                                     <Label Text="{Binding SourceApisDisplay}"
-                                           TextColor="{StaticResource Secondary}"
+                                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}"
                                            FontSize="10"
                                            FontAttributes="Italic" />
                                 </Border>
@@ -142,7 +150,7 @@
                                FontSize="14"
                                FontAttributes="Bold"
                                TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                        <Label Text="Try querying broader web indexes or manually create your custom watch item:"
+                        <Label Text="Try a web search or add an item yourself."
                                FontSize="12"
                                TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
 
@@ -151,7 +159,7 @@
                                     Text="🌐 Search Wikipedia"
                                     Command="{Binding SearchWikipediaCommand}"
                                     Margin="0,0,8,8"
-                                    HeightRequest="38"
+                                    MinimumHeightRequest="48"
                                     FontSize="12"
                                     CornerRadius="6"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
@@ -161,7 +169,7 @@
                                     Text="🔍 Search Google"
                                     Command="{Binding SearchGoogleCommand}"
                                     Margin="0,0,8,8"
-                                    HeightRequest="38"
+                                    MinimumHeightRequest="48"
                                     FontSize="12"
                                     CornerRadius="6"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
@@ -171,10 +179,10 @@
                                     Text="➕ Add Custom Item"
                                     Command="{Binding AddCustomItemCommand}"
                                     Margin="0,0,8,8"
-                                    HeightRequest="38"
+                                    MinimumHeightRequest="48"
                                     FontSize="12"
                                     CornerRadius="6"
-                                    BackgroundColor="{StaticResource Secondary}"
+                                    BackgroundColor="{StaticResource Primary}"
                                     TextColor="White" />
                         </FlexLayout>
                     </StackLayout>

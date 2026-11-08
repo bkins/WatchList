@@ -29,7 +29,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private MuseRecommendation? _selectedRecommendation;
     private WatchItem? _selectedExisting;
     private MuseProviderCandidate? _selectedProvider;
-    private string _status = "Select a Muse Markdown file to review. No data is changed by preview.";
+    private string _status = "Nothing is saved until you confirm import.";
     private string _details = string.Empty;
     private string _approvalFeedback = string.Empty;
     private bool _isBusy;

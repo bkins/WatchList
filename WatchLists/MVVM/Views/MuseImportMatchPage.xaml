@@ -10,7 +10,7 @@
         <Label Text="{Binding RecommendationTitle}" FontSize="20" FontAttributes="Bold" />
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Spacing="12">
-                <Label Text="Select the correct title, year and type. This changes the proposed match; approve it on the review screen." />
+                <Label Text="Check title, year and type. Approve on the review screen." />
                 <Label Text="Already in your WatchList" FontAttributes="Bold" />
                 <CollectionView HeightRequest="140" ItemsSource="{Binding ExistingMatches}" SelectionMode="Single" SelectedItem="{Binding SelectedExisting}">
                     <CollectionView.EmptyView><Label Text="No saved match found." /></CollectionView.EmptyView>
@@ -20,7 +20,7 @@
                 </CollectionView>
                 <Label Text="Provider suggestions" FontAttributes="Bold" />
                 <CollectionView HeightRequest="260" ItemsSource="{Binding ProviderMatches}" SelectionMode="Single" SelectedItem="{Binding SelectedProvider}" AutomationId="MuseMatchChoices">
-                    <CollectionView.EmptyView><Label Text="No suggestions yet. Resume searches or try a corrected title below." /></CollectionView.EmptyView>
+                    <CollectionView.EmptyView><Label Text="No suggestions. Try another title or resume searches." /></CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="import:MuseProviderCandidate">
                             <VerticalStackLayout Padding="10" Spacing="4">

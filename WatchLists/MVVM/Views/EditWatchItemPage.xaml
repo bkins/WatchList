@@ -14,7 +14,7 @@
 
             <!-- Primary API Search Action Header Button -->
             <Button AutomationId="SearchApisButton"
-                    Text="🔍 Search Movies &amp; TV Shows (API Aggregator)"
+                    Text="Find a movie or show"
                     Command="{Binding OpenSearchCommand}"
                     Style="{StaticResource PrimaryButtonStyle}"
                     HeightRequest="50"

@@ -34,79 +34,78 @@
                Margin="0,0,0,8">
             <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                 <!-- App Banner Header -->
-                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                <VerticalStackLayout Grid.Row="0" Spacing="8">
                     <StackLayout Grid.Column="0" Spacing="2">
                         <Label Text="My WatchList"
                                FontSize="22"
                                FontAttributes="Bold"
                                TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                        <Label Text="Cross-platform media tracker"
+                        <Label Text="Movies and shows saved for later"
                                FontSize="12"
                                TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
                     </StackLayout>
-                    <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                    <FlexLayout Wrap="Wrap" Direction="Row">
                         <Button Text="Select"
+                                Margin="0,0,8,0"
                                 AutomationId="ToggleSelectModeButton"
                                 Command="{Binding ToggleSelectionModeCommand}"
-                                HeightRequest="36"
+                                MinimumHeightRequest="48"
                                 Padding="12,4"
                                 FontSize="12"
                                 CornerRadius="8"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
                                 TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
-                        <Button Text="+ Add Media"
+                        <Button Text="Add media"
                                 Command="{Binding AddItemCommand}"
-                                HeightRequest="36"
+                                MinimumHeightRequest="48"
                                 Padding="12,4"
                                 FontSize="12"
                                 CornerRadius="8"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
-                    </HorizontalStackLayout>
-                </Grid>
+                    </FlexLayout>
+                </VerticalStackLayout>
 
                 <!-- Multi-Select Action Bar -->
-                <Grid Grid.Row="1"
+                <FlexLayout Grid.Row="1" Wrap="Wrap" Direction="Row" AlignItems="Center"
                       IsVisible="{Binding IsSelectionMode}"
-                      ColumnDefinitions="*,Auto,Auto,Auto"
-                      ColumnSpacing="8"
                       Padding="4,2">
-                    <Label Grid.Column="0"
+                    <Label Margin="0,0,8,4"
                            Text="{Binding SelectedItemsCount, StringFormat='{0} selected'}"
                            VerticalOptions="Center"
                            FontSize="13"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
-                    <Button Grid.Column="1"
+                    <Button Margin="0,0,8,4"
                             Text="Select All"
                             AutomationId="SelectAllButton"
                             Command="{Binding SelectAllCommand}"
-                            HeightRequest="32"
+                            MinimumHeightRequest="48"
                             Padding="10,2"
                             FontSize="11"
                             CornerRadius="6"
                             BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
                             TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                    <Button Grid.Column="2"
+                    <Button Margin="0,0,8,4"
                             Text="Clear"
                             AutomationId="ClearSelectionButton"
                             Command="{Binding ClearSelectionCommand}"
-                            HeightRequest="32"
+                            MinimumHeightRequest="48"
                             Padding="10,2"
                             FontSize="11"
                             CornerRadius="6"
                             BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
                             TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                    <Button Grid.Column="3"
+                    <Button Margin="0,0,8,4"
                             Text="Delete"
                             AutomationId="DeleteSelectedButton"
                             Command="{Binding DeleteSelectedItemsCommand}"
-                            HeightRequest="32"
+                            MinimumHeightRequest="48"
                             Padding="10,2"
                             FontSize="11"
                             CornerRadius="6"
                             BackgroundColor="{StaticResource Tertiary}"
                             TextColor="White" />
-                </Grid>
+                </FlexLayout>
 
                 <!-- Dynamic Category Stat Cards Horizontal Bar -->
                 <CollectionView Grid.Row="2"
@@ -118,27 +117,21 @@
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="viewmodels:CategoryStatCardItem">
-                            <Border Padding="12,6"
-                                    WidthRequest="110"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
-                                    StrokeShape="RoundRectangle 8">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SelectCommand}" />
-                                </Border.GestureRecognizers>
-                                <StackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
-                                    <Label Text="{Binding Count}"
-                                           FontSize="16"
-                                           FontAttributes="Bold"
-                                           HorizontalOptions="Center"
-                                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
-                                    <Label Text="{Binding CategoryName}"
-                                           FontSize="10"
-                                           MaxLines="1"
-                                           LineBreakMode="TailTruncation"
-                                           HorizontalOptions="Center"
-                                           TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                                </StackLayout>
-                            </Border>
+                            <Button Text="{Binding DisplayText}"
+                                    Command="{Binding SelectCommand}"
+                                    MinimumHeightRequest="48"
+                                    Padding="12,6"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    SemanticProperties.Hint="Expand this category in your WatchList">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                        <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                                        <Setter Property="BorderWidth" Value="2" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
@@ -161,6 +154,10 @@
                         AutomationId="WatchItemCollectionView"
                         ItemsSource="{Binding FilteredWatchItemGroups}"
                         VerticalOptions="FillAndExpand">
+            <CollectionView.EmptyView>
+                <Label Text="No titles here yet. Add media or change your search."
+                       Padding="16" HorizontalTextAlignment="Center" />
+            </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="viewmodels:WatchItemGroup">
                     <toolkit:Expander IsExpanded="{Binding IsExpanded}">
@@ -265,7 +262,7 @@
                                                     </FlyoutBase.ContextFlyout>
 
                                                     <!-- Selection CheckBox (visible in selection mode) -->
-                                                    <CheckBox Grid.Column="0"
+                                                    <CheckBox SemanticProperties.Description="{Binding Title, StringFormat='Select {0}'}" Grid.Column="0"
                                                               IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                               IsVisible="{Binding ViewModel.IsSelectionMode, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                               VerticalOptions="Center"
@@ -317,9 +314,9 @@
                                                     </StackLayout>
 
                                                     <!-- Quick Edit Button -->
-                                                    <ImageButton Grid.Column="3"
-                                                                 WidthRequest="32"
-                                                                 HeightRequest="32"
+                                                    <ImageButton SemanticProperties.Description="{Binding Title, StringFormat='Edit {0}'}" Grid.Column="3"
+                                                                 MinimumWidthRequest="48"
+                                                                 MinimumHeightRequest="48"
                                                                  Padding="4"
                                                                  BackgroundColor="Transparent"
                                                                  Command="{Binding ViewModel.EditItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
