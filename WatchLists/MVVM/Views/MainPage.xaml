@@ -28,115 +28,117 @@
     <Grid RowDefinitions="Auto,Auto,*" Padding="12,8">
 
         <!-- Header Stat Cards & App Header -->
-        <Frame Grid.Row="0"
-               Style="{StaticResource ElevatedCardStyle}"
-               Padding="14,12"
-               Margin="0,0,0,8">
-            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                <!-- App Banner Header -->
-                <VerticalStackLayout Grid.Row="0" Spacing="8">
-                    <StackLayout Grid.Column="0" Spacing="2">
-                        <Label Text="My WatchList"
-                               FontSize="22"
-                               FontAttributes="Bold"
-                               TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                        <Label Text="Movies and shows saved for later"
-                               FontSize="12"
-                               TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                    </StackLayout>
-                    <FlexLayout Wrap="Wrap" Direction="Row">
-                        <Button Text="Select"
-                                Margin="0,0,8,0"
-                                AutomationId="ToggleSelectModeButton"
-                                Command="{Binding ToggleSelectionModeCommand}"
-                                MinimumHeightRequest="48"
-                                Padding="12,4"
-                                FontSize="12"
-                                CornerRadius="8"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
-                                TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
-                        <Button Text="Add media"
-                                Command="{Binding AddItemCommand}"
-                                MinimumHeightRequest="48"
-                                Padding="12,4"
-                                FontSize="12"
-                                CornerRadius="8"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
-                    </FlexLayout>
-                </VerticalStackLayout>
-
-                <!-- Multi-Select Action Bar -->
-                <FlexLayout Grid.Row="1" Wrap="Wrap" Direction="Row" AlignItems="Center"
-                      IsVisible="{Binding IsSelectionMode}"
-                      Padding="4,2">
-                    <Label Margin="0,0,8,4"
-                           Text="{Binding SelectedItemsCount, StringFormat='{0} selected'}"
-                           VerticalOptions="Center"
-                           FontSize="13"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
-                    <Button Margin="0,0,8,4"
-                            Text="Select All"
-                            AutomationId="SelectAllButton"
-                            Command="{Binding SelectAllCommand}"
-                            MinimumHeightRequest="48"
-                            Padding="10,2"
-                            FontSize="11"
-                            CornerRadius="6"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
-                            TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                    <Button Margin="0,0,8,4"
-                            Text="Clear"
-                            AutomationId="ClearSelectionButton"
-                            Command="{Binding ClearSelectionCommand}"
-                            MinimumHeightRequest="48"
-                            Padding="10,2"
-                            FontSize="11"
-                            CornerRadius="6"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
-                            TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                    <Button Margin="0,0,8,4"
-                            Text="Delete"
-                            AutomationId="DeleteSelectedButton"
-                            Command="{Binding DeleteSelectedItemsCommand}"
-                            MinimumHeightRequest="48"
-                            Padding="10,2"
-                            FontSize="11"
-                            CornerRadius="6"
-                            BackgroundColor="{StaticResource Tertiary}"
-                            TextColor="White" />
-                </FlexLayout>
-
-                <!-- Dynamic Category Stat Cards Horizontal Bar -->
-                <CollectionView Grid.Row="2"
-                                ItemsSource="{Binding CategoryStats}"
-                                HeightRequest="54"
-                                VerticalOptions="Center">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="viewmodels:CategoryStatCardItem">
-                            <Button Text="{Binding DisplayText}"
-                                    Command="{Binding SelectCommand}"
+        <ScrollView x:Name="HeaderScroll" Grid.Row="0" MaximumHeightRequest="320">
+            <Frame
+                   Style="{StaticResource ElevatedCardStyle}"
+                   Padding="14,12"
+                   Margin="0,0,0,8">
+                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <!-- App Banner Header -->
+                    <VerticalStackLayout Grid.Row="0" Spacing="8">
+                        <StackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="My WatchList"
+                                   FontSize="22"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                            <Label Text="Movies and shows saved for later"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                        </StackLayout>
+                        <FlexLayout Wrap="Wrap" Direction="Row">
+                            <Button Text="Select"
+                                    Margin="0,0,8,0"
+                                    AutomationId="ToggleSelectModeButton"
+                                    Command="{Binding ToggleSelectionModeCommand}"
                                     MinimumHeightRequest="48"
-                                    Padding="12,6"
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    SemanticProperties.Hint="Expand this category in your WatchList">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
-                                        <Setter Property="TextColor" Value="White" />
-                                        <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-                                        <Setter Property="BorderWidth" Value="2" />
-                                    </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </Grid>
-        </Frame>
+                                    Padding="12,4"
+                                    FontSize="12"
+                                    CornerRadius="8"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+                            <Button Text="Add media"
+                                    Command="{Binding AddItemCommand}"
+                                    MinimumHeightRequest="48"
+                                    Padding="12,4"
+                                    FontSize="12"
+                                    CornerRadius="8"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
+                        </FlexLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Multi-Select Action Bar -->
+                    <FlexLayout Grid.Row="1" Wrap="Wrap" Direction="Row" AlignItems="Center"
+                          IsVisible="{Binding IsSelectionMode}"
+                          Padding="4,2">
+                        <Label Margin="0,0,8,4"
+                               Text="{Binding SelectedItemsCount, StringFormat='{0} selected'}"
+                               VerticalOptions="Center"
+                               FontSize="13"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
+                        <Button Margin="0,0,8,4"
+                                Text="Select All"
+                                AutomationId="SelectAllButton"
+                                Command="{Binding SelectAllCommand}"
+                                MinimumHeightRequest="48"
+                                Padding="10,2"
+                                FontSize="11"
+                                CornerRadius="6"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                                TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                        <Button Margin="0,0,8,4"
+                                Text="Clear"
+                                AutomationId="ClearSelectionButton"
+                                Command="{Binding ClearSelectionCommand}"
+                                MinimumHeightRequest="48"
+                                Padding="10,2"
+                                FontSize="11"
+                                CornerRadius="6"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}"
+                                TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                        <Button Margin="0,0,8,4"
+                                Text="Delete"
+                                AutomationId="DeleteSelectedButton"
+                                Command="{Binding DeleteSelectedItemsCommand}"
+                                MinimumHeightRequest="48"
+                                Padding="10,2"
+                                FontSize="11"
+                                CornerRadius="6"
+                                BackgroundColor="{StaticResource DestructiveAction}"
+                                TextColor="White" />
+                    </FlexLayout>
+
+                    <!-- Dynamic Category Stat Cards Horizontal Bar -->
+                    <CollectionView Grid.Row="2"
+                                    ItemsSource="{Binding CategoryStats}"
+                                    HeightRequest="54"
+                                    VerticalOptions="Center">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="viewmodels:CategoryStatCardItem">
+                                <Button Text="{Binding DisplayText}"
+                                        Command="{Binding SelectCommand}"
+                                        MinimumHeightRequest="48"
+                                        Padding="12,6"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        SemanticProperties.Hint="Expand this category in your WatchList">
+                                    <Button.Triggers>
+                                        <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                            <Setter Property="TextColor" Value="White" />
+                                            <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
+                                            <Setter Property="BorderWidth" Value="2" />
+                                        </DataTrigger>
+                                    </Button.Triggers>
+                                </Button>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Frame>
+        </ScrollView>
 
         <!-- SearchBar for Filtering -->
         <Border Grid.Row="1"
@@ -302,7 +304,7 @@
                                                                     BackgroundColor="{AppThemeBinding Light={StaticResource LightSurfaceElevated}, Dark={StaticResource DarkSurfaceElevated}}">
                                                                 <Label Text="{Binding Type}"
                                                                        FontSize="11"
-                                                                       TextColor="{StaticResource Secondary}" />
+                                                                       TextColor="{AppThemeBinding Light={StaticResource SecondaryOnLight}, Dark={StaticResource Secondary}}" />
                                                             </Border>
                                                         </StackLayout>
 

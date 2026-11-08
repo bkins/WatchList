@@ -1,15 +1,9 @@
-using System.Diagnostics;
-using Serilog;
-using WatchLists.Logger;
-using WatchLists.MVVM.Models;
 using WatchLists.MVVM.ViewModels;
 
 namespace WatchLists.MVVM.Views
 {
     public partial class MainPage : ContentPage
     {
-        //private WatchListViewModel WatchListVm => BindingContext as WatchListViewModel ?? throw new InvalidOperationException();
-
         public WatchListViewModel ViewModel { get; }
 
         public MainPage()
@@ -17,6 +11,16 @@ namespace WatchLists.MVVM.Views
             ViewModel = App.Current.Services.GetRequiredService<WatchListViewModel>();
             InitializeComponent();
             BindingContext = ViewModel;
+        }
+
+        protected override void OnSizeAllocated(double width, double height)
+        {
+            base.OnSizeAllocated(width, height);
+
+            if (HeaderScroll != null)
+            {
+                HeaderScroll.MaximumHeightRequest = WatchListLayout.GetHeaderMaximumHeight(height);
+            }
         }
 
         protected override void OnAppearing()

@@ -20,7 +20,7 @@
             <Button AutomationId="ClearLogsButton"
                     Text="🗑️ Clear Logs"
                     Command="{Binding ClearLogsCommand}"
-                    BackgroundColor="{StaticResource Tertiary}"
+                    BackgroundColor="{StaticResource DestructiveAction}"
                     TextColor="White"
                     CornerRadius="10" />
         </Grid>
