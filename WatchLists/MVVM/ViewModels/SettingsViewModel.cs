@@ -14,16 +14,16 @@ public partial class SettingsViewModel : ObservableObject
     private readonly SyncService?    _syncService;
     private bool _loadingSyncSettings;
 
-    [ObservableProperty] private string _selectedStreamingService = string.Empty;
-    [ObservableProperty] private string _selectedCategory         = string.Empty;
-    [ObservableProperty] private string _selectedType             = string.Empty;
+    [ObservableProperty] public partial string SelectedStreamingService { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SelectedCategory { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SelectedType { get; set; } = string.Empty;
 
-    [ObservableProperty] private string _syncFolderPath    = string.Empty;
-    [ObservableProperty] private bool   _autoSyncEnabled;
-    [ObservableProperty] private string _syncStatusMessage = string.Empty;
-    [ObservableProperty] private string _syncMode          = "CloudApi";
-    [ObservableProperty] private string _apiEndpointUrl    = string.Empty;
-    [ObservableProperty] private string _syncCode          = string.Empty;
+    [ObservableProperty] public partial string SyncFolderPath { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool AutoSyncEnabled { get; set; }
+    [ObservableProperty] public partial string SyncStatusMessage { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SyncMode { get; set; } = "CloudApi";
+    [ObservableProperty] public partial string ApiEndpointUrl { get; set; } = string.Empty;
+    [ObservableProperty] public partial string SyncCode { get; set; } = string.Empty;
 
     public bool IsCloudApiMode => SyncMode.EqualsIgnoreCase("CloudApi");
     public bool IsFileSystemMode => !IsCloudApiMode;
@@ -134,7 +134,7 @@ public partial class SettingsViewModel : ObservableObject
         SyncStatusMessage = "Creating new cloud sync storage...";
         var newUrl = await _syncService.CreateNewCloudSyncEndpointAsync();
 
-        if (newUrl.HasValue())
+        if (!string.IsNullOrWhiteSpace(newUrl))
         {
             _updatingCloudDestination = true;
             ApiEndpointUrl            = newUrl;
@@ -202,7 +202,7 @@ public partial class SettingsViewModel : ObservableObject
 #if ANDROID
         try
         {
-            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.R)
+            if (OperatingSystem.IsAndroidVersionAtLeast(30))
             {
                 if (!Android.OS.Environment.IsExternalStorageManager)
                 {

@@ -2,6 +2,11 @@
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
+             xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             xmlns:providers="clr-namespace:WatchLists.Services.Models"
+             xmlns:views="clr-namespace:WatchLists.MVVM.Views"
+             x:DataType="viewmodels:SearchViewModel"
              x:Class="WatchLists.MVVM.Views.SearchPage"
              x:Name="SearchPageReference"
              Title="Discover Movies &amp; Shows">
@@ -68,13 +73,13 @@
                         ItemsSource="{Binding Movies}"
                         SelectionMode="None">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="providers:MovieSearchResult">
                     <Frame Style="{StaticResource CardStyle}"
                            Padding="10"
                            Margin="0,4">
                         <Grid ColumnDefinitions="90,*" ColumnSpacing="12">
                             <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding BindingContext.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}}"
+                                <TapGestureRecognizer Command="{Binding ViewModel.NavigateToDetailsCommand, Source={x:Reference SearchPageReference}, x:DataType={x:Type views:SearchPage}}"
                                                       CommandParameter="{Binding}" />
                             </Grid.GestureRecognizers>
 

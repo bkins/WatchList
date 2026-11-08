@@ -5,6 +5,23 @@ namespace WatchList.Import.Tests;
 
 public sealed class SettingsServiceTests
 {
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"\"")]
+    [InlineData("\" \"")]
+    public async Task GetWatchedCategoryAsync_EmptyStoredValue_ReturnsDefaultWithoutOverwritingFile(string json)
+    {
+        using var database = new DisposableImportDatabase();
+        var filePath = Path.Combine(database.DirectoryPath, "WatchedCategory.json");
+        await File.WriteAllTextAsync(filePath, json);
+        var settings = new SettingsService(database.DirectoryPath);
+
+        var category = await settings.GetWatchedCategoryAsync();
+
+        Assert.Equal("Finished Watching", category);
+        Assert.Equal(json, await File.ReadAllTextAsync(filePath));
+    }
+
     [Fact]
     public async Task SaveAutoSyncEnabledAsync_Disabled_PersistsAcrossServiceInstances()
     {

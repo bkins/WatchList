@@ -1,4 +1,4 @@
-﻿
+
 
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ public class MemoryLogger : ILogger
         _categoryName = categoryName;
     }
 
-    public IDisposable BeginScope<TState> (TState state) => null;
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
     /// <inheritdoc />
     public void Log<TState> (LogLevel                         logLevel

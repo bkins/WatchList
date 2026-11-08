@@ -10,13 +10,15 @@ namespace WatchLists
         public App (IServiceProvider services)
         {
             InitializeComponent();
-            Services                         = services;
+            Services     = services;
             UserAppTheme = AppTheme.Dark;
-            MainPage     = new AppShell();
         }
 
         // Add a static property for convenience
-        public new static App Current => (App)Application.Current;
+        public new static App Current => Application.Current as App
+            ?? throw new InvalidOperationException("WatchList has not been initialized.");
+
+        protected override Window CreateWindow(IActivationState? activationState) => new(new AppShell());
 
         protected override async void OnStart()
         {

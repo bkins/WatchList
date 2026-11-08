@@ -19,22 +19,22 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     private bool                      _disposed;
 
     [ObservableProperty]
-    private string searchText = string.Empty;
+    public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int totalCount;
+    public partial int TotalCount { get; set; }
 
     [ObservableProperty]
-    private int watchedCount;
+    public partial int WatchedCount { get; set; }
 
     [ObservableProperty]
-    private int unwatchedCount;
+    public partial int UnwatchedCount { get; set; }
 
     [ObservableProperty]
-    private bool isSelectionMode;
+    public partial bool IsSelectionMode { get; set; }
 
     [ObservableProperty]
-    private int selectedItemsCount;
+    public partial int SelectedItemsCount { get; set; }
 
     public ObservableCollection<WatchItemGroup> WatchItemGroups         { get; set; } = new();
     public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
@@ -378,12 +378,4 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
             }
         }
     }
-}
-
-public partial class CategoryStatCardItem : ObservableObject
-{
-    [ObservableProperty] private string categoryName = string.Empty;
-    [ObservableProperty] private int count;
-    [ObservableProperty] private bool isSelected;
-    public System.Windows.Input.ICommand SelectCommand { get; set; }
 }

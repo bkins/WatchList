@@ -3,6 +3,10 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
+    xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+    xmlns:views="clr-namespace:WatchLists.MVVM.Views"
+    x:DataType="viewmodels:WatchListViewModel"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     x:Class="WatchLists.MVVM.Views.MainPage"
     x:Name="PageReference"
@@ -11,7 +15,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Refresh"
                      AutomationId="RefreshToolbarItem"
-                     Command="{Binding BindingContext.RefreshItemsCommand, Source={x:Reference PageReference}}">
+                     Command="{Binding ViewModel.RefreshItemsCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}">
             <ToolbarItem.IconImageSource>
                 <FontImageSource Glyph="{StaticResource RefreshIcon}"
                                  FontFamily="MaterialIcons"
@@ -113,7 +117,7 @@
                         <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
                     </CollectionView.ItemsLayout>
                     <CollectionView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="viewmodels:CategoryStatCardItem">
                             <Border Padding="12,6"
                                     WidthRequest="110"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource LightSurface}, Dark={StaticResource DarkSurface}}"
@@ -158,7 +162,7 @@
                         ItemsSource="{Binding FilteredWatchItemGroups}"
                         VerticalOptions="FillAndExpand">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="viewmodels:WatchItemGroup">
                     <toolkit:Expander IsExpanded="{Binding IsExpanded}">
                         <toolkit:Expander.Header>
                             <!-- Category Header Card -->
@@ -217,11 +221,11 @@
                         <toolkit:Expander.Content>
                             <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
                                 <CollectionView.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate x:DataType="models:WatchItem">
                                         <SwipeView Margin="4,2">
                                             <SwipeView.RightItems>
                                                 <SwipeItems Mode="Reveal">
-                                                    <SwipeItem Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                    <SwipeItem Command="{Binding ViewModel.EditItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                CommandParameter="{Binding}"
                                                                Text="Edit">
                                                         <SwipeItem.IconImageSource>
@@ -231,7 +235,7 @@
                                                                              Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
                                                         </SwipeItem.IconImageSource>
                                                     </SwipeItem>
-                                                    <SwipeItem Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
+                                                    <SwipeItem Command="{Binding ViewModel.DeleteItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                CommandParameter="{Binding}"
                                                                Text="Delete">
                                                         <SwipeItem.IconImageSource>
@@ -252,10 +256,10 @@
                                                     <FlyoutBase.ContextFlyout>
                                                         <MenuFlyout>
                                                             <MenuFlyoutItem Text="Edit"
-                                                                            Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                                            Command="{Binding ViewModel.EditItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                             CommandParameter="{Binding}" />
                                                             <MenuFlyoutItem Text="Delete"
-                                                                            Command="{Binding BindingContext.DeleteItemCommand, Source={x:Reference PageReference}}"
+                                                                            Command="{Binding ViewModel.DeleteItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                             CommandParameter="{Binding}" />
                                                         </MenuFlyout>
                                                     </FlyoutBase.ContextFlyout>
@@ -263,7 +267,7 @@
                                                     <!-- Selection CheckBox (visible in selection mode) -->
                                                     <CheckBox Grid.Column="0"
                                                               IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                              IsVisible="{Binding BindingContext.IsSelectionMode, Source={x:Reference PageReference}}"
+                                                              IsVisible="{Binding ViewModel.IsSelectionMode, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                               VerticalOptions="Center"
                                                               Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
@@ -279,7 +283,7 @@
                                                     <!-- Media Details & Deep Link Tap Area -->
                                                     <StackLayout Grid.Column="2" VerticalOptions="Center" Spacing="4">
                                                         <StackLayout.GestureRecognizers>
-                                                            <TapGestureRecognizer Command="{Binding BindingContext.OpenDeepLinkCommand, Source={x:Reference PageReference}}"
+                                                            <TapGestureRecognizer Command="{Binding ViewModel.OpenDeepLinkCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                                   CommandParameter="{Binding}" />
                                                         </StackLayout.GestureRecognizers>
 
@@ -318,7 +322,7 @@
                                                                  HeightRequest="32"
                                                                  Padding="4"
                                                                  BackgroundColor="Transparent"
-                                                                 Command="{Binding BindingContext.EditItemCommand, Source={x:Reference PageReference}}"
+                                                                 Command="{Binding ViewModel.EditItemCommand, Source={x:Reference PageReference}, x:DataType={x:Type views:MainPage}}"
                                                                  CommandParameter="{Binding}"
                                                                  VerticalOptions="Center">
                                                         <ImageButton.Source>

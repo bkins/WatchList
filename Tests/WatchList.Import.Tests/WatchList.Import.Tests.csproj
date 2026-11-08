@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
@@ -11,15 +11,23 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
-    <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.8" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.3" />
+    <PackageReference Include="Moq" Version="4.20.72" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\WatchLists\Services\MuseImport\*.cs" Link="MuseImport\%(Filename)%(Extension)" />
     <Compile Include="..\..\WatchLists\MVVM\Models\WatchItem.cs" Link="WatchItem.cs" />
-    <Compile Include="..\..\WatchLists\Services\Models\SyncBundle.cs" Link="SyncBundle.cs" />
+    <Compile Include="..\..\WatchLists\Services\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
+    <Compile Include="..\..\WatchLists\Services\TmdbService.cs" Link="TmdbService.cs" />
+    <Compile Include="..\..\WatchLists\DataAccess\Interfaces\IMovieDataProvider.cs" Link="IMovieDataProvider.cs" />
+    <Compile Include="..\..\WatchLists\Utilities\DeepLinkUtility.cs" Link="DeepLinkUtility.cs" />
+    <Compile Include="..\..\WatchLists\MVVM\ViewModels\CategoryStatCardItem.cs" Link="CategoryStatCardItem.cs" />
     <Compile Include="..\..\WatchLists\Services\CloudApiSyncProvider.cs" Link="CloudApiSyncProvider.cs" />
     <Compile Include="..\..\WatchLists\Services\SettingsService.cs" Link="SettingsService.cs" />
+    <Compile Include="..\..\WatchLists\Services\SyncSettingsConfig.cs" Link="SyncSettingsConfig.cs" />
     <Compile Include="..\..\WatchLists\Services\Enums\SettingType.cs" Link="SettingType.cs" />
     <Compile Include="..\..\WatchLists\Utilities\Avails.cs" Link="Avails.cs" />
     <Compile Include="..\..\WatchLists\Services\Interfaces\IRemoteSyncProvider.cs" Link="IRemoteSyncProvider.cs" />

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
@@ -13,15 +13,15 @@ public partial class SearchViewModel : ObservableObject
     private readonly MovieDataAggregator _movieDataAggregator;
 
     [ObservableProperty]
-    private ObservableCollection<MovieSearchResult> _movies = new();
+    public partial ObservableCollection<MovieSearchResult> Movies { get; set; } = new();
 
-    [ObservableProperty] private string _searchQuery;
-
-    [ObservableProperty]
-    private string _errorMessage = string.Empty;
+    [ObservableProperty] public partial string SearchQuery { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hasError = false;
+    public partial string ErrorMessage { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool HasError { get; set; } = false;
 
     public SearchViewModel(MovieDataAggregator movieDataAggregator)
     {

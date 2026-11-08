@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -240,7 +240,7 @@ public class MovieDataAggregator : IMovieDataAggregator
         return new string(chars);
     }
 
-    public async Task<AggregatedResult<WatchProvidersResponse>> GetWatchProvidersAsync(int movieId)
+    public async Task<AggregatedResult<WatchProvidersResponse?>> GetWatchProvidersAsync(int movieId)
     {
         return await ExecuteWithDiagnosticsAsync(provider => provider.GetWatchProvidersAsync(movieId));
     }

@@ -10,7 +10,7 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
     public string CategoryName { get; private set; }
     public ICommand ToggleExpandCommand { get; set; }
 
-    public ObservableCollection<WatchItem> Items => this;
+    public new ObservableCollection<WatchItem> Items => this;
 
     private bool _isExpanded = true;
 

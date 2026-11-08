@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -101,7 +101,7 @@ public class Imdb236Service : IMovieDataProvider
 
                 foreach (var rawResult in response.Results)
                 {
-                    if (rawResult == null || rawResult.Id.HasNoValue())
+                    if (rawResult == null || string.IsNullOrWhiteSpace(rawResult.Id))
                     {
                         continue;
                     }
@@ -154,63 +154,4 @@ public class Imdb236Service : IMovieDataProvider
                };
     }
 
-    private class Imdb236MovieDetail
-    {
-        [JsonPropertyName("id")]
-        public string? Id { get; set; }
-
-        [JsonPropertyName("primaryTitle")]
-        public string? PrimaryTitle { get; set; }
-
-        [JsonPropertyName("title")]
-        public string? Title { get; set; }
-
-        [JsonPropertyName("description")]
-        public string? Description { get; set; }
-
-        [JsonPropertyName("plot")]
-        public string? Plot { get; set; }
-
-        [JsonPropertyName("primaryImage")]
-        public string? PrimaryImage { get; set; }
-
-        [JsonPropertyName("image")]
-        public string? Image { get; set; }
-
-        [JsonPropertyName("genres")]
-        public List<string>? Genres { get; set; }
-
-        [JsonPropertyName("releaseDate")]
-        public string? ReleaseDate { get; set; }
-
-        [JsonPropertyName("year")]
-        public int? Year { get; set; }
-    }
-
-    private class Imdb236SearchResponse
-    {
-        [JsonPropertyName("results")]
-        public List<Imdb236SearchResult>? Results { get; set; }
-    }
-
-    private class Imdb236SearchResult
-    {
-        [JsonPropertyName("id")]
-        public string? Id { get; set; }
-
-        [JsonPropertyName("primaryTitle")]
-        public string? PrimaryTitle { get; set; }
-
-        [JsonPropertyName("title")]
-        public string? Title { get; set; }
-
-        [JsonPropertyName("description")]
-        public string? Description { get; set; }
-
-        [JsonPropertyName("primaryImage")]
-        public string? PrimaryImage { get; set; }
-
-        [JsonPropertyName("image")]
-        public string? Image { get; set; }
-    }
 }

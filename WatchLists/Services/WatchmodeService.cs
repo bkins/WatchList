@@ -59,7 +59,8 @@ public class WatchmodeService : IMovieDataProvider
                         {
                             var providerNames = sources.Where(source => source.Type.EqualsIgnoreCase("sub") || source.Type.EqualsIgnoreCase("free"))
                                                        .Select(source => source.Name)
-                                                       .Where(name => name.HasValue())
+                                                       .OfType<string>()
+                                                       .Where(name => !string.IsNullOrWhiteSpace(name))
                                                        .Distinct(StringComparer.OrdinalIgnoreCase)
                                                        .ToList();
 
@@ -144,33 +145,4 @@ public class WatchmodeService : IMovieDataProvider
         return result;
     }
 
-    private class WatchmodeSearchResponse
-    {
-        [JsonPropertyName("title_results")]
-        public List<WatchmodeTitleResult>? TitleResults { get; set; }
-    }
-
-    private class WatchmodeTitleResult
-    {
-        [JsonPropertyName("id")]
-        public int Id { get; set; }
-
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("year")]
-        public int? Year { get; set; }
-    }
-
-    private class WatchmodeSource
-    {
-        [JsonPropertyName("name")]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("type")]
-        public string? Type { get; set; }
-
-        [JsonPropertyName("region")]
-        public string? Region { get; set; }
-    }
 }

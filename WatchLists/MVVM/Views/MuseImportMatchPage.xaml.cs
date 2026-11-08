@@ -15,7 +15,7 @@ public partial class MuseImportMatchPage : ContentPage
         if (BindingContext is not MuseImportPreviewViewModel viewModel) return;
         if (viewModel.SelectedExisting == null && viewModel.SelectedProvider == null)
         {
-            await DisplayAlert("Choose a match", "Select an existing item or provider suggestion first.", "OK");
+            await DisplayAlertAsync("Choose a match", "Select an existing item or provider suggestion first.", "OK");
             return;
         }
         await Navigation.PopModalAsync();

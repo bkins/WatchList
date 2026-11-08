@@ -59,16 +59,16 @@ function Resolve-ExePath {
     if ($ExePath -and (Test-Path $ExePath)) { return $ExePath }
 
     $root = "C:\Users\benho\source\repos\WatchList\WatchLists"
-    $tfm  = "net9.0-windows10.0.19041.0"
+    $tfm  = "net10.0-windows10.0.19041.0"
     $candidates = @(
-        "$root\bin\Debug\$tfm\win10-x64\WatchLists.exe"
+        "$root\bin\Debug\$tfm\win-x64\WatchLists.exe"
         "$root\bin\Debug\$tfm\WatchLists.exe"
-        "$root\bin\Release\$tfm\win10-x64\WatchLists.exe"
+        "$root\bin\Release\$tfm\win-x64\WatchLists.exe"
         "$root\bin\Release\$tfm\WatchLists.exe"
     )
     $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
     if ($found) { return $found }
-    throw "Could not find WatchLists.exe. Build with: dotnet build WatchLists/WatchLists.csproj -f net9.0-windows10.0.19041.0"
+    throw "Could not find WatchLists.exe. Build with: dotnet build WatchLists/WatchLists.csproj -f net10.0-windows10.0.19041.0"
 }
 
 # ─── UIA helpers ─────────────────────────────────────────────────────────────

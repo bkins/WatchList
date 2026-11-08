@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using WatchLists.DataAccess.Interfaces;
 using WatchLists.ExtensionMethods;
@@ -12,7 +12,7 @@ public class TmdbService : IMovieDataProvider
     private const string BaseUrl = "https://api.themoviedb.org/3";
     private const string ImageBaseUrl = "https://image.tmdb.org/t/p/w500";
 
-    private string _apiKey;
+    private string _apiKey = string.Empty;
     public string ApiKey
     {
         get => _apiKey;
@@ -27,7 +27,7 @@ public class TmdbService : IMovieDataProvider
     public TmdbService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        ApiKey      = configuration["TMDb:ApiKey"];
+        ApiKey      = configuration["TMDb:ApiKey"] ?? string.Empty;
     }
 
     #region Common API Methods
@@ -102,9 +102,9 @@ public class TmdbService : IMovieDataProvider
                        .ToList();
     }
 
-    public async Task<AggregatedResult<MovieSearchResponse>> SearchMoviesAsync(string query)
+    public async Task<AggregatedResult<MovieSearchResponse?>> SearchMoviesAsync(string query)
     {
-        var result = new AggregatedResult<MovieSearchResponse>();
+        var result = new AggregatedResult<MovieSearchResponse?>();
 
         try
         {
@@ -187,7 +187,7 @@ public class TmdbService : IMovieDataProvider
             }
 
             result.Data = response;
-            result.Diagnostics[GetType().Name] = response != null && response.Results.Count > 0
+            result.Diagnostics[GetType().Name] = response?.Results?.Count > 0
                 ? "Data returned successfully."
                 : "No data returned.";
         }
@@ -223,9 +223,9 @@ public class TmdbService : IMovieDataProvider
 
     #region Watch Providers
 
-    public async Task<AggregatedResult<WatchProvidersResponse>> GetWatchProvidersAsync(int movieId)
+    public async Task<AggregatedResult<WatchProvidersResponse?>> GetWatchProvidersAsync(int movieId)
     {
-        var result = new AggregatedResult<WatchProvidersResponse>();
+        var result = new AggregatedResult<WatchProvidersResponse?>();
 
         try
         {

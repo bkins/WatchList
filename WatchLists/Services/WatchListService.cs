@@ -22,7 +22,7 @@ public class WatchListService : IDisposable
 
         _ = FileLogger.WriteLogAsync("WatchListService constructor invoked");
 
-        if (dbPath.IsEmptyNullOrWhiteSpace())
+        if (string.IsNullOrWhiteSpace(dbPath))
         {
             string appData;
             try
@@ -262,7 +262,7 @@ public class WatchListService : IDisposable
         return items.FirstOrDefault(item =>
             item.Id != excludeId
          && item.MovieId == movieId
-         && (apiSource.IsEmptyNullOrWhiteSpace()
+         && (string.IsNullOrWhiteSpace(apiSource)
           || item.ApiSource.IsEmptyNullOrWhiteSpace()
           || item.ApiSource.EqualsIgnoreCase(apiSource)));
     }

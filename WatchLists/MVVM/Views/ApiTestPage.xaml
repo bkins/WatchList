@@ -2,6 +2,9 @@
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
+             xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             x:DataType="viewmodels:ApiTestViewModel"
              x:Class="WatchLists.MVVM.Views.ApiTestPage"
              Title="API Diagnostics">
 

@@ -10,10 +10,13 @@ namespace WatchLists.MVVM.Views
     {
         //private WatchListViewModel WatchListVm => BindingContext as WatchListViewModel ?? throw new InvalidOperationException();
 
+        public WatchListViewModel ViewModel { get; }
+
         public MainPage()
         {
+            ViewModel = App.Current.Services.GetRequiredService<WatchListViewModel>();
             InitializeComponent();
-            BindingContext = App.Current.Services.GetRequiredService<WatchListViewModel>();
+            BindingContext = ViewModel;
         }
 
         protected override void OnAppearing()

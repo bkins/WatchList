@@ -1,9 +1,9 @@
-﻿namespace WatchLists.Services.Models;
+namespace WatchLists.Services.Models;
 
 public class Person
 {
     public int    Id                 { get; set; }
-    public string Name               { get; set; }
-    public string KnownForDepartment { get; set; }
-    public string ProfilePath        { get; set; }
+    public string Name               { get; set; } = string.Empty;
+    public string KnownForDepartment { get; set; } = string.Empty;
+    public string ProfilePath        { get; set; } = string.Empty;
 }

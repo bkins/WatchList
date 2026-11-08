@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,14 +18,14 @@ namespace WatchLists.MVVM.ViewModels;
 
 public partial class EditWatchItemViewModel : ObservableObject
 {
-    [ObservableProperty] private bool      _isWatched;
-    [ObservableProperty] private bool      _isLiked;
-    [ObservableProperty] private bool      _isDisliked;
-    [ObservableProperty] private string    _selectedType = string.Empty;
-    [ObservableProperty] private WatchItem _editableItem = new();
-    [ObservableProperty] private string    _movieTitle = string.Empty;
-    [ObservableProperty] private string    _movieDeepLinkUri = string.Empty;
-    [ObservableProperty] private bool      _isAggregatedDataExpanded = false;
+    [ObservableProperty] public partial bool IsWatched { get; set; }
+    [ObservableProperty] public partial bool IsLiked { get; set; }
+    [ObservableProperty] public partial bool IsDisliked { get; set; }
+    [ObservableProperty] public partial string SelectedType { get; set; } = string.Empty;
+    [ObservableProperty] public partial WatchItem EditableItem { get; set; } = new();
+    [ObservableProperty] public partial string MovieTitle { get; set; } = string.Empty;
+    [ObservableProperty] public partial string MovieDeepLinkUri { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool IsAggregatedDataExpanded { get; set; } = false;
 
     public List<KeyValuePair<string, string>> AggregatedDataItems => EditableItem?.AggregatedData?.ToList() ?? new();
     public bool HasAggregatedData => AggregatedDataItems != null && AggregatedDataItems.Count > 0;
@@ -375,12 +375,12 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         await FileLogger.WriteLogAsync("Save command invoked.");
 
-        if (EditableItem != null && EditableItem.MovieId > 0)
+        if (EditableItem.MovieId > 0)
         {
             var existingDuplicate = _watchListService.FindDuplicateItem(EditableItem.MovieId, EditableItem.ApiSource, OriginalItem.Id);
             if (existingDuplicate != null)
             {
-                await Shell.Current.DisplayAlert("Duplicate Item", $"'{MovieTitle}' is already in your WatchList under '{existingDuplicate.Category}'.", "OK");
+                await Shell.Current.DisplayAlertAsync("Duplicate Item", $"'{MovieTitle}' is already in your WatchList under '{existingDuplicate.Category}'.", "OK");
                 return;
             }
         }

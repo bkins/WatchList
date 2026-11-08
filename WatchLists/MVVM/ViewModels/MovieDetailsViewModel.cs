@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -21,8 +21,8 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     private readonly WatchListService     _watchListService;
     private readonly SettingsService      _settingsService;
 
-    [ObservableProperty] private MovieDetail? movieDetail;
-    [ObservableProperty] private bool          _isAggregatedDataExpanded = false;
+    [ObservableProperty] public partial MovieDetail? MovieDetail { get; set; }
+    [ObservableProperty] public partial bool IsAggregatedDataExpanded { get; set; } = false;
 
     public List<KeyValuePair<string, string>> AggregatedDataItems => MovieDetail?.AggregatedData?.ToList() ?? new();
     public bool HasAggregatedData => AggregatedDataItems != null && AggregatedDataItems.Count > 0;
@@ -127,7 +127,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
             return;
         }
 
-        var posterUrl = MovieDetail.PosterPath.HasNoValue()
+        var posterUrl = string.IsNullOrWhiteSpace(MovieDetail.PosterPath)
             ? string.Empty
             : MovieDetail.PosterPath.StartsWith("http")
                 ? MovieDetail.PosterPath
@@ -156,11 +156,10 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
         {
             await FileLogger.WriteLogAsync($"[SelectMovie] Duplicate detected for '{movie.Title}' (ID: {movie.Id}, ApiSource: {movie.PrimarySourceApi}). Category: '{existingItem.Category}'");
 
-            bool navigateToExisting = await Shell.Current.DisplayAlert(
-                "Item Already in WatchList",
-                $"'{movie.Title}' is already in your WatchList under '{existingItem.Category}'.\n\nWould you like to open it?",
-                "Open Item",
-                "Cancel");
+            var navigateToExisting = await Shell.Current.DisplayAlertAsync("Item Already in WatchList"
+                                                                         , $"'{movie.Title}' is already in your WatchList under '{existingItem.Category}'.\n\nWould you like to open it?"
+                                                                         , "Open Item"
+                                                                         , "Cancel");
 
             if (navigateToExisting)
             {
@@ -190,7 +189,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
             var defaultCategory = categories.FirstOrDefault() ?? "Currently Watching";
 
             var streamingService = movie.StreamingProviders.FirstOrDefault();
-            if (streamingService.IsEmptyNullOrWhiteSpace())
+            if (string.IsNullOrWhiteSpace(streamingService))
             {
                 var services = await _settingsService.GetOptionsAsync(SettingType.StreamingServices);
                 streamingService = services.FirstOrDefault() ?? "Netflix";

@@ -1,12 +1,12 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 namespace WatchLists.Converters;
 
 public class ToggledEventArgsConverter : IValueConverter
 {
-    public object Convert (object      value
+    public object? Convert (object?     value
                          , Type        targetType
-                         , object      parameter
+                         , object?     parameter
                          , CultureInfo culture)
     {
         // The value is expected to be a ToggledEventArgs instance.
@@ -18,9 +18,9 @@ public class ToggledEventArgsConverter : IValueConverter
         return false;
     }
 
-    public object ConvertBack (object      value
+    public object? ConvertBack (object?     value
                              , Type        targetType
-                             , object      parameter
+                             , object?     parameter
                              , CultureInfo culture)
     {
         throw new NotImplementedException();

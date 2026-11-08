@@ -8,10 +8,10 @@ public class MovieDetail
     public int         Id          { get; set; }
 
     [JsonPropertyName("title")]
-    public string      Title       { get; set; }
+    public string      Title       { get; set; } = string.Empty;
 
     [JsonPropertyName("overview")]
-    public string      Overview    { get; set; }
+    public string      Overview    { get; set; } = string.Empty;
 
     [JsonPropertyName("poster_path")]
     public string?     PosterPath  { get; set; }

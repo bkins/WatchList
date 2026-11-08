@@ -7,7 +7,6 @@ using WatchLists.DataAccess.Interfaces;
 using WatchLists.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using WatchLists.Logger;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using System.IO;
 using WatchLists.Utilities;

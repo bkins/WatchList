@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.Services;
@@ -12,13 +12,13 @@ public partial class ApiTestViewModel : ObservableObject
     private readonly MovieDataAggregator _aggregator;
 
     [ObservableProperty]
-    private string _selectedApiCall;
+    public partial string SelectedApiCall { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _queryParameter = string.Empty;
+    public partial string QueryParameter { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _resultJson = string.Empty;
+    public partial string ResultJson { get; set; } = string.Empty;
 
     public AggregatedResult<WatchProvidersResponse>? LastDiagnosticResult { get; private set; }
 

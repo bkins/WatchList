@@ -18,7 +18,7 @@ public class SettingsService
 
     public SettingsService (string? storageFolder = null)
     {
-        if (storageFolder.HasValue())
+        if (!string.IsNullOrWhiteSpace(storageFolder))
         {
             _folder = storageFolder;
         }
@@ -54,7 +54,7 @@ public class SettingsService
         {
             var json = await File.ReadAllTextAsync(filePath);
             var val  = JsonSerializer.Deserialize<string>(json);
-            return val.HasNoValue() ? "Finished Watching" : val;
+            return string.IsNullOrWhiteSpace(val) ? "Finished Watching" : val;
         }
         catch
         {
@@ -330,13 +330,4 @@ public class SettingsService
         config.SyncCode = code ?? string.Empty;
         await SaveSyncSettingsConfigAsync(config);
     }
-}
-
-public class SyncSettingsConfig
-{
-    public string SyncMode        { get; set; } = "CloudApi";
-    public string SyncFolderPath  { get; set; } = string.Empty;
-    public string ApiEndpointUrl  { get; set; } = "https://watchlist-faa16-default-rtdb.firebaseio.com/";
-    public string SyncCode        { get; set; } = "MyWatchList2026";
-    public bool   AutoSyncEnabled { get; set; } = true;
 }

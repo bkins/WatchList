@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -46,7 +46,7 @@ public partial class LogsPage : ContentPage
     {
         if ( Avails.FileDoesNotExist(LogConfig.LogFilePath))
         {
-            await DisplayAlert("Error"
+            await DisplayAlertAsync("Error"
                              , "Log file not found."
                              , "OK");
 
@@ -57,7 +57,7 @@ public partial class LogsPage : ContentPage
 
         if (content.IsEmptyNullOrWhiteSpace())
         {
-            await DisplayAlert("Empty"
+            await DisplayAlertAsync("Empty"
                              , "No log messages to copy."
                              , "OK");
 
@@ -65,7 +65,7 @@ public partial class LogsPage : ContentPage
         }
 
         await Clipboard.SetTextAsync(content);
-        await DisplayAlert("Copied"
+        await DisplayAlertAsync("Copied"
                          , "Log messages copied to clipboard."
                          , "OK");
     }

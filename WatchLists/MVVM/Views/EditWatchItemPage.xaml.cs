@@ -1,4 +1,4 @@
-﻿using WatchLists.MVVM.ViewModels;
+using WatchLists.MVVM.ViewModels;
 
 namespace WatchLists.MVVM.Views;
 
@@ -11,11 +11,11 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
         _ = WatchLists.Logger.FileLogger.WriteLogAsync($"[EditWatchItemPage] Constructor. viewModel: {BindingContext?.GetHashCode()}");
     }
 
-    public void ApplyQueryAttributes(IDictionary<string, object?> query)
+    public async void ApplyQueryAttributes(IDictionary<string, object?> query)
     {
         if (BindingContext is not EditWatchItemViewModel viewModel) return;
 
-        viewModel.LoadItem(query.TryGetValue("watchItemId"
+        await viewModel.LoadItem(query.TryGetValue("watchItemId"
                                            , out object? watchItemId)
                                ? watchItemId?.ToString()
                                : null); // No ID means we're adding a new item
@@ -35,8 +35,8 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
     {
         if (sender is not Picker { SelectedItem: string selectedStreamingService }) return;
 
-        var editWatchItemVm = BindingContext as EditWatchItemViewModel;
-        await (editWatchItemVm?.OnStreamingServiceSelectedAsync(selectedStreamingService)).ConfigureAwait(false);
+        if (BindingContext is EditWatchItemViewModel viewModel)
+            await viewModel.OnStreamingServiceSelectedAsync(selectedStreamingService);
     }
 
     private async void OnCategorySelectionChanged(object    sender
@@ -44,8 +44,8 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
     {
         if (sender is not Picker { SelectedItem: string selectedCategory }) return;
 
-        var editWatchItemVm = BindingContext as EditWatchItemViewModel;
-        await (editWatchItemVm?.OnCategorySelectedAsync(selectedCategory)).ConfigureAwait(false);
+        if (BindingContext is EditWatchItemViewModel viewModel)
+            await viewModel.OnCategorySelectedAsync(selectedCategory);
     }
 
     protected override async void OnAppearing()

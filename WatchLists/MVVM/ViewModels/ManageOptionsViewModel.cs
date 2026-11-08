@@ -14,10 +14,10 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
 
         public SettingType OptionSetting { get; set; }
 
-        public string      OptionKey     { get; set; }
+        public string      OptionKey     { get; set; } = string.Empty;
 
-        [ObservableProperty] private string _optionTitle;
-        [ObservableProperty] private string _newOption;
+        [ObservableProperty] public partial string OptionTitle { get; set; } = string.Empty;
+        [ObservableProperty] public partial string NewOption { get; set; } = string.Empty;
 
         public ObservableCollection<string> Options { get; } = [];
 
@@ -31,9 +31,9 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         public async void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             if (! query.TryGetValue("optionKey"
-                                  , out object key)) return;
+                                  , out var key)) return;
 
-            var keyStr = key.ToString() ?? "";
+            var keyStr = key?.ToString() ?? string.Empty;
             if (! Enum.TryParse<SettingType>(keyStr
                                            , out var setting))
             {
@@ -46,7 +46,7 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
             await LoadOptionsAsync();
             //
             // if (! query.TryGetValue("optionKey"
-            //                       , out object key)) return;
+            //                       , out var key)) return;
             //
             // OptionKey   = key?.ToString();
             // OptionTitle = $"Manage {OptionKey}";

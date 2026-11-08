@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SQLite;
 using WatchLists.MVVM.Models;
 using WatchLists.Services.MuseImport;
@@ -7,6 +8,46 @@ namespace WatchList.Import.Tests;
 
 public sealed class MuseImportWriterTests
 {
+    [Fact]
+    public void Apply_MultipleSourcesAndRepeatedImport_PreservesWholeItemsAndRestorableAssociations()
+    {
+        using var database = new DisposableImportDatabase();
+        var item = new WatchItem
+                   {
+                       Title              = "Synthetic film"
+                     , MovieId            = 123
+                     , ApiSource          = "SyntheticProvider"
+                     , Category           = "Finished Watching"
+                     , IsWatched          = true
+                     , IsLiked            = true
+                     , AggregatedDataJson = "{\"custom\":\"preserve\"}"
+                   };
+        database.Connection.Insert(item);
+        var original = JsonSerializer.Serialize(database.Connection.Find<WatchItem>(item.Id));
+        var batch = new MuseImportBatch([]
+                                     , [new(item.Id, "https://instagram.com/reel/shared", "First rationale")
+                                      , new(item.Id, "https://www.instagram.com/reel/shared/?tracking=one", "Second rationale")
+                                      , new(item.Id, "https://example.test/independent", "Independent rationale")]);
+        var writer = new MuseImportWriter(database.Connection);
+        var repeatedBackup = database.CreateBackupPath();
+
+        var first = writer.Apply(batch, database.CreateBackupPath(), DateTime.UtcNow);
+        var repeated = writer.Apply(batch, repeatedBackup, DateTime.UtcNow);
+
+        Assert.Equal(2, first.NewRecommendations);
+        Assert.Equal(0, repeated.NewRecommendations);
+        Assert.Equal(original, JsonSerializer.Serialize(database.Connection.Find<WatchItem>(item.Id)));
+        var sources = new RecommendationStore(database.Connection).GetAll();
+        Assert.Equal(2, sources.Count);
+        var shared = Assert.Single(sources, source => source.SourceKey.Contains("instagram.com"));
+        Assert.Equal(new[] { "First rationale", "Second rationale" }, JsonSerializer.Deserialize<string[]>(shared.DescriptionsJson));
+        using var restored = new SQLiteConnection(repeatedBackup);
+        Assert.Equal(original, JsonSerializer.Serialize(restored.Find<WatchItem>(item.Id)));
+        Assert.Equal(2, RecommendationStore.ReadExisting(restored).Count);
+        Assert.Equal("ok", restored.ExecuteScalar<string>("PRAGMA integrity_check"));
+    }
+
+
     [Fact]
     public void Apply_ConfirmedItemAndRecommendation_CreatesBackupAndWritesAtomically()
     {

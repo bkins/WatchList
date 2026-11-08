@@ -6,10 +6,13 @@ namespace WatchLists.MVVM.Views;
 
 public partial class SearchPage : ContentPage
 {
+    public SearchViewModel ViewModel { get; }
+
     public SearchPage(SearchViewModel viewModel)
     {
+        ViewModel = viewModel;
         InitializeComponent();
-        BindingContext = viewModel;
+        BindingContext = ViewModel;
         _ = FileLogger.WriteLogAsync($"[SearchPage] Constructor. viewModel: {viewModel?.GetHashCode()}");
     }
 
