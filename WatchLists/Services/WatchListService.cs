@@ -5,6 +5,7 @@ using WatchLists.Logger;
 using WatchLists.MVVM.Models;
 using WatchLists.Services.Enums;
 using WatchLists.Services.MuseImport;
+using WatchLists.Services.ReliableSync;
 
 namespace WatchLists.Services;
 
@@ -39,6 +40,7 @@ public class WatchListService : IDisposable
         }
 
         _dbConnection = new SQLiteConnection(dbPath);
+        _dbConnection.BusyTimeout = TimeSpan.FromSeconds(5);
         _dbConnection.CreateTable<WatchItem>();
         _dbConnection.Execute("UPDATE WatchItems SET IsDeleted = 0 WHERE IsDeleted IS NULL;");
 
@@ -73,6 +75,20 @@ public class WatchListService : IDisposable
     }
 
     public event EventHandler? WatchListChanged;
+
+    public ReliableSyncStore CreateReliableSyncStore(string destination)
+        => new(_dbConnection.DatabasePath, destination);
+
+    public string CreateReliableSyncBackup()
+    {
+        var folder = Path.Combine(Path.GetDirectoryName(_dbConnection.DatabasePath)!, "SyncBackups");
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, $"watchlist-sync-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
+        using var connection = new SQLiteConnection(_dbConnection.DatabasePath, SQLiteOpenFlags.ReadWrite);
+        connection.BusyTimeout = TimeSpan.FromSeconds(5);
+        connection.Backup(path, "main");
+        return path;
+    }
 
     public List<MovieRecommendation> GetRecommendationsForSync()
     {

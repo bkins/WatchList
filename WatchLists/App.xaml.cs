@@ -49,7 +49,7 @@ namespace WatchLists
                     var syncService = Services.GetService<Services.SyncService>();
                     if (syncService != null)
                     {
-                        await syncService.ImportAutomaticAsync();
+                        await syncService.SyncAutomaticallyAsync();
                     }
                 }
             }
@@ -69,7 +69,7 @@ namespace WatchLists
                     var syncService = Services.GetService<Services.SyncService>();
                     if (syncService != null)
                     {
-                        _ = Task.Run(async () => await syncService.ExportAutomaticAsync());
+                        _ = Task.Run(syncService.SyncAutomaticallyAsync);
                     }
                 }
             }

@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Maui.Storage;
+using WatchLists.Logger;
+using WatchLists.Services.ReliableSync;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
@@ -18,20 +20,28 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] public partial string SelectedCategory { get; set; } = string.Empty;
     [ObservableProperty] public partial string SelectedType { get; set; } = string.Empty;
 
-    [ObservableProperty] public partial string SyncFolderPath { get; set; } = string.Empty;
     [ObservableProperty] public partial bool AutoSyncEnabled { get; set; }
     [ObservableProperty] public partial string SyncStatusMessage { get; set; } = string.Empty;
-    [ObservableProperty] public partial string SyncMode { get; set; } = "CloudApi";
     [ObservableProperty] public partial string ApiEndpointUrl { get; set; } = string.Empty;
     [ObservableProperty] public partial string SyncCode { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FirebaseApiKey { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FirebaseEmail { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FirebasePassword { get; set; } = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditSync))]
+    public partial bool IsSyncBusy { get; set; }
 
-    public bool IsCloudApiMode => SyncMode.EqualsIgnoreCase("CloudApi");
-    public bool IsFileSystemMode => !IsCloudApiMode;
+    private SyncConflict? _conflict;
+    private CancellationTokenSource? _syncCancellation;
+
+    public bool CanEditSync => !IsSyncBusy;
+    public bool HasConflict => _conflict is not null;
+    public string LocalConflictDetails => Describe(_conflict?.Local);
+    public string CloudConflictDetails => Describe(_conflict?.Remote);
 
     public ObservableCollection<string> StreamingServices { get; } = new();
     public ObservableCollection<string> Categories        { get; } = new();
     public ObservableCollection<string> Types             { get; } = new();
-    public ObservableCollection<string> SyncModes          { get; } = new() { "CloudApi", "FileSystem" };
 
     private string _selectedWatchedCategory = string.Empty;
 
@@ -85,170 +95,162 @@ public partial class SettingsViewModel : ObservableObject
 
         SelectedWatchedCategory = await _settingsService.GetWatchedCategoryAsync();
 
+        var profile = _settingsService.GetReliableSyncProfile();
         _loadingSyncSettings = true;
-        SyncMode        = _settingsService.GetSyncMode();
-        ApiEndpointUrl  = _settingsService.GetApiEndpointUrl();
-        SyncCode        = _settingsService.GetSyncCode();
-        SyncFolderPath  = _settingsService.GetSyncFolderPath();
+        ApiEndpointUrl  = profile?.DatabaseUrl ?? string.Empty;
+        SyncCode        = profile?.Code ?? string.Empty;
+        FirebaseApiKey  = profile?.ApiKey ?? string.Empty;
+        FirebaseEmail   = profile?.Email ?? string.Empty;
         AutoSyncEnabled = _settingsService.GetAutoSyncEnabled();
         _loadingSyncSettings = false;
+        if (_syncService is not null) ApplySyncResult(await _syncService.ReadStatusAsync());
     }
 
-    partial void OnAutoSyncEnabledChanged (bool value)
+    partial void OnAutoSyncEnabledChanged(bool value)
     {
-        if (!_loadingSyncSettings) _ = _settingsService.SaveAutoSyncEnabledAsync(value);
-    }
-    partial void OnSyncModeChanged (string value)
-    {
-        if (!_loadingSyncSettings) _ = _settingsService.SaveSyncModeAsync(value);
-        OnPropertyChanged(nameof(IsCloudApiMode));
-        OnPropertyChanged(nameof(IsFileSystemMode));
+        if (!_loadingSyncSettings && _syncService is not null)
+            _ = SaveAutomaticAsync(value);
     }
 
-    private bool _updatingCloudDestination;
-
-    partial void OnApiEndpointUrlChanged (string value)
+    private async Task SaveAutomaticAsync(bool enabled)
     {
-        if (!_loadingSyncSettings && !_updatingCloudDestination) _ = _settingsService.SaveApiEndpointUrlAsync(value);
-    }
-
-    partial void OnSyncCodeChanged (string value)
-    {
-        if (!_loadingSyncSettings && !_updatingCloudDestination) _ = _settingsService.SaveSyncCodeAsync(value);
-    }
-
-    partial void OnSyncFolderPathChanged (string value)
-    {
-        if (!_loadingSyncSettings) _ = _settingsService.SaveSyncFolderPathAsync(value);
+        var result = await _syncService!.SetAutomaticAsync(enabled);
+        _loadingSyncSettings = true;
+        AutoSyncEnabled = _settingsService.GetAutoSyncEnabled();
+        _loadingSyncSettings = false;
+        SyncStatusMessage = result.Message;
     }
 
     [RelayCommand]
-    public async Task CreateNewCloudEndpoint()
+    private Task PairFirebase()
     {
-        if (_syncService == null)
+        var code = string.IsNullOrWhiteSpace(SyncCode) ? Guid.NewGuid().ToString("N") : SyncCode.Trim();
+        var profile = new FirebaseSyncProfile(ApiEndpointUrl.Trim(), FirebaseApiKey.Trim(), FirebaseEmail.Trim(), code, false);
+        var password = FirebasePassword;
+        FirebasePassword = string.Empty;
+        return RunSyncAsync(async (service, cancellationToken) =>
         {
-            SyncStatusMessage = "Sync service unavailable.";
-            return;
-        }
-
-        SyncStatusMessage = "Creating new cloud sync storage...";
-        var newUrl = await _syncService.CreateNewCloudSyncEndpointAsync();
-
-        if (!string.IsNullOrWhiteSpace(newUrl))
-        {
-            _updatingCloudDestination = true;
-            ApiEndpointUrl            = newUrl;
-            SyncCode                  = _settingsService.GetSyncCode();
-            _updatingCloudDestination = false;
-            SyncStatusMessage = "Created Firebase sync storage. Copy the endpoint URL and sync code to each upgraded device.";
-        }
-        else
-        {
-            SyncStatusMessage = "Could not create Firebase storage. Check the connection, cloud mode and Firebase access rules; existing settings were retained.";
-        }
+            var result = await service.PairAsync(profile, password, cancellationToken);
+            var saved  = _settingsService.GetReliableSyncProfile();
+            if (saved == profile)
+            {
+                SyncCode = code;
+                _loadingSyncSettings = true;
+                AutoSyncEnabled = false;
+                _loadingSyncSettings = false;
+                SetConflict(result.Conflict);
+            }
+            return result;
+        });
     }
 
     [RelayCommand]
-    public async Task PickSyncFolder()
+    private Task CreateNewCloudEndpoint()
+        => RunSyncAsync((service, cancellationToken) => RunPairedAsync(service, true, null, cancellationToken));
+
+    [RelayCommand]
+    private Task SyncNow()
+        => RunSyncAsync((service, cancellationToken) => RunPairedAsync(service, false, null, cancellationToken));
+
+    [RelayCommand]
+    private Task KeepLocal()
+        => ResolveAsync(SyncChoice.Local);
+
+    [RelayCommand]
+    private Task KeepCloud()
+        => ResolveAsync(SyncChoice.Cloud);
+
+    [RelayCommand]
+    private Task BackupSyncData()
     {
+        return RunSyncAsync(async (service, cancellationToken) =>
+        {
+            var backup = await service.BackupAsync();
+            if (backup.BackupPath is not { } path) return backup;
+            await using var file = File.OpenRead(path);
+            var exported = await FileSaver.Default.SaveAsync(Path.GetFileName(path), file, cancellationToken);
+            return new SyncAttempt(exported.IsSuccessful
+                ? "Local sync backup saved to the selected location."
+                : "Local backup created. Export did not complete.");
+        });
+    }
+
+    [RelayCommand]
+    private void CancelSync() => _syncCancellation?.Cancel();
+
+    private Task ResolveAsync(SyncChoice choice)
+    {
+        if (_conflict is not { } conflict) return Task.CompletedTask;
+        return RunSyncAsync((service, cancellationToken) =>
+            RunPairedAsync(service, false, new SyncResolution(conflict.Id, choice), cancellationToken));
+    }
+
+    private Task<SyncAttempt> RunPairedAsync(SyncService       service
+                                            , bool              create
+                                            , SyncResolution?    resolution
+                                            , CancellationToken cancellationToken)
+    {
+        var saved = _settingsService.GetReliableSyncProfile();
+        if (saved is null || saved.DatabaseUrl != ApiEndpointUrl.Trim() || saved.Code != SyncCode.Trim()
+            || saved.ApiKey != FirebaseApiKey.Trim() || saved.Email != FirebaseEmail.Trim())
+            return Task.FromResult(new SyncAttempt("Sign in to save these pairing details before syncing."));
+
+        return service.SyncAsync(create, resolution, cancellationToken);
+    }
+
+    private async Task RunSyncAsync(Func<SyncService, CancellationToken, Task<SyncAttempt>> action)
+    {
+        if (_syncService is null || IsSyncBusy) return;
+        using var cancellation = new CancellationTokenSource();
+        _syncCancellation = cancellation;
+        IsSyncBusy = true;
+        SyncStatusMessage = "Working with Firebase…";
         try
         {
-            var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
-            if (result.IsSuccessful && result.Folder != null)
-            {
-                var folderPath = result.Folder.Path;
-                if (folderPath.IsEmptyNullOrWhiteSpace())
-                {
-                    folderPath = result.Folder.Name;
-                }
-
-                if (folderPath.HasValue())
-                {
-                    SyncFolderPath    = folderPath;
-                    SyncStatusMessage = $"Selected sync directory: {SyncFolderPath}";
-                }
-                else
-                {
-                    SyncStatusMessage = "Folder selected, but path could not be resolved. Please enter path manually.";
-                }
-            }
-            else if (result.Exception != null)
-            {
-                SyncStatusMessage = $"Folder picker error: {result.Exception.Message}";
-            }
+            ApplySyncResult(await action(_syncService, cancellation.Token));
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            SyncStatusMessage = $"Folder selection error: {ex.Message}";
+            await FileLogger.WriteLogAsync($"Sync setup failed: {exception.GetType().Name}");
+            SyncStatusMessage = "Could not load or save the Firebase settings.";
+        }
+        finally
+        {
+            _syncCancellation = null;
+            IsSyncBusy = false;
         }
     }
 
-    [RelayCommand]
-    public void UseDefaultAppFolder()
+    private void ApplySyncResult(SyncAttempt result)
     {
-        SyncFolderPath    = FileSystem.Current.AppDataDirectory;
-        SyncStatusMessage = $"Set to default app folder: {SyncFolderPath}";
+        SyncStatusMessage = result.Message;
+        if (result.Conflict is not null || result.Message is "Sync complete." or "Firebase pairing configured.")
+            SetConflict(result.Conflict);
     }
 
-    [RelayCommand]
-    public async Task SyncNow()
+    private void SetConflict(SyncConflict? conflict)
     {
-        if (_syncService == null)
-        {
-            SyncStatusMessage = "Sync service unavailable.";
-            return;
-        }
+        _conflict = conflict;
+        OnPropertyChanged(nameof(HasConflict));
+        OnPropertyChanged(nameof(LocalConflictDetails));
+        OnPropertyChanged(nameof(CloudConflictDetails));
+    }
 
-#if ANDROID
-        try
+    private string Describe(SyncSnapshot? snapshot)
+    {
+        if (snapshot is null || _conflict is null) return string.Empty;
+        var entries = _conflict.ItemIds.Select(id =>
         {
-            if (OperatingSystem.IsAndroidVersionAtLeast(30))
-            {
-                if (!Android.OS.Environment.IsExternalStorageManager)
-                {
-                    var uri    = Android.Net.Uri.Parse("package:" + Android.App.Application.Context.PackageName);
-                    var intent = new Android.Content.Intent(Android.Provider.Settings.ActionManageAppAllFilesAccessPermission, uri);
-                    intent.AddFlags(Android.Content.ActivityFlags.NewTask);
-                    Android.App.Application.Context.StartActivity(intent);
-                    SyncStatusMessage = "Please grant 'All Files Access' permission in Android Settings, then tap Sync Now again.";
-                    return;
-                }
-            }
-            else
-            {
-                var status = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
-                if (status != PermissionStatus.Granted)
-                {
-                    await Permissions.RequestAsync<Permissions.StorageWrite>();
-                }
-            }
-        }
-        catch
-        {
-            // Fallback for Android versions where StorageWrite is not applicable
-        }
-#endif
-
-        SyncStatusMessage = "Syncing data...";
-        var importResult  = await _syncService.ImportAndMergeSyncBundleAsync();
-        var exportResult  = await _syncService.ExportSyncBundleAsync();
-
-        if (exportResult)
-        {
-            SyncStatusMessage = importResult;
-        }
-        else
-        {
-            if (importResult.Contains("Sync complete") || importResult.Contains("initialized") || importResult.Contains("created"))
-            {
-                SyncStatusMessage = $"{importResult} (Cloud upload failed or conditional writes are unavailable. Check Firebase settings and try again.)";
-            }
-            else
-            {
-                SyncStatusMessage = $"{importResult} (Export: Failed)";
-            }
-        }
-        await LoadSettingsAsync();
+            var item = snapshot.Items.FirstOrDefault(candidate => candidate.Id == id);
+            if (item is null) return $"{id}: missing from this copy";
+            var links = snapshot.Links.Count(link => link.WatchItemId == id);
+            return $"{item.Title} · {item.Type} · {item.ApiSource} {item.MovieId}\n"
+                 + $"Category: {item.Category} · Previous: {item.PreviousCategory}\n"
+                 + $"Watched: {item.IsWatched} · Liked: {item.IsLiked} · Deleted: {item.IsDeleted}\n"
+                 + $"Service: {item.StreamingService} · {item.DeepLinkUri}\n"
+                 + $"Recommendations: {links}";
+        });
+        return string.Join("\n\n", entries);
     }
 
     [RelayCommand]

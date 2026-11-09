@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\WatchLists\Services\MuseImport\*.cs" Link="MuseImport\%(Filename)%(Extension)" />
+    <Compile Include="..\..\WatchLists\Services\ReliableSync\*.cs" Link="ReliableSync\%(Filename)%(Extension)" />
     <Compile Include="..\..\WatchLists\MVVM\Models\WatchItem.cs" Link="WatchItem.cs" />
     <Compile Include="..\..\WatchLists\Services\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
     <Compile Include="..\..\WatchLists\Services\MovieDataAggregator.cs" Link="MovieDataAggregator.cs" />

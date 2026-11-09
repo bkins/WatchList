@@ -103,78 +103,47 @@
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryLight}}" />
 
-                    <Label Text="Synchronization is paused while reliability work is completed. Turn off auto-sync to import recommendations." FontSize="12" />
-                    <Label Text="Sync Mode" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                    <Border Padding="4">
-                        <Picker AutomationId="SyncModePicker"
-                                ItemsSource="{Binding SyncModes}"
-                                SelectedItem="{Binding SyncMode, Mode=TwoWay}"
-                                FontSize="12" />
-                    </Border>
+                    <Label Text="Pair upgraded devices with a private Firebase Realtime Database. Shared-folder sync is paused."
+                           FontSize="12" />
+                    <VerticalStackLayout Spacing="8" IsEnabled="{Binding CanEditSync}">
+                        <Entry AutomationId="ApiEndpointUrlEntry" Text="{Binding ApiEndpointUrl}"
+                               Placeholder="Firebase database root URL" Keyboard="Url" />
+                        <Entry AutomationId="FirebaseApiKeyEntry" Text="{Binding FirebaseApiKey}"
+                               Placeholder="Firebase web API key" />
+                        <Entry AutomationId="FirebaseEmailEntry" Text="{Binding FirebaseEmail}"
+                               Placeholder="Firebase account email" Keyboard="Email" />
+                        <Entry AutomationId="FirebasePasswordEntry" Text="{Binding FirebasePassword}"
+                               Placeholder="Firebase account password" IsPassword="True" />
+                        <Entry AutomationId="SyncCodeEntry" Text="{Binding SyncCode}"
+                               Placeholder="Pairing code, or leave blank for a new pairing" />
+                        <Button AutomationId="PairFirebaseButton" Text="Sign in and save pairing"
+                                Command="{Binding PairFirebaseCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button AutomationId="CreateCloudEndpointButton" Text="Create Storage"
+                                Command="{Binding CreateNewCloudEndpointCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button AutomationId="SyncNowButton" Text="Sync Now"
+                                Command="{Binding SyncNowCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button AutomationId="BackupSyncDataButton" Text="Back Up Local Sync Data"
+                                Command="{Binding BackupSyncDataCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Auto-Sync Data" VerticalOptions="Center" />
+                            <Switch Grid.Column="1" AutomationId="AutoSyncSwitch" IsToggled="{Binding AutoSyncEnabled}" />
+                        </Grid>
+                    </VerticalStackLayout>
 
-                    <!-- Cloud API Section -->
-                    <StackLayout IsVisible="{Binding IsCloudApiMode}" Spacing="8">
-                        <Label Text="Sync Code (Pair Laptop &amp; Phone)" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                        <Border Padding="6">
-                            <Entry AutomationId="SyncCodeEntry"
-                                   Text="{Binding SyncCode, Mode=TwoWay}"
-                                   Placeholder="Enter pairing code e.g. MyWatchList2026"
-                                   FontSize="12" />
-                        </Border>
-
-                        <Label Text="Cloud Endpoint URL" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                        <VerticalStackLayout Spacing="8">
-                            <Border Padding="6" Grid.Column="0">
-                                <Entry AutomationId="ApiEndpointUrlEntry"
-                                       Text="{Binding ApiEndpointUrl, Mode=TwoWay}"
-                                       Placeholder="Cloud endpoint URL"
-                                       FontSize="12" />
-                            </Border>
-                            <Button IsEnabled="False" AutomationId="CreateCloudEndpointButton"
-                                    Grid.Column="1"
-                                    Text="➕ Create Storage"
-                                    Command="{Binding CreateNewCloudEndpointCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" />
-                        </VerticalStackLayout>
-                    </StackLayout>
-
-                    <!-- File System Section -->
-                    <StackLayout IsVisible="{Binding IsFileSystemMode}" Spacing="8">
-                        <Label Text="Shared Sync Storage Directory" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                        <VerticalStackLayout Spacing="8">
-                            <Border Padding="6" Grid.Column="0">
-                                <Entry AutomationId="SyncFolderPathEntry"
-                                       Text="{Binding SyncFolderPath, Mode=TwoWay}"
-                                       Placeholder="Select or enter folder path..."
-                                       FontSize="12" />
-                            </Border>
-                            <Button AutomationId="BrowseSyncFolderButton"
-                                    Grid.Column="1"
-                                    Text="📁 Browse"
-                                    Command="{Binding PickSyncFolderCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" />
-                            <Button AutomationId="UseDefaultAppFolderButton"
-                                    Grid.Column="2"
-                                    Text="📱 App Storage"
-                                    Command="{Binding UseDefaultAppFolderCommand}"
-                                    Style="{StaticResource SecondaryButtonStyle}" />
-                        </VerticalStackLayout>
-                    </StackLayout>
-
-                    <Grid ColumnDefinitions="*, Auto" Margin="0,4">
-                        <StackLayout Grid.Column="0" VerticalOptions="Center">
-                            <Label Text="Auto-Sync Data" FontSize="14" FontAttributes="Bold" />
-                            <Label Text="Preference retained; synchronization is currently paused" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
-                        </StackLayout>
-                        <Switch AutomationId="AutoSyncSwitch"
-                                Grid.Column="1"
-                                IsToggled="{Binding AutoSyncEnabled, Mode=TwoWay}" />
-                    </Grid>
-
-                    <Button IsEnabled="False" AutomationId="SyncNowButton"
-                            Text="⚡ Sync Now"
-                            Command="{Binding SyncNowCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" />
+                    <Button AutomationId="CancelSyncButton" Text="Cancel Sync" IsVisible="{Binding IsSyncBusy}"
+                            Command="{Binding CancelSyncCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    <VerticalStackLayout IsVisible="{Binding HasConflict}" IsEnabled="{Binding CanEditSync}" Spacing="8">
+                        <Label Text="Review both versions" FontAttributes="Bold" />
+                        <Label Text="The choice applies to the affected entries. Any newer edit requires another review." />
+                        <Label Text="On this device" FontAttributes="Bold" />
+                        <Label AutomationId="LocalSyncConflict" Text="{Binding LocalConflictDetails}" />
+                        <Label Text="In Firebase" FontAttributes="Bold" />
+                        <Label AutomationId="CloudSyncConflict" Text="{Binding CloudConflictDetails}" />
+                        <Button AutomationId="KeepLocalSyncButton" Text="Use this device’s copy for conflicts"
+                                Command="{Binding KeepLocalCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button AutomationId="KeepCloudSyncButton" Text="Use Firebase’s copy for conflicts"
+                                Command="{Binding KeepCloudCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    </VerticalStackLayout>
 
                     <Label Text="{Binding SyncStatusMessage}"
                            FontSize="12"

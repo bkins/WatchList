@@ -2,6 +2,7 @@ using System.Text.Json;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.Services.Enums;
+using WatchLists.Services.ReliableSync;
 using WatchLists.Utilities;
 
 namespace WatchLists.Services;
@@ -15,6 +16,28 @@ public class SettingsService
     private const string TypesFile           = "Types.json";
     private const string WatchedCategoryFile = "WatchedCategory.json";
     private const string SyncSettingsFile    = "SyncSettings.json";
+    private const string ReliableSyncFile    = "ReliableSyncProfile.json";
+
+    public FirebaseSyncProfile? GetReliableSyncProfile()
+    {
+        var path = Path.Combine(_folder, ReliableSyncFile);
+        return File.Exists(path) ? SyncJson.Read<FirebaseSyncProfile>(File.ReadAllText(path)) : null;
+    }
+
+    public async Task SaveReliableSyncProfileAsync(FirebaseSyncProfile profile)
+    {
+        var path = Path.Combine(_folder, ReliableSyncFile);
+        var temporary = path + "." + Guid.NewGuid().ToString("N");
+        try
+        {
+            await File.WriteAllTextAsync(temporary, SyncJson.Write(profile));
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
 
     public SettingsService (string? storageFolder = null)
     {
@@ -271,7 +294,7 @@ public class SettingsService
 
     public bool GetAutoSyncEnabled()
     {
-        return LoadSyncSettingsConfig().AutoSyncEnabled;
+        return GetReliableSyncProfile()?.AutoSyncEnabled ?? LoadSyncSettingsConfig().AutoSyncEnabled;
     }
 
     public async Task SaveAutoSyncEnabledAsync (bool enabled)
