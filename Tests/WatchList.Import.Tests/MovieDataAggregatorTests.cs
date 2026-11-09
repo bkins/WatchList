@@ -23,7 +23,7 @@ public sealed class MovieDataAggregatorTests
                {
                    var json = request.RequestUri!.AbsolutePath.Contains("/search/")
                        ? """{"results":[{"id":1,"title":"The Thing","release_date":"1982-06-25"},{"id":2,"title":"The Thing","release_date":"2011-10-14"}]}"""
-                       : """{"results":{"US":{"flatrate":[{"providerId":1,"providerName":"Synthetic Streaming"}]}}}""";
+                       : """{"results":{"US":{"flatrate":[{"provider_id":1,"provider_name":"Synthetic Streaming"}]}}}""";
                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) };
                });
         using var client = new HttpClient(handler.Object);
