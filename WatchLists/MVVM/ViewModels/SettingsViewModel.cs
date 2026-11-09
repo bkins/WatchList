@@ -6,7 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services;
-using WatchLists.Services.BackupRestore;
+using WatchLists.Services.Restoration;
 using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;

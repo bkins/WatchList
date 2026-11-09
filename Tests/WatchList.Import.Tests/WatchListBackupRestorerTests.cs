@@ -1,7 +1,7 @@
 using SQLite;
 using WatchLists.MVVM.Models;
 using WatchLists.Services;
-using WatchLists.Services.BackupRestore;
+using WatchLists.Services.Restoration;
 using WatchLists.Services.MuseImport;
 using WatchLists.Services.ReliableSync;
 using Xunit;

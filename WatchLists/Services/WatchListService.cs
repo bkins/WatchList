@@ -3,7 +3,7 @@ using SQLite;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
-using WatchLists.Services.BackupRestore;
+using WatchLists.Services.Restoration;
 using WatchLists.Services.Enums;
 using WatchLists.Services.MuseImport;
 using WatchLists.Services.ReliableSync;
