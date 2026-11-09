@@ -12,6 +12,23 @@ namespace WatchList.Import.Tests;
 public sealed class EditWatchItemViewModelTests
 {
     [Fact]
+    public async Task InitializeAsync_OverlappingCalls_SharesTheOptionsLoad()
+    {
+        using var database = new DisposableImportDatabase();
+        var settings = new SettingsService(database.DirectoryPath);
+        using var service = new WatchListService(settings, database.DatabasePath);
+        var editor = CreateEditor(service, settings);
+
+        var routeLoad = editor.InitializeAsync();
+        var appearingLoad = editor.InitializeAsync();
+        await Task.WhenAll(routeLoad, appearingLoad);
+
+        Assert.Same(routeLoad, appearingLoad);
+        Assert.Equal(["Currently Watching", "Finished Watching", "Consider Watching"], editor.Categories);
+        Assert.Contains("Netflix", editor.StreamingServices);
+    }
+
+    [Fact]
     public async Task Save_ReopenedWatchedItem_RestoresCategoryAndPreservesItemAndRecommendations()
     {
         using var database = new DisposableImportDatabase();

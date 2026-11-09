@@ -54,6 +54,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     }
 
     private string? _watchedCategory;
+    private Task?   _loadOptionsTask;
     private bool    _isLoaded;
 
     public bool CanToggleWatched => _watchedCategory is not null;
@@ -310,11 +311,16 @@ public partial class EditWatchItemViewModel : ObservableObject
         OnPropertyChanged(nameof(EditableItem));
     }
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        if (Categories.Count > 0 || StreamingServices.Count > 0) return;
+        if (_loadOptionsTask is null || _loadOptionsTask.IsFaulted || _loadOptionsTask.IsCanceled)
+            _loadOptionsTask = LoadOptionsAsync();
 
-        // Load settings asynchronously.
+        return _loadOptionsTask;
+    }
+
+    private async Task LoadOptionsAsync()
+    {
         var categoriesList = await _settingsService.GetOptionsAsync(SettingType.Categories);
         Categories.Clear();
         foreach (var item in categoriesList)
