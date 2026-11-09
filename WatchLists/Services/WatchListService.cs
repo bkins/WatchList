@@ -23,8 +23,15 @@ public class WatchListService : IDisposable
     public AsyncOperationGate SyncAndImportGate { get; } = new();
     public long DatabaseGeneration => Interlocked.Read(ref _databaseGeneration);
 
-    private SQLiteConnection Database => _dbConnection
-        ?? throw new InvalidOperationException("The WatchList database is unavailable. Restart the app to finish recovery.");
+    private SQLiteConnection Database
+    {
+        get
+        {
+            if (_dbConnection is null || _backupRestorer.HasPendingRecovery)
+                throw new InvalidOperationException("The WatchList database is unavailable. Restart the app to finish recovery.");
+            return _dbConnection;
+        }
+    }
 
     public WatchListService (SettingsService settingsService, string? dbPath = null)
     {
@@ -88,7 +95,13 @@ public class WatchListService : IDisposable
     public event EventHandler? WatchListChanged;
 
     public ReliableSyncStore CreateReliableSyncStore(string destination)
-        => new(_databasePath, destination);
+    {
+        lock (_databaseLock)
+        {
+            _ = Database;
+            return new ReliableSyncStore(_databasePath, destination);
+        }
+    }
 
     public IReadOnlyList<WatchListBackupFile> GetLocalBackups()
     {

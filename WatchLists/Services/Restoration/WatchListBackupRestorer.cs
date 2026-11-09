@@ -19,6 +19,8 @@ internal sealed class WatchListBackupRestorer
         _pendingPath  = _databasePath + ".restore-pending";
     }
 
+    public bool HasPendingRecovery => File.Exists(_pendingPath);
+
     public async Task<PreparedWatchListBackup> PrepareAsync(Stream source, CancellationToken cancellationToken)
     {
         var path = Path.Combine(Path.GetTempPath(), $"WatchList-restore-{Guid.NewGuid():N}.db");

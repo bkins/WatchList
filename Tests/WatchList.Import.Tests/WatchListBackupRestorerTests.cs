@@ -143,6 +143,18 @@ public sealed class WatchListBackupRestorerTests
         Assert.False(File.Exists(destination.DatabasePath + ".restore-pending"));
     }
 
+    [Fact]
+    public void CreateReliableSyncStore_RecoveryPending_BlocksAccessToTheDatabase()
+    {
+        using var database = new DisposableImportDatabase();
+        using var service = new WatchListService(new SettingsService(database.DirectoryPath), database.DatabasePath);
+        File.WriteAllText(database.DatabasePath + ".restore-pending", Guid.NewGuid().ToString("N"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.CreateReliableSyncStore("test"));
+
+        Assert.Contains("Restart the app", exception.Message);
+    }
+
     [Theory]
     [InlineData("CREATE TABLE ForeignData (value TEXT)")]
     [InlineData("CREATE TRIGGER unexpected AFTER UPDATE ON WatchItems BEGIN SELECT 1; END")]
