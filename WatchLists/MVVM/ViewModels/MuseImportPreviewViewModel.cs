@@ -10,6 +10,7 @@ namespace WatchLists.MVVM.ViewModels;
 
 public partial class MuseImportPreviewViewModel : ObservableObject
 {
+    private long _reviewDatabaseGeneration;
     private readonly WatchListService _watchListService;
     private readonly TmdbService _tmdbService;
     private readonly TvMazeImportSearch _tvMazeSearch;
@@ -215,6 +216,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             Recommendations.Clear();
             foreach (var item in reviewRecommendations) Recommendations.Add(item);
             _suggestionSession = new MuseSuggestionSession(reviewRecommendations);
+            _reviewDatabaseGeneration = _watchListService.DatabaseGeneration;
             _providerSearch = new MuseProviderSearch();
             _review = _suggestionSession.Review;
             RefreshWizard();
@@ -519,7 +521,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         try
         {
             var skippedRows = _review?.GetSummary().SkippedRows ?? 0;
-            var receipt = await _watchListService.ApplyMuseImportAsync(batch);
+            var receipt = await _watchListService.ApplyMuseImportAsync(batch, _reviewDatabaseGeneration);
             _importBackupPath = receipt.BackupPath;
             _wizardStep = 4;
             _searchCancellation?.Cancel();

@@ -3,6 +3,7 @@ using SQLite;
 using WatchLists.ExtensionMethods;
 using WatchLists.Logger;
 using WatchLists.MVVM.Models;
+using WatchLists.Services.BackupRestore;
 using WatchLists.Services.Enums;
 using WatchLists.Services.MuseImport;
 using WatchLists.Services.ReliableSync;
@@ -12,10 +13,18 @@ namespace WatchLists.Services;
 public class WatchListService : IDisposable
 {
     private readonly SettingsService _settingsService;
-    private readonly SQLiteConnection _dbConnection;
+    private readonly object _databaseLock = new();
+    private readonly string _databasePath;
+    private readonly WatchListBackupRestorer _backupRestorer;
+    private SQLiteConnection? _dbConnection;
+    private long _databaseGeneration;
     private bool _disposed;
 
     public AsyncOperationGate SyncAndImportGate { get; } = new();
+    public long DatabaseGeneration => Interlocked.Read(ref _databaseGeneration);
+
+    private SQLiteConnection Database => _dbConnection
+        ?? throw new InvalidOperationException("The WatchList database is unavailable. Restart the app to finish recovery.");
 
     public WatchListService (SettingsService settingsService, string? dbPath = null)
     {
@@ -39,12 +48,14 @@ public class WatchListService : IDisposable
             dbPath = Path.Combine(appData, "watchlist.db");
         }
 
-        _dbConnection = new SQLiteConnection(dbPath);
-        _dbConnection.BusyTimeout = TimeSpan.FromSeconds(5);
-        _dbConnection.CreateTable<WatchItem>();
-        _dbConnection.Execute("UPDATE WatchItems SET IsDeleted = 0 WHERE IsDeleted IS NULL;");
+        _databasePath = Path.GetFullPath(dbPath);
+        _backupRestorer = new WatchListBackupRestorer(_databasePath);
+        _backupRestorer.RecoverIfPending();
+        _dbConnection = new SQLiteConnection(_databasePath) { BusyTimeout = TimeSpan.FromSeconds(5) };
+        Database.CreateTable<WatchItem>();
+        Database.Execute("UPDATE WatchItems SET IsDeleted = 0 WHERE IsDeleted IS NULL;");
 
-        MigrateJsonData(Path.GetDirectoryName(dbPath) ?? string.Empty);
+        MigrateJsonData(Path.GetDirectoryName(_databasePath) ?? string.Empty);
     }
 
     private void MigrateJsonData (string appDataDir)
@@ -60,7 +71,7 @@ public class WatchListService : IDisposable
                 var jsonItems = JsonSerializer.Deserialize<List<WatchItem>>(json);
                 if (jsonItems != null && jsonItems.Count > 0)
                 {
-                    _dbConnection.InsertAll(jsonItems);
+                    Database.InsertAll(jsonItems);
                     _ = FileLogger.WriteLogAsync($"Migrated {jsonItems.Count} items from watchlist.json to watchlist.db");
                 }
                 
@@ -77,41 +88,89 @@ public class WatchListService : IDisposable
     public event EventHandler? WatchListChanged;
 
     public ReliableSyncStore CreateReliableSyncStore(string destination)
-        => new(_dbConnection.DatabasePath, destination);
+        => new(_databasePath, destination);
+
+    public IReadOnlyList<WatchListBackupFile> GetLocalBackups()
+    {
+        var databaseFolder = Path.GetDirectoryName(_databasePath)!;
+        return new[] { "ImportBackups", "SyncBackups", "RestoreBackups" }
+            .SelectMany(folder =>
+            {
+                var path = Path.Combine(databaseFolder, folder);
+                return Directory.Exists(path) ? Directory.EnumerateFiles(path, "*.db") : [];
+            })
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .ThenBy(path => path, StringComparer.Ordinal)
+            .Select(path => new WatchListBackupFile(
+                $"{Path.GetFileName(Path.GetDirectoryName(path))} / {Path.GetFileName(path)}", path))
+            .ToArray();
+    }
+
+    public Task<PreparedWatchListBackup> PrepareBackupAsync(Stream source, CancellationToken cancellationToken = default)
+        => _backupRestorer.PrepareAsync(source, cancellationToken);
+
+    public Task<WatchListRestoreReceipt> RestoreBackupAsync(PreparedWatchListBackup backup)
+    {
+        return SyncAndImportGate.RunAsync(() => Task.Run(() =>
+        {
+            if (_settingsService.GetAutoSyncEnabled())
+                throw new InvalidOperationException("Turn off automatic sync before restoring a backup.");
+
+            WatchListRestoreReceipt result;
+            lock (_databaseLock)
+            {
+                _ = Database;
+                result = _backupRestorer.Restore(ref _dbConnection, backup);
+                Interlocked.Increment(ref _databaseGeneration);
+            }
+
+            NotifyAfterDatabaseReplacement();
+            return result;
+        }));
+    }
 
     public string CreateReliableSyncBackup()
     {
-        var folder = Path.Combine(Path.GetDirectoryName(_dbConnection.DatabasePath)!, "SyncBackups");
+        var folder = Path.Combine(Path.GetDirectoryName(_databasePath)!, "SyncBackups");
         Directory.CreateDirectory(folder);
         var path = Path.Combine(folder, $"watchlist-sync-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
-        using var connection = new SQLiteConnection(_dbConnection.DatabasePath, SQLiteOpenFlags.ReadWrite);
-        connection.BusyTimeout = TimeSpan.FromSeconds(5);
-        connection.Backup(path, "main");
+        lock (_databaseLock)
+        {
+            Database.Backup(path, "main");
+        }
         return path;
     }
 
     public List<MovieRecommendation> GetRecommendationsForSync()
     {
-        return RecommendationStore.ReadExisting(_dbConnection);
+        lock (_databaseLock)
+            return RecommendationStore.ReadExisting(Database);
     }
 
     public List<WatchItem> GetItemsForImportReview()
     {
-        return _dbConnection.Table<WatchItem>().ToList();
+        lock (_databaseLock)
+            return Database.Table<WatchItem>().ToList();
     }
 
-    public Task<MuseImportReceipt> ApplyMuseImportAsync(MuseImportBatch batch)
+    public Task<MuseImportReceipt> ApplyMuseImportAsync(MuseImportBatch batch, long? expectedGeneration = null)
     {
-        return SyncAndImportGate.RunAsync(() => Task.FromResult(ApplyMuseImport(batch)));
+        return SyncAndImportGate.RunAsync(() => Task.FromResult(ApplyMuseImport(batch, expectedGeneration)));
     }
 
-    private MuseImportReceipt ApplyMuseImport(MuseImportBatch batch)
+    private MuseImportReceipt ApplyMuseImport(MuseImportBatch batch, long? expectedGeneration)
     {
-        var folder = Path.GetDirectoryName(_dbConnection.DatabasePath);
+        var folder = Path.GetDirectoryName(_databasePath);
         if (string.IsNullOrWhiteSpace(folder)) throw new InvalidOperationException("The watchlist backup directory is unavailable.");
 
-        var coordinator = new MuseImportCoordinator(_dbConnection, _settingsService.GetAutoSyncEnabled);
-        var receipt = coordinator.Apply(batch, Path.Combine(folder, "ImportBackups"), DateTime.UtcNow);
+        MuseImportReceipt receipt;
+        lock (_databaseLock)
+        {
+            if (!IsCurrentGeneration(expectedGeneration))
+                throw new InvalidOperationException("The WatchList was restored. Reopen the Muse file and review the matches again.");
+            var coordinator = new MuseImportCoordinator(Database, _settingsService.GetAutoSyncEnabled);
+            receipt = coordinator.Apply(batch, Path.Combine(folder, "ImportBackups"), DateTime.UtcNow);
+        }
         try
         {
             WatchListChanged?.Invoke(this, EventArgs.Empty);
@@ -127,7 +186,8 @@ public class WatchListService : IDisposable
     public WatchItemSyncResult MergeSyncItems(IEnumerable<WatchItem> items
                                             , IEnumerable<MovieRecommendation> recommendations)
     {
-        return new WatchItemSyncMerger(_dbConnection).Merge(items, recommendations);
+        lock (_databaseLock)
+            return new WatchItemSyncMerger(Database).Merge(items, recommendations);
     }
 
     public List<WatchItem> GetCurrentWatchItems() => GetWatchItems();
@@ -136,7 +196,8 @@ public class WatchListService : IDisposable
     {
         try
         {
-            return _dbConnection.Table<WatchItem>().Where(item => !item.IsDeleted).ToList();
+            lock (_databaseLock)
+                return Database.Table<WatchItem>().Where(item => !item.IsDeleted).ToList();
         }
         catch (Exception ex)
         {
@@ -149,7 +210,8 @@ public class WatchListService : IDisposable
     {
         try
         {
-            return _dbConnection.Table<WatchItem>().ToList();
+            lock (_databaseLock)
+                return Database.Table<WatchItem>().ToList();
         }
         catch (Exception ex)
         {
@@ -163,7 +225,8 @@ public class WatchListService : IDisposable
         if (id == Guid.Empty) return null;
         try
         {
-            return _dbConnection.Find<WatchItem>(id);
+            lock (_databaseLock)
+                return Database.Find<WatchItem>(id);
         }
         catch (Exception ex)
         {
@@ -186,37 +249,43 @@ public class WatchListService : IDisposable
         {
             item.LastUpdated = DateTime.UtcNow;
         }
-        _dbConnection.InsertOrReplace(item);
+        lock (_databaseLock)
+            Database.InsertOrReplace(item);
         _ = FileLogger.WriteLogAsync($"Added new WatchItem with ID: {item.Id} via SQLite");
 
         WatchListChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void UpdateWatchItem (WatchItem updatedItem)
+    public bool UpdateWatchItem(WatchItem updatedItem, long? expectedGeneration = null)
     {
-        if (updatedItem == null) return;
+        if (updatedItem == null) return false;
 
-        updatedItem.LastUpdated = DateTime.UtcNow;
-        _dbConnection.InsertOrReplace(updatedItem);
+        lock (_databaseLock)
+        {
+            if (!IsCurrentGeneration(expectedGeneration)) return false;
+            updatedItem.LastUpdated = DateTime.UtcNow;
+            Database.InsertOrReplace(updatedItem);
+        }
         _ = FileLogger.WriteLogAsync($"Updated WatchItem with ID: {updatedItem.Id} via SQLite");
 
         WatchListChanged?.Invoke(this, EventArgs.Empty);
+        return true;
     }
 
     public void DeleteWatchItem (Guid id)
     {
         try
         {
-            var item = _dbConnection.Find<WatchItem>(id);
-            if (item != null)
+            lock (_databaseLock)
             {
+                var item = Database.Find<WatchItem>(id);
+                if (item is null) return;
                 item.IsDeleted   = true;
                 item.LastUpdated = DateTime.UtcNow;
-                _dbConnection.InsertOrReplace(item);
-                _ = FileLogger.WriteLogAsync($"Soft-deleted WatchItem with ID: {id} via SQLite");
-
-                WatchListChanged?.Invoke(this, EventArgs.Empty);
+                Database.InsertOrReplace(item);
             }
+            _ = FileLogger.WriteLogAsync($"Soft-deleted WatchItem with ID: {id} via SQLite");
+            WatchListChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
@@ -234,19 +303,21 @@ public class WatchListService : IDisposable
             if (idList.Count == 0) return;
 
             var now = DateTime.UtcNow;
-            _dbConnection.RunInTransaction(() =>
+            lock (_databaseLock)
             {
-                foreach (var id in idList)
+                var connection = Database;
+                connection.RunInTransaction(() =>
                 {
-                    var item = _dbConnection.Find<WatchItem>(id);
-                    if (item != null)
+                    foreach (var id in idList)
                     {
+                        var item = connection.Find<WatchItem>(id);
+                        if (item is null) continue;
                         item.IsDeleted   = true;
                         item.LastUpdated = now;
-                        _dbConnection.InsertOrReplace(item);
+                        connection.InsertOrReplace(item);
                     }
-                }
-            });
+                });
+            }
 
             _ = FileLogger.WriteLogAsync($"Soft-deleted {idList.Count} items via batch delete in SQLite");
             WatchListChanged?.Invoke(this, EventArgs.Empty);
@@ -261,7 +332,8 @@ public class WatchListService : IDisposable
     {
         if (item == null) return;
 
-        _dbConnection.InsertOrReplace(item);
+        lock (_databaseLock)
+            Database.InsertOrReplace(item);
         _ = FileLogger.WriteLogAsync($"UpsertWatchItemFromSync ID: {item.Id} via SQLite");
     }
 
@@ -283,9 +355,11 @@ public class WatchListService : IDisposable
           || item.ApiSource.EqualsIgnoreCase(apiSource)));
     }
 
-    public async Task SaveWatchItemAsync (WatchItem item)
+    public async Task<bool> SaveWatchItemAsync(WatchItem item, long? expectedGeneration = null)
     {
-        if (item == null) return;
+        if (item == null) return false;
+        expectedGeneration ??= DatabaseGeneration;
+        if (!IsCurrentGeneration(expectedGeneration)) return false;
 
         // Check if the category exists in settings options
         var savedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
@@ -297,25 +371,51 @@ public class WatchListService : IDisposable
                                                  , savedCategories);
         }
 
-        item.LastUpdated = DateTime.UtcNow;
-        _dbConnection.InsertOrReplace(item);
+        lock (_databaseLock)
+        {
+            if (!IsCurrentGeneration(expectedGeneration)) return false;
+            item.LastUpdated = DateTime.UtcNow;
+            Database.InsertOrReplace(item);
+        }
         _ = FileLogger.WriteLogAsync($"Saved WatchItem with ID: {item.Id} via SQLite");
 
         WatchListChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private bool IsCurrentGeneration(long? expectedGeneration)
+        => !expectedGeneration.HasValue || expectedGeneration == DatabaseGeneration;
+
+    private void NotifyAfterDatabaseReplacement()
+    {
+        try
+        {
+            NotifyWatchListChanged();
+        }
+        catch (Exception exception)
+        {
+            _ = FileLogger.WriteLogAsync($"Restore succeeded; refresh notification failed: {exception.GetType().Name}");
+        }
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-        try
+        lock (_databaseLock)
         {
-            _dbConnection?.Close();
-            _dbConnection?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            _ = FileLogger.WriteLogAsync($"WatchListService dispose error: {ex.Message}");
+            if (_disposed) return;
+            _disposed = true;
+            try
+            {
+                _dbConnection?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _ = FileLogger.WriteLogAsync($"WatchListService dispose error: {ex.Message}");
+            }
+            finally
+            {
+                _dbConnection = null;
+            }
         }
     }
 }

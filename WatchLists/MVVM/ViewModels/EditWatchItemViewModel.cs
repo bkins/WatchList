@@ -56,6 +56,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     private string? _watchedCategory;
     private Task?   _loadOptionsTask;
     private bool    _isLoaded;
+    private long    _databaseGeneration;
 
     public bool CanToggleWatched => _watchedCategory is not null;
 
@@ -307,7 +308,11 @@ public partial class EditWatchItemViewModel : ObservableObject
             MovieDeepLinkUri = EditableItem.DeepLinkUri;
         }
 
-        await _watchListService.SaveWatchItemAsync(EditableItem);
+        if (!await _watchListService.SaveWatchItemAsync(EditableItem, _databaseGeneration))
+        {
+            await ShowRestoredWatchListAsync();
+            return;
+        }
         OnPropertyChanged(nameof(EditableItem));
     }
 
@@ -401,10 +406,17 @@ public partial class EditWatchItemViewModel : ObservableObject
         OriginalItem.IsLiked                    = EditableItem.IsLiked;
         OriginalItem.Type                       = EditableItem.Type;
 
-        _watchListService.UpdateWatchItem(OriginalItem);
+        if (!_watchListService.UpdateWatchItem(OriginalItem, _databaseGeneration))
+        {
+            await ShowRestoredWatchListAsync();
+            return;
+        }
 
         await Shell.Current.GoToAsync("..");
     }
+
+    private static Task ShowRestoredWatchListAsync()
+        => Shell.Current.DisplayAlertAsync("WatchList restored", "Close this editor and reopen the item before editing.", "OK");
 
     [RelayCommand]
     private void ToggleIsLiked (bool like)
@@ -460,6 +472,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         if (_isLoaded) return;
         _isLoaded = true;
+        _databaseGeneration = _watchListService.DatabaseGeneration;
 
         await InitializeAsync(); // Ensure categories and streaming services are loaded first
 
@@ -534,7 +547,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                 {
                     EditableItem.AggregatedData = detailResult.Data.AggregatedData;
                     OriginalItem.AggregatedData = detailResult.Data.AggregatedData;
-                    await _watchListService.SaveWatchItemAsync(EditableItem);
+                    await _watchListService.SaveWatchItemAsync(EditableItem, _databaseGeneration);
                 }
             }
             catch (Exception ex)

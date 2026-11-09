@@ -121,6 +121,7 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     [RelayCommand]
     private async Task SelectMovie()
     {
+        var databaseGeneration = _watchListService.DatabaseGeneration;
         if (MovieDetail == null)
         {
             await FileLogger.WriteLogAsync("[SelectMovie] MovieDetail is null, aborting.");
@@ -224,7 +225,11 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
                 AggregatedData             = movie.AggregatedData ?? new Dictionary<string, string>()
             };
 
-            await _watchListService.SaveWatchItemAsync(newItem);
+            if (!await _watchListService.SaveWatchItemAsync(newItem, databaseGeneration))
+            {
+                await Shell.Current.DisplayAlertAsync("WatchList restored", "Select the item again to add it to the restored list.", "OK");
+                return;
+            }
             await FileLogger.WriteLogAsync($"[SelectMovie] Successfully saved new WatchItem with ID '{newItem.Id}' to SQLite WatchList.");
 
             // Open EditWatchItemPage for the newly created item so the user can see and adjust fields if desired

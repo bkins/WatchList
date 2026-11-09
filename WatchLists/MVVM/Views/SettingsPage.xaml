@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
              xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             xmlns:backup="clr-namespace:WatchLists.Services.BackupRestore"
              x:DataType="viewmodels:SettingsViewModel"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:converters="clr-namespace:WatchLists.Converters"
@@ -95,7 +96,24 @@
                 </StackLayout>
             </Frame>
 
-            <!-- Section 4: Data Synchronization -->
+            <Frame Style="{StaticResource CardStyle}" Padding="14">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Restore a WatchList backup" FontSize="16" FontAttributes="Bold" />
+                    <Label Text="Turn off automatic sync before restoring. A rollback backup is created first." FontSize="12" />
+                    <VerticalStackLayout Spacing="8" IsEnabled="{Binding CanEditSync}">
+                        <Picker AutomationId="RestoreBackupPicker" Title="Select a local backup"
+                                ItemsSource="{Binding RestoreBackups}" SelectedItem="{Binding SelectedRestoreBackup}"
+                                ItemDisplayBinding="{Binding DisplayName, x:DataType=backup:WatchListBackupFile}" />
+                        <Button AutomationId="ReviewLocalRestoreBackupButton" Text="Review selected backup"
+                                Command="{Binding ReviewLocalRestoreBackupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                        <Button AutomationId="PickRestoreBackupButton" Text="Choose backup file…"
+                                Command="{Binding PickRestoreBackupCommand}" Style="{StaticResource SecondaryButtonStyle}" />
+                    </VerticalStackLayout>
+                    <Label AutomationId="RestoreBackupStatus" Text="{Binding RestoreStatus}" FontSize="12" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Data Synchronization -->
             <Frame Style="{StaticResource CardStyle}" Padding="14">
                 <StackLayout Spacing="10">
                     <Label Text="🔄 Data Synchronization"

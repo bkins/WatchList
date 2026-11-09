@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
 using WatchLists.Services;
+using WatchLists.Services.BackupRestore;
 using WatchLists.Services.Enums;
 
 namespace WatchLists.MVVM.ViewModels;
@@ -14,6 +15,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _settingsService;
     private readonly SyncService?    _syncService;
+    private readonly WatchListService? _watchListService;
     private bool _loadingSyncSettings;
 
     [ObservableProperty] public partial string SelectedStreamingService { get; set; } = string.Empty;
@@ -30,11 +32,16 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanEditSync))]
     public partial bool IsSyncBusy { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditSync))]
+    public partial bool IsRestoreBusy { get; set; }
+    [ObservableProperty] public partial string RestoreStatus { get; set; } = string.Empty;
+    [ObservableProperty] public partial WatchListBackupFile? SelectedRestoreBackup { get; set; }
 
     private SyncConflict? _conflict;
     private CancellationTokenSource? _syncCancellation;
 
-    public bool CanEditSync => !IsSyncBusy;
+    public bool CanEditSync => !IsSyncBusy && !IsRestoreBusy;
     public bool HasConflict => _conflict is not null;
     public string LocalConflictDetails => Describe(_conflict?.Local);
     public string CloudConflictDetails => Describe(_conflict?.Remote);
@@ -42,6 +49,7 @@ public partial class SettingsViewModel : ObservableObject
     public ObservableCollection<string> StreamingServices { get; } = new();
     public ObservableCollection<string> Categories        { get; } = new();
     public ObservableCollection<string> Types             { get; } = new();
+    public ObservableCollection<WatchListBackupFile> RestoreBackups { get; } = new();
 
     private string _selectedWatchedCategory = string.Empty;
 
@@ -62,11 +70,13 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
-    public SettingsViewModel (SettingsService settingsService
-                            , SyncService?    syncService = null)
+    public SettingsViewModel(SettingsService    settingsService
+                            , SyncService?       syncService      = null
+                            , WatchListService?  watchListService = null)
     {
         _settingsService = settingsService;
         _syncService     = syncService;
+        _watchListService = watchListService;
     }
 
     public async Task LoadSettingsAsync()
@@ -104,6 +114,106 @@ public partial class SettingsViewModel : ObservableObject
         AutoSyncEnabled = _settingsService.GetAutoSyncEnabled();
         _loadingSyncSettings = false;
         if (_syncService is not null) ApplySyncResult(await _syncService.ReadStatusAsync());
+        RefreshRestoreBackups();
+    }
+
+    private void RefreshRestoreBackups()
+    {
+        if (_watchListService is null) return;
+        var selected = SelectedRestoreBackup;
+        RestoreBackups.Clear();
+        foreach (var backup in _watchListService.GetLocalBackups())
+            RestoreBackups.Add(backup);
+        SelectedRestoreBackup = RestoreBackups.FirstOrDefault(backup => backup == selected);
+    }
+
+    [RelayCommand]
+    private Task ReviewLocalRestoreBackup()
+    {
+        if (SelectedRestoreBackup is not { } backup)
+        {
+            RestoreStatus = "Choose a local backup first.";
+            return Task.CompletedTask;
+        }
+
+        return RestoreFromAsync(() => Task.FromResult<(string, Stream)?>((
+            Path.GetFileName(backup.Path), File.OpenRead(backup.Path))));
+    }
+
+    [RelayCommand]
+    private Task PickRestoreBackup()
+    {
+        return RestoreFromAsync(async () =>
+        {
+            var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Choose a WatchList backup" });
+            return file is null ? null : (file.FileName, await file.OpenReadAsync());
+        });
+    }
+
+    private async Task RestoreFromAsync(Func<Task<(string Name, Stream Content)?>> select)
+    {
+        if (!CanEditSync || _watchListService is null) return;
+        if (_settingsService.GetAutoSyncEnabled())
+        {
+            RestoreStatus = "Turn off automatic sync before restoring a backup.";
+            return;
+        }
+
+        IsRestoreBusy = true;
+        try
+        {
+            var selection = await select();
+            if (selection is null)
+            {
+                RestoreStatus = "Backup selection canceled.";
+                return;
+            }
+
+            RestoreStatus = "Validating the selected backup…";
+            PreparedWatchListBackup prepared;
+            await using (var content = selection.Value.Content)
+                prepared = await _watchListService.PrepareBackupAsync(content);
+            using (prepared)
+            {
+                var summary = prepared.Summary;
+                var syncInformation = summary.HasSyncState ? "Includes saved sync recovery state." : "Includes local WatchList data.";
+                var confirmed = await Shell.Current.DisplayAlertAsync("Restore WatchList backup?"
+                    , $"{selection.Value.Name}\n{summary.Items} active items, {summary.DeletedItems} deleted items, "
+                      + $"{summary.Recommendations} recommendation links. {syncInformation}\n\n"
+                      + "This replaces the local list. WatchList first saves a rollback backup. Settings are stored separately."
+                    , "Restore", "Cancel");
+                if (!confirmed)
+                {
+                    RestoreStatus = "Restore canceled.";
+                    return;
+                }
+
+                RestoreStatus = "Restoring and reopening the WatchList…";
+                var receipt = await _watchListService.RestoreBackupAsync(prepared);
+                RestoreStatus = $"Restored {receipt.Summary.Items} active items and {receipt.Summary.Recommendations} recommendation links. "
+                              + $"Rollback backup saved in RestoreBackups as {Path.GetFileName(receipt.RollbackPath)}.";
+                RefreshRestoreBackups();
+                if (_syncService is not null)
+                {
+                    var syncStatus = await _syncService.ReadStatusAsync();
+                    ApplySyncResult(syncStatus);
+                    SetConflict(syncStatus.Conflict);
+                }
+            }
+        }
+        catch (Exception exception) when (exception is InvalidDataException or InvalidOperationException or IOException)
+        {
+            RestoreStatus = exception.Message;
+        }
+        catch (Exception exception)
+        {
+            await FileLogger.WriteLogAsync($"Backup restore failed: {exception.GetType().Name}");
+            RestoreStatus = "The backup could not be opened or restored.";
+        }
+        finally
+        {
+            IsRestoreBusy = false;
+        }
     }
 
     partial void OnAutoSyncEnabledChanged(bool value)
@@ -200,7 +310,7 @@ public partial class SettingsViewModel : ObservableObject
 
     private async Task RunSyncAsync(Func<SyncService, CancellationToken, Task<SyncAttempt>> action)
     {
-        if (_syncService is null || IsSyncBusy) return;
+        if (_syncService is null || !CanEditSync) return;
         using var cancellation = new CancellationTokenSource();
         _syncCancellation = cancellation;
         IsSyncBusy = true;
