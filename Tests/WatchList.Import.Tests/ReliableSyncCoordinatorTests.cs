@@ -131,6 +131,29 @@ public sealed class ReliableSyncCoordinatorTests
     }
 
     [Fact]
+    public async Task SyncAsync_ContinuousContention_StopsAfterThreeWritesWithLocalEditIntact()
+    {
+        using var database = new DisposableImportDatabase();
+        var item = CreateItem(database);
+        var remote = new FakeReliableSyncRemote();
+        var sync = Coordinator(database, remote);
+        await sync.SyncAsync(create: true);
+        Update(database, item.Id, saved => saved.IsLiked = true);
+        remote.BeforeWrite = () =>
+        {
+            var current = Assert.Single(remote.Current!.Decode().Items);
+            remote.Current = SyncEnvelope.Create(new SyncSnapshot([current with { Category = Guid.NewGuid().ToString("N") }], []));
+        };
+
+        var result = await sync.SyncAsync();
+
+        Assert.Contains("kept updating", result.Message);
+        Assert.Equal(3, remote.RejectedWrites);
+        Assert.True(database.Connection.Get<WatchItem>(item.Id).IsLiked);
+        Assert.False(Assert.Single(remote.Current!.Decode().Items).IsLiked);
+    }
+
+    [Fact]
     public async Task SyncAsync_UnknownAcknowledgementAndRestart_DoesNotResendOrDiscardLaterEdit()
     {
         using var database = new DisposableImportDatabase();
@@ -147,6 +170,28 @@ public sealed class ReliableSyncCoordinatorTests
         Assert.Equal(2, remote.WriteCount);
         Assert.True(Assert.Single(remote.Current!.Decode().Items).IsLiked);
         Assert.Null(new ReliableSyncStore(database.DatabasePath, "test").Transaction((_, state) => state.Pending));
+    }
+
+    [Fact]
+    public async Task SyncAsync_LocalEditDuringSuccessfulWrite_PreservesTheEditAndItsCloudAlternative()
+    {
+        using var first = new DisposableImportDatabase();
+        using var second = new DisposableImportDatabase();
+        var item = CreateItem(first);
+        var remote = new FakeReliableSyncRemote();
+        await Coordinator(first, remote).SyncAsync(create: true);
+        await Coordinator(second, remote).SyncAsync();
+        Update(second, item.Id, saved => saved.Category = "Cloud");
+        await Coordinator(second, remote).SyncAsync();
+        Update(first, item.Id, saved => saved.IsLiked = true);
+        remote.BeforeWrite = () => Update(first, item.Id, saved => saved.Category = "Edited during the write");
+
+        var result = await Coordinator(first, remote).SyncAsync();
+
+        Assert.NotNull(result.Conflict);
+        Assert.Equal("Edited during the write", first.Connection.Get<WatchItem>(item.Id).Category);
+        Assert.Equal("Cloud", Assert.Single(result.Conflict.Remote.Items).Category);
+        Assert.True(Assert.Single(result.Conflict.Remote.Items).IsLiked);
     }
 
     [Fact]
@@ -235,6 +280,26 @@ public sealed class ReliableSyncCoordinatorTests
         Assert.Contains("empty or missing", missing.Message);
         Assert.Equal(0, remote.WriteCount);
         Assert.Equal(item.Id, Assert.Single(database.Connection.Table<WatchItem>()).Id);
+    }
+
+    [Fact]
+    public async Task SyncAsync_TwoDestinations_KeepTheirBaselinesSeparate()
+    {
+        using var database = new DisposableImportDatabase();
+        var item = CreateItem(database);
+        var firstRemote = new FakeReliableSyncRemote();
+        var secondRemote = new FakeReliableSyncRemote();
+        var firstStore = new ReliableSyncStore(database.DatabasePath, "first");
+        var secondStore = new ReliableSyncStore(database.DatabasePath, "second");
+        await new ReliableSyncCoordinator(firstStore, firstRemote).SyncAsync(create: true);
+        Update(database, item.Id, saved => saved.Category = "Second pairing");
+
+        await new ReliableSyncCoordinator(secondStore, secondRemote).SyncAsync(create: true);
+
+        var firstBaseline = firstStore.Transaction((_, state) => state.Baseline);
+        var secondBaseline = secondStore.Transaction((_, state) => state.Baseline);
+        Assert.Equal("Queue", Assert.Single(firstBaseline.Items).Category);
+        Assert.Equal("Second pairing", Assert.Single(secondBaseline.Items).Category);
     }
 
     private static ReliableSyncCoordinator Coordinator(DisposableImportDatabase database, FakeReliableSyncRemote remote)
