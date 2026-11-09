@@ -27,9 +27,12 @@
     <Compile Include="..\..\WatchLists\DataAccess\Interfaces\IMovieDataProvider.cs" Link="IMovieDataProvider.cs" />
     <Compile Include="..\..\WatchLists\Utilities\DeepLinkUtility.cs" Link="DeepLinkUtility.cs" />
     <Compile Include="..\..\WatchLists\MVVM\ViewModels\CategoryStatCardItem.cs" Link="CategoryStatCardItem.cs" />
+    <Compile Include="..\..\WatchLists\MVVM\ViewModels\EditWatchItemViewModel.cs" Link="EditWatchItemViewModel.cs" />
+    <Compile Include="..\..\WatchLists\Messaging\MovieSelectedMessage.cs" Link="MovieSelectedMessage.cs" />
     <Compile Include="..\..\WatchLists\MVVM\Views\WatchListLayout.cs" Link="WatchListLayout.cs" />
     <Compile Include="..\..\WatchLists\Services\CloudApiSyncProvider.cs" Link="CloudApiSyncProvider.cs" />
     <Compile Include="..\..\WatchLists\Services\SettingsService.cs" Link="SettingsService.cs" />
+    <Compile Include="..\..\WatchLists\Services\WatchListService.cs" Link="WatchListService.cs" />
     <Compile Include="..\..\WatchLists\Services\SyncSettingsConfig.cs" Link="SyncSettingsConfig.cs" />
     <Compile Include="..\..\WatchLists\Services\Enums\SettingType.cs" Link="SettingType.cs" />
     <Compile Include="..\..\WatchLists\Utilities\Avails.cs" Link="Avails.cs" />

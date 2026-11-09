@@ -142,7 +142,8 @@
                                FontSize="14" />
                         <Switch Grid.Column="1"
                                 AutomationId="WatchedSwitch"
-                                IsToggled="{Binding IsWatched}"
+                                IsToggled="{Binding IsWatched, Mode=OneWay}"
+                                IsEnabled="{Binding CanToggleWatched}"
                                 Toggled="Switch_Toggled"
                                 VerticalOptions="Center" />
                     </Grid>

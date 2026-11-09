@@ -200,11 +200,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     {
         if (item == null) return;
 
-        if (! item.IsWatched)
-        {
-            item.PreviousCategory = item.Category;
-        }
-
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
     }
 

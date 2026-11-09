@@ -15,7 +15,13 @@ public class WatchItem : ObservableObject
 
     public string   StreamingService           { get; set; } = string.Empty; // e.g., Netflix, Prime Video
 
-    public string   Category                   { get; set; } = string.Empty; // e.g., "Currently Watching", "Finished Watching"
+    private string _category = string.Empty;
+
+    public string Category
+    {
+        get => _category;
+        set => SetProperty(ref _category, value);
+    }
 
     public bool     IsWatched                  { get; set; }
 

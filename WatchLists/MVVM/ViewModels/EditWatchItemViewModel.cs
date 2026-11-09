@@ -53,8 +53,10 @@ public partial class EditWatchItemViewModel : ObservableObject
         OnPropertyChanged(nameof(IsAggregatedDataContentVisible));
     }
 
-    private string _previousCategory = string.Empty;
-    private bool   _isLoaded         = false;
+    private string? _watchedCategory;
+    private bool    _isLoaded;
+
+    public bool CanToggleWatched => _watchedCategory is not null;
 
     private readonly WatchListService _watchListService;
     private readonly SettingsService  _settingsService;
@@ -329,45 +331,37 @@ public partial class EditWatchItemViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task ToggleWatched (bool isNowWatched)
+    public void ToggleWatched(bool isNowWatched)
     {
-        // Get the watched category from settings
-        var watchedCategory = await _settingsService.GetWatchedCategoryAsync();
+        if (_watchedCategory is not { } watchedCategory || IsWatched == isNowWatched) return;
 
         if (isNowWatched)
         {
-            SetCategoryToWatchedAndBackup(watchedCategory);
+            EditableItem.PreviousCategory = EditableItem.Category.EqualsIgnoreCase(watchedCategory)
+                ? string.Empty
+                : EditableItem.Category;
+            EnsureCategoryIsSelectable(watchedCategory);
+            EditableItem.Category = watchedCategory;
         }
         else
         {
-            RevertToPreviousCategory();
+            var previousCategory = EditableItem.PreviousCategory;
+            if (previousCategory.HasValue())
+            {
+                EnsureCategoryIsSelectable(previousCategory);
+                EditableItem.Category = previousCategory;
+            }
+            EditableItem.PreviousCategory = string.Empty;
         }
 
-        // Update the isWatched property
-        IsWatched = isNowWatched;
+        EditableItem.IsWatched = isNowWatched;
+        IsWatched              = isNowWatched;
     }
 
-    private void RevertToPreviousCategory()
+    private void EnsureCategoryIsSelectable(string category)
     {
-        // If unmarking as watched and we have a previous category, revert:
-        if (EditableItem.PreviousCategory.IsEmptyNullOrWhiteSpace()) return;
-
-        EditableItem.Category = _previousCategory;
-        _previousCategory     = string.Empty;
-
-        OnPropertyChanged(nameof(EditableItem.Category));
-    }
-
-    private void SetCategoryToWatchedAndBackup (string watchedCategory)
-    {
-
-        // If marking as watched, and if the current category isn't the watched one:
-        if (EditableItem.Category.EqualsIgnoreCase(watchedCategory)) return;
-
-        EditableItem.PreviousCategory = EditableItem.Category; // backup the current category
-        EditableItem.Category         = watchedCategory;
-
-        OnPropertyChanged(nameof(EditableItem.Category));
+        if (category.HasValue() && !Categories.Contains(category))
+            Categories.Add(category);
     }
 
     [RelayCommand]
@@ -394,6 +388,7 @@ public partial class EditWatchItemViewModel : ObservableObject
         OriginalItem.Title                      = MovieTitle;
         OriginalItem.StreamingService           = EditableItem.StreamingService;
         OriginalItem.Category                   = EditableItem.Category;
+        OriginalItem.PreviousCategory           = EditableItem.PreviousCategory;
         OriginalItem.DeepLinkUri                = MovieDeepLinkUri;
         OriginalItem.LastUpdated                = DateTime.Now;
         OriginalItem.IsWatched                  = IsWatched;
@@ -489,24 +484,8 @@ public partial class EditWatchItemViewModel : ObservableObject
 
             if (item == null) return;
 
-            OriginalItem = new WatchItem
-                           {
-                                   Id                         = item.Id
-                                 , MovieId                    = item.MovieId
-                                 , ApiSource                  = item.ApiSource
-                                 , Overview                   = item.Overview
-                                 , PosterUrl                  = item.PosterUrl
-                                 , AvailableStreamingServices = item.AvailableStreamingServices
-                                 , AggregatedDataJson         = item.AggregatedDataJson
-                                 , Title                      = item.Title
-                                 , StreamingService           = item.StreamingService
-                                 , Category                   = item.Category
-                                 , DeepLinkUri                = item.DeepLinkUri
-                                 , LastUpdated                = item.LastUpdated
-                                 , IsWatched                  = item.IsWatched
-                                 , IsLiked                    = item.IsLiked
-                                 , Type                       = item.Type
-                           };
+            OriginalItem = item;
+            EnsureCategoryIsSelectable(OriginalItem.Category);
 
             EditableItem = new WatchItem
                            {
@@ -520,6 +499,7 @@ public partial class EditWatchItemViewModel : ObservableObject
                                  , Title                      = OriginalItem.Title
                                  , StreamingService           = OriginalItem.StreamingService
                                  , Category                   = OriginalItem.Category
+                                 , PreviousCategory           = OriginalItem.PreviousCategory
                                  , DeepLinkUri                = OriginalItem.DeepLinkUri
                                  , LastUpdated                = OriginalItem.LastUpdated
                                  , IsWatched                  = OriginalItem.IsWatched
@@ -567,9 +547,8 @@ public partial class EditWatchItemViewModel : ObservableObject
         OnPropertyChanged(nameof(EditableItem.StreamingService));
         Debug.WriteLine($"EditableItem.StreamingService AFTER PropertyChanged: {EditableItem.StreamingService}");
 
-//        OnPropertyChanged(nameof(EditableItem));
-        OnPropertyChanged(nameof(EditableItem.Category));
-//        OnPropertyChanged(nameof(EditableItem.StreamingService));
+        _watchedCategory = await _settingsService.GetWatchedCategoryAsync();
+        OnPropertyChanged(nameof(CanToggleWatched));
 
         // await InitializeAsync();
         //
