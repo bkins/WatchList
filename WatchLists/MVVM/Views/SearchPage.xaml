@@ -13,6 +13,7 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Import from Muse" Clicked="OpenMusePreview" />
+        <ToolbarItem Text="Import enhanced recommendations" Clicked="OpenEnhancedImport" Order="Secondary" />
     </ContentPage.ToolbarItems>
 
     <Grid Padding="12,10" RowDefinitions="Auto,Auto,*" RowSpacing="10">

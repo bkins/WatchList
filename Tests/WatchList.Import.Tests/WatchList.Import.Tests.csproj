@@ -35,6 +35,7 @@
     <Compile Include="..\..\WatchLists\Services\CloudApiSyncProvider.cs" Link="CloudApiSyncProvider.cs" />
     <Compile Include="..\..\WatchLists\Services\SettingsService.cs" Link="SettingsService.cs" />
     <Compile Include="..\..\WatchLists\Services\WatchListService.cs" Link="WatchListService.cs" />
+    <Compile Include="..\..\WatchLists\Services\WatchListService.Recommendations.cs" Link="WatchListService.Recommendations.cs" />
     <Compile Include="..\..\WatchLists\Services\SyncSettingsConfig.cs" Link="SyncSettingsConfig.cs" />
     <Compile Include="..\..\WatchLists\Services\Enums\SettingType.cs" Link="SettingType.cs" />
     <Compile Include="..\..\WatchLists\Utilities\Avails.cs" Link="Avails.cs" />

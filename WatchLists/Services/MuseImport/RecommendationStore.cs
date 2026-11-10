@@ -109,8 +109,13 @@ public sealed class RecommendationStore
         var sourceKey = RecommendationSourceKey.Create(sourceUrl);
         var existing  = _connection.Table<MovieRecommendation>()
                                    .FirstOrDefault(item => item.WatchItemId == watchItemId && item.SourceKey == sourceKey);
+        if (existing?.IsRemoved == true) return false;
         if (existing == null)
         {
+            var set = new RecommendationSet(_connection);
+            var rows = set.Read(watchItemId);
+            if (RecommendationSet.Primary(rows) is { } primary && observedUtc <= primary.FirstImportedUtc)
+                set.PreservePrimary(rows);
             var recommendation = new MovieRecommendation
                                  {
                                      WatchItemId       = watchItemId

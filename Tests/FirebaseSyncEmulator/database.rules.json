@@ -7,9 +7,9 @@
         "$pairingCode": {
           ".read": "auth != null && auth.uid === $uid && $pairingCode.matches(/^[a-fA-F0-9]{32}$/)",
           ".write": "auth != null && auth.uid === $uid && $pairingCode.matches(/^[a-fA-F0-9]{32}$/) && newData.exists()",
-          ".validate": "newData.hasChildren(['schemaVersion', 'revision', 'payload'])",
+          ".validate": "newData.hasChildren(['schemaVersion', 'revision', 'payload']) && (!data.exists() || newData.child('schemaVersion').val() >= data.child('schemaVersion').val())",
           "schemaVersion": {
-            ".validate": "newData.isNumber() && newData.val() === 3"
+            ".validate": "newData.isNumber() && (newData.val() === 3 || newData.val() === 4)"
           },
           "revision": {
             ".validate": "newData.isString() && newData.val().matches(/^[a-f0-9]{32}$/)"

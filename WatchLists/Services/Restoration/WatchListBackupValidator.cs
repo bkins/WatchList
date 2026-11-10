@@ -39,7 +39,7 @@ internal static class WatchListBackupValidator
             var hasSyncState = VerifySyncState(connection);
             return new WatchListBackupSummary(snapshot.Items.Count(item => !item.IsDeleted)
                                             , snapshot.Items.Count(item => item.IsDeleted)
-                                            , snapshot.Links.Length
+                                            , snapshot.Links.Count(link => link.IsRemoved != true)
                                             , hasSyncState);
         }
         catch (Exception exception) when (exception is SQLiteException or JsonException or ArgumentException or OverflowException or FormatException)
@@ -99,6 +99,8 @@ internal static class WatchListBackupValidator
         var query = $"PRAGMA table_xinfo(\"{table}\")";
         var actual = connection.Query<BackupColumn>(query).OrderBy(column => column.Name).ToArray();
         var known  = expected.Query<BackupColumn>(query).OrderBy(column => column.Name).ToArray();
+        if (table == "MovieRecommendation" && actual.All(column => !IsEnhancedColumn(column.Name)))
+            known = known.Where(column => !IsEnhancedColumn(column.Name)).ToArray();
         if (actual.Length != known.Length
             || actual.Zip(known).Any(pair => pair.First.Name != pair.Second.Name
                                          || !pair.First.Type.Equals(pair.Second.Type, StringComparison.OrdinalIgnoreCase)
@@ -112,12 +114,15 @@ internal static class WatchListBackupValidator
             var required = column.Pk != 0 || column.Name is "LastUpdated" or "FirstImportedUtc" or "LastSeenUtc"
                                                    or "IsWatched" or "IsLiked" or "IsDeleted";
             var invalid = required ? $"typeof({value}) != '{storage}'" : $"typeof({value}) NOT IN ('null','{storage}')";
-            if (column.Name is "IsWatched" or "IsLiked" or "IsDeleted")
+            if (column.Name is "IsWatched" or "IsLiked" or "IsDeleted" or "IsPrimary" or "IsRemoved")
                 invalid += $" OR {value} NOT IN (0,1)";
             if (connection.ExecuteScalar<int>($"SELECT EXISTS(SELECT 1 FROM \"{table}\" WHERE {invalid})") != 0)
                 throw new InvalidDataException("This backup contains a value in an incompatible SQLite format.");
         }
     }
+
+    private static bool IsEnhancedColumn(string name)
+        => name is "OriginalMetadata" or "EditedMetadata" or "IsPrimary" or "IsRemoved";
 
     private static bool VerifySyncState(SQLiteConnection connection)
     {

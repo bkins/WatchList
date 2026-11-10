@@ -48,17 +48,27 @@ public static class SyncJson
             if (link is null || link.Id == Guid.Empty || !linkIds.Add(link.Id)
                 || !itemIds.Contains(link.WatchItemId) || string.IsNullOrWhiteSpace(link.SourceKey)
                 || !linkKeys.Add((link.WatchItemId, link.SourceKey))
-                || link.Descriptions is not { Length: > 0 } || link.Descriptions.Any(string.IsNullOrWhiteSpace)
+                || link.Descriptions is null || link.Descriptions.Any(string.IsNullOrWhiteSpace)
+                || !link.IsEnhanced && link.Descriptions.Length == 0
+                || link.IsPrimary == true && link.IsRemoved == true
                 || link.FirstImportedUtc == default || link.LastSeenUtc < link.FirstImportedUtc
                 || !ValidSource(link))
                 throw new InvalidDataException("Sync snapshot contains an invalid or orphan recommendation.");
+
+            _ = RecommendationMetadata.Read(link.OriginalMetadata);
+            _ = RecommendationMetadata.Read(link.EditedMetadata);
         }
+
+        if (snapshot.Links.Where(link => link.IsPrimary == true).GroupBy(link => link.WatchItemId).Any(group => group.Count() > 1))
+            throw new InvalidDataException("A WatchItem has multiple primary recommendations.");
     }
 
     private static bool ValidSource(SyncLink link)
     {
         try
         {
+            if (link.SourceKey.StartsWith("manual:", StringComparison.Ordinal))
+                return link.SourceKey == $"manual:{link.Id:N}" && link.SourceUrl == string.Empty;
             return RecommendationSourceKey.Create(link.SourceUrl) == link.SourceKey;
         }
         catch (ArgumentException)

@@ -221,6 +221,8 @@
                 </StackLayout>
             </Frame>
 
+            <VerticalStackLayout x:Name="RecommendationsPanel" Spacing="10" />
+
             <!-- Save Action Button -->
             <Button AutomationId="SaveButton"
                     Text="💾 Save Changes"

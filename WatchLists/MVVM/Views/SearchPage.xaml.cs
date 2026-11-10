@@ -1,6 +1,7 @@
 using WatchLists.Logger;
 using WatchLists.MVVM.ViewModels;
 using WatchLists.Services.Models;
+using WatchLists.Services;
 
 namespace WatchLists.MVVM.Views;
 
@@ -21,4 +22,9 @@ public partial class SearchPage : ContentPage
         await Shell.Current.GoToAsync(nameof(MuseImportPreviewPage));
     }
 
+    private async void OpenEnhancedImport(object? sender, EventArgs eventArgs)
+    {
+        var service = App.Current.Services.GetRequiredService<WatchListService>();
+        await Navigation.PushModalAsync(new NavigationPage(new EnhancedImportPage(service)));
+    }
 }

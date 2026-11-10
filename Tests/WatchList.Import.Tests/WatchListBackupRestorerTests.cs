@@ -11,6 +11,44 @@ namespace WatchList.Import.Tests;
 public sealed class WatchListBackupRestorerTests
 {
     [Fact]
+    public async Task RestoreBackupAsync_LegacyAndEnhancedRecommendationSchemas_PreserveDataAndAllowNewEdits()
+    {
+        using var source = new DisposableImportDatabase();
+        using var destination = new DisposableImportDatabase();
+        var item = Seed(source);
+        var recommendationId = Assert.Single(RecommendationStore.ReadExisting(source.Connection).Where(row => row.WatchItemId == item.Id)
+            .Take(1)).Id;
+        foreach (var column in new[] { "OriginalMetadata", "EditedMetadata", "IsPrimary", "IsRemoved" })
+            source.Connection.Execute($"ALTER TABLE MovieRecommendation DROP COLUMN {column}");
+        var settings = new SettingsService(destination.DirectoryPath);
+        await settings.SaveAutoSyncEnabledAsync(false);
+        using var service = new WatchListService(settings, destination.DatabasePath);
+        using var legacyFile = new FileStream(source.DatabasePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var legacy = await service.PrepareBackupAsync(legacyFile);
+
+        await service.RestoreBackupAsync(legacy);
+        var legacyRows = service.GetRecommendations(item.Id, service.DatabaseGeneration);
+        var original = legacyRows.Single(row => row.Id == recommendationId);
+        service.SaveRecommendation(item.Id, service.DatabaseGeneration, original, new Dictionary<RecommendationField, string>
+                                                                                  {
+                                                                                      [RecommendationField.Context] = "My reason"
+                                                                                  });
+        service.SetPrimaryRecommendation(item.Id, service.DatabaseGeneration, recommendationId);
+        var snapshot = service.CreateReliableSyncBackup();
+        using var enhancedFile = File.OpenRead(snapshot);
+        using var enhanced = await service.PrepareBackupAsync(enhancedFile);
+        await service.RestoreBackupAsync(legacy);
+        await service.RestoreBackupAsync(enhanced);
+        using var restarted = new WatchListService(settings, destination.DatabasePath);
+        var primary = RecommendationSet.Primary(restarted.GetRecommendations(item.Id, restarted.DatabaseGeneration));
+
+        Assert.Equal(2, legacyRows.Length);
+        Assert.Equal(recommendationId, primary?.Id);
+        Assert.Equal("My reason", RecommendationMetadata.Effective(primary!)[RecommendationField.Context]);
+        Assert.Contains("My reason", restarted.GetRecommendationSearchIndex()[item.Id]);
+    }
+
+    [Fact]
     public async Task RestoreBackupAsync_MuseBackup_ReopensExactRowsAndKeepsSettings()
     {
         using var database = new DisposableImportDatabase();

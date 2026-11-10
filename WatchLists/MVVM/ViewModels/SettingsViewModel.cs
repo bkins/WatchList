@@ -8,6 +8,8 @@ using WatchLists.ExtensionMethods;
 using WatchLists.Services;
 using WatchLists.Services.Restoration;
 using WatchLists.Services.Enums;
+using WatchLists.Services.MuseImport;
+using WatchLists.MVVM.Views;
 
 namespace WatchLists.MVVM.ViewModels;
 
@@ -353,14 +355,33 @@ public partial class SettingsViewModel : ObservableObject
         {
             var item = snapshot.Items.FirstOrDefault(candidate => candidate.Id == id);
             if (item is null) return $"{id}: missing from this copy";
-            var links = snapshot.Links.Count(link => link.WatchItemId == id);
+            var links = snapshot.Links.Where(link => link.WatchItemId == id).ToArray();
+            var active = links.Where(link => link.IsRemoved != true).Select(link => link.ToRecommendation()).ToArray();
+            var recommendations = $"Recommendations: {active.Length}";
+            if (links.Any(link => link.IsEnhanced))
+            {
+                var primary = RecommendationSet.Primary(active)?.Id;
+                var descriptions = active.Select(row => DescribeRecommendation(row, row.Id == primary));
+                recommendations += $" · Removed: {links.Length - active.Length}\n" + string.Join("\n\n", descriptions);
+            }
             return $"{item.Title} · {item.Type} · {item.ApiSource} {item.MovieId}\n"
                  + $"Category: {item.Category} · Previous: {item.PreviousCategory}\n"
                  + $"Watched: {item.IsWatched} · Liked: {item.IsLiked} · Deleted: {item.IsDeleted}\n"
                  + $"Service: {item.StreamingService} · {item.DeepLinkUri}\n"
-                 + $"Recommendations: {links}";
+                 + recommendations;
         });
         return string.Join("\n\n", entries);
+    }
+
+    private static string DescribeRecommendation(MovieRecommendation recommendation, bool primary)
+    {
+        var heading = RecommendationFields.Name(recommendation) + (primary ? " · Primary" : string.Empty);
+        if (RecommendationMetadata.HasSpoilers(recommendation)) return heading + "\nSpoiler content hidden";
+        var values = RecommendationMetadata.Effective(recommendation);
+        var lines = values.Where(field => field.Key != RecommendationField.ContainsSpoilers && !string.IsNullOrWhiteSpace(field.Value))
+                          .OrderBy(field => field.Key)
+                          .Select(field => $"{RecommendationFields.Label(field.Key)}: {field.Value}");
+        return string.Join("\n", new[] { heading }.Concat(lines));
     }
 
     [RelayCommand]

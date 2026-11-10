@@ -42,8 +42,46 @@ public sealed class SyncSnapshotMerger
         var localLinks  = local.Links.ToDictionary(Key);
         var remoteLinks = remote.Links.ToDictionary(Key);
         var results     = new List<SyncLink>();
+        var enhancedItems = baseline.Links.Concat(local.Links)
+                                    .Concat(remote.Links)
+                                    .Where(link => link.IsEnhanced)
+                                    .Select(link => link.WatchItemId)
+                                    .ToHashSet();
+        var baseSets   = baseline.Links.ToLookup(link => link.WatchItemId);
+        var localSets  = local.Links.ToLookup(link => link.WatchItemId);
+        var remoteSets = remote.Links.ToLookup(link => link.WatchItemId);
+        foreach (var itemId in enhancedItems)
+        {
+            if (!items.TryGetValue(itemId, out var target)) continue;
+
+            var original = baseSets[itemId].OrderBy(link => link.SourceKey, StringComparer.Ordinal).ToArray();
+            var current  = localSets[itemId].OrderBy(link => link.SourceKey, StringComparer.Ordinal).ToArray();
+            var incoming = remoteSets[itemId].OrderBy(link => link.SourceKey, StringComparer.Ordinal).ToArray();
+            var localItem  = localItems.GetValueOrDefault(itemId);
+            var remoteItem = remoteItems.GetValueOrDefault(itemId);
+            var changedLocally  = SyncJson.Write(original) != SyncJson.Write(current);
+            var changedRemotely = SyncJson.Write(original) != SyncJson.Write(incoming);
+            var deleteConflict = localItem?.IsDeleted == true && remoteItem?.IsDeleted == false && changedRemotely
+                              || remoteItem?.IsDeleted == true && localItem?.IsDeleted == false && changedLocally;
+            if (deleteConflict || changedLocally && changedRemotely && SyncJson.Write(current) != SyncJson.Write(incoming))
+            {
+                conflicts.Add(itemId);
+                if (deleteConflict && choice.HasValue)
+                {
+                    var chosen = WatchItemThreeWayMerge.Choose(localItem, remoteItem, target, choice.Value);
+                    if (chosen is not null) items[itemId] = chosen;
+                }
+                results.AddRange(choice == SyncChoice.Cloud ? incoming : current);
+            }
+            else
+            {
+                results.AddRange(changedLocally ? current : incoming);
+            }
+        }
+
         foreach (var key in baseLinks.Keys.Union(localLinks.Keys).Union(remoteLinks.Keys))
         {
+            if (enhancedItems.Contains(key.WatchItemId)) continue;
             var original = baseLinks.GetValueOrDefault(key);
             var current  = localLinks.GetValueOrDefault(key);
             var incoming = remoteLinks.GetValueOrDefault(key);

@@ -107,7 +107,7 @@ public sealed class ReliableSyncCoordinator
         }
 
         SyncJson.Validate(merge.Snapshot);
-        var upload = new SyncPending(SyncEnvelope.Create(merge.Snapshot), local, read.Etag);
+        var upload = new SyncPending(SyncEnvelope.Create(merge.Snapshot, read.Envelope?.SchemaVersion), local, read.Etag);
         _store.Save(connection, state with { Pending = upload });
         return new SyncDecision(null, upload, localChanged);
     }

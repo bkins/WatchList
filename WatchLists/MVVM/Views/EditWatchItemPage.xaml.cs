@@ -19,6 +19,7 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
                                            , out object? watchItemId)
                                ? watchItemId?.ToString()
                                : null); // No ID means we're adding a new item
+        RefreshRecommendations();
 
         if (query.TryGetValue("PreFilledTitle", out object? preFilledTitleObj) && preFilledTitleObj is string preFilledTitle && preFilledTitle.HasValue())
         {
@@ -55,6 +56,19 @@ public partial class EditWatchItemPage : ContentPage, IQueryAttributable
         if (BindingContext is not EditWatchItemViewModel viewModel) return;
 
         await viewModel.InitializeAsync();
+        RefreshRecommendations();
+    }
+
+    private void RefreshRecommendations()
+    {
+        RecommendationsPanel.Children.Clear();
+        if (BindingContext is not EditWatchItemViewModel viewModel) return;
+        var service = App.Current.Services.GetRequiredService<WatchLists.Services.WatchListService>();
+        var itemId = viewModel.OriginalItem.Id;
+        var generation = viewModel.LoadedDatabaseGeneration;
+        if (service.DatabaseGeneration != generation || service.GetWatchItemById(itemId) is not { IsDeleted: false }) return;
+        var panel = new RecommendationPanel(this, service, itemId, generation, RefreshRecommendations);
+        RecommendationsPanel.Children.Add(panel);
     }
 
     private void Switch_Toggled (object?          sender

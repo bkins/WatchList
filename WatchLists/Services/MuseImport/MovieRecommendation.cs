@@ -17,4 +17,12 @@ public sealed class MovieRecommendation
     public string DescriptionsJson { get; set; } = "[]";
     public DateTime FirstImportedUtc { get; set; }
     public DateTime LastSeenUtc { get; set; }
+
+    public string? OriginalMetadata { get; set; }
+    public string? EditedMetadata { get; set; }
+    public bool? IsPrimary { get; set; }
+    public bool? IsRemoved { get; set; }
+
+    [Ignore]
+    public bool IsManual => SourceKey.StartsWith("manual:", StringComparison.Ordinal);
 }

@@ -57,6 +57,7 @@ public partial class EditWatchItemViewModel : ObservableObject
     private Task?   _loadOptionsTask;
     private bool    _isLoaded;
     private long    _databaseGeneration;
+    public long LoadedDatabaseGeneration => _databaseGeneration;
 
     public bool CanToggleWatched => _watchedCategory is not null;
 

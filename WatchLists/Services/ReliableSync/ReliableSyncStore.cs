@@ -72,14 +72,17 @@ public sealed class ReliableSyncStore
                 connection.InsertOrReplace(item.ToWatchItem());
         }
 
-        if (merged.Links.Length > 0)
+        if (local.Links.Length > 0 || merged.Links.Length > 0)
         {
             _ = new RecommendationStore(connection);
             var links = local.Links.ToDictionary(link => (link.WatchItemId, link.SourceKey));
+            var mergedKeys = merged.Links.Select(link => (link.WatchItemId, link.SourceKey)).ToHashSet();
+            foreach (var removed in links.Values.Where(link => !mergedKeys.Contains((link.WatchItemId, link.SourceKey))))
+                connection.Delete<MovieRecommendation>(removed.Id);
             foreach (var link in merged.Links)
             {
-                var oldLink = links.GetValueOrDefault((link.WatchItemId, link.SourceKey));
-                if (oldLink is null || SyncJson.Write(oldLink) != SyncJson.Write(link))
+                if (!links.TryGetValue((link.WatchItemId, link.SourceKey), out var oldLink)
+                    || SyncJson.Write(oldLink) != SyncJson.Write(link))
                     connection.InsertOrReplace(link.ToRecommendation());
             }
         }

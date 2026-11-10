@@ -90,6 +90,53 @@ public sealed class FirebaseReliableSyncRemoteTests
         Assert.Equal(item.Id, Assert.Single((await firstRemote.FetchAsync(CancellationToken.None)).Envelope!.Decode().Items).Id);
     }
 
+    [FirebaseEmulatorFact]
+    public async Task SyncAsync_EnhancedRecommendations_UpgradesAndPreservesSelectionAndDeletion()
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        using var first = new DisposableImportDatabase();
+        using var second = new DisposableImportDatabase();
+        var profile = await CreateAccount(client);
+        var database = profile.Validate(allowEmulator: true);
+        var session = await new FirebaseIdentityClient(client).SignInAsync(profile, database, Password, CancellationToken.None);
+        var remote = new FirebaseReliableSyncRemote(client, database, profile, session);
+        var firstSync = new ReliableSyncCoordinator(new ReliableSyncStore(first.DatabasePath, profile.Code), remote);
+        var secondSync = new ReliableSyncCoordinator(new ReliableSyncStore(second.DatabasePath, profile.Code), remote);
+        var item = new WatchItem { Title = "Enhanced film" };
+        first.Connection.Insert(item);
+        var basic = new RecommendationStore(first.Connection);
+        basic.Apply([new(item.Id, "https://example.test/original", "Original source")], DateTime.UtcNow);
+        Assert.Equal("Sync complete.", (await firstSync.SyncAsync(create: true)).Message);
+        var legacy = await remote.FetchAsync(CancellationToken.None);
+        Assert.Equal(3, legacy.Envelope!.SchemaVersion);
+        Assert.Equal("Sync complete.", (await secondSync.SyncAsync()).Message);
+
+        var set = new RecommendationSet(first.Connection);
+        var original = Assert.Single(set.Read(item.Id));
+        set.Save(item.Id, null, new Dictionary<RecommendationField, string>
+                              {
+                                  [RecommendationField.Rationale] = "Why I saved it"
+                                , [RecommendationField.Sentiment] = "Mixed"
+                              }, null, null);
+        var manual = Assert.Single(set.Read(item.Id), row => row.IsManual);
+        set.Remove(item.Id, original.Id, manual.Id);
+        var pushed = await firstSync.SyncAsync();
+        var pulled = await secondSync.SyncAsync();
+        var updated = await remote.FetchAsync(CancellationToken.None);
+        var root = $"http://127.0.0.1:9000/watchlistV3/{session.UserId}/{profile.Code}.json?ns=demo-watchlist-default-rtdb";
+        using var downgrade = await client.PutAsJsonAsync($"{root}&auth={Uri.EscapeDataString(session.IdToken)}", legacy.Envelope);
+
+        Assert.Equal("Sync complete.", pushed.Message);
+        Assert.Equal("Sync complete.", pulled.Message);
+        Assert.Equal(4, updated.Envelope!.SchemaVersion);
+        AssertDenied(downgrade);
+        Assert.True(SyncJson.Equal(ReliableSyncStore.ReadLocal(first.Connection), ReliableSyncStore.ReadLocal(second.Connection)));
+        var restored = new RecommendationSet(second.Connection).Read(item.Id);
+        Assert.True(Assert.Single(restored, row => row.Id == original.Id).IsRemoved);
+        Assert.Equal(manual.Id, RecommendationSet.Primary(restored)?.Id);
+        Assert.Equal("Why I saved it", RecommendationMetadata.Effective(RecommendationSet.Primary(restored)!)[RecommendationField.Rationale]);
+    }
+
     private static async Task<FirebaseSyncProfile> CreateAccount(HttpClient client)
     {
         var profile = new FirebaseSyncProfile(Database, "fake-api-key", $"test-{Guid.NewGuid():N}@example.test", Guid.NewGuid().ToString("N"), false);

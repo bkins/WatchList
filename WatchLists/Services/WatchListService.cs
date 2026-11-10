@@ -10,7 +10,7 @@ using WatchLists.Services.ReliableSync;
 
 namespace WatchLists.Services;
 
-public class WatchListService : IDisposable
+public partial class WatchListService : IDisposable
 {
     private readonly SettingsService _settingsService;
     private readonly object _databaseLock = new();

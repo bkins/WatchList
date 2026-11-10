@@ -325,14 +325,15 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
         }
         else
         {
-            var lowerSearch = SearchText.ToLowerInvariant();
+            var query = SearchText.Trim();
+            var recommendations = _watchListService.GetRecommendationSearchIndex();
             var filtered = new ObservableCollection<WatchItemGroup>();
 
             foreach (var group in WatchItemGroups)
             {
                 var filteredItems = group.Items
-                                         .Where(item => item.Title.HasValue() &&
-                                                        item.Title.ToLowerInvariant().Contains(lowerSearch))
+                                         .Where(item => item.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+                                                     || recommendations[item.Id].Any(value => value.Contains(query, StringComparison.OrdinalIgnoreCase)))
                                          .ToList();
 
                 if (filteredItems.Count > 0)
