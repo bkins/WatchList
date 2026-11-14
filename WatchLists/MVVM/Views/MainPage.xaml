@@ -44,6 +44,9 @@
                             <Label Text="Movies and shows saved for later"
                                    FontSize="12"
                                    TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
+                            <Label x:Name="VersionLabel"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource LightTextSecondary}, Dark={StaticResource DarkTextSecondary}}" />
                         </StackLayout>
                         <FlexLayout Wrap="Wrap" Direction="Row">
                             <Button Text="Select"
