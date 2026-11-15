@@ -16,6 +16,8 @@ public partial class MuseImportPreviewViewModel
     private string _fileInformation = string.Empty;
     private string _searchQuery = string.Empty;
     private bool _showOriginalEntries;
+    private bool _isComparingMuseFile;
+    private string _compareStatus = string.Empty;
 
     public bool ShowOriginalEntries
     {
@@ -58,6 +60,26 @@ public partial class MuseImportPreviewViewModel
     public bool HasReview => _review != null;
     public bool HasFile => _review != null && Recommendations.Count > 0;
     public bool CanChangeReview => !IsBusy;
+    public bool CanCompareMuseFile => IsFileStep && !IsComparingMuseFile;
+    public bool IsComparingMuseFile
+    {
+        get => _isComparingMuseFile;
+        private set
+        {
+            if (SetProperty(ref _isComparingMuseFile, value))
+                OnPropertyChanged(nameof(CanCompareMuseFile));
+        }
+    }
+    public string CompareStatus
+    {
+        get => _compareStatus;
+        private set
+        {
+            if (SetProperty(ref _compareStatus, value))
+                OnPropertyChanged(nameof(HasCompareStatus));
+        }
+    }
+    public bool HasCompareStatus => !string.IsNullOrWhiteSpace(CompareStatus);
     public string StepHeading
     {
         get
@@ -246,7 +268,7 @@ public partial class MuseImportPreviewViewModel
     private void RefreshWizard()
     {
         foreach (var name in new[] { nameof(WizardStep), nameof(IsFileStep), nameof(IsReviewStep), nameof(IsSummaryStep), nameof(IsResultStep)
-                                 , nameof(HasFile), nameof(CanChangeReview), nameof(StepHeading), nameof(FileName), nameof(FileInformation)
+                                 , nameof(HasFile), nameof(CanChangeReview), nameof(CanCompareMuseFile), nameof(StepHeading), nameof(FileName), nameof(FileInformation)
                                  , nameof(RecommendationPosition), nameof(RecommendationTitle), nameof(RecommendationDescription), nameof(DecisionState)
                                  , nameof(MatchTitle), nameof(MatchEffect), nameof(NeedsCategory), nameof(CanApprove), nameof(ApprovalBlockReason)
                                  , nameof(HasApprovalFeedback), nameof(HasApprovalBlockReason), nameof(ShowSearchAction)
@@ -350,8 +372,9 @@ public partial class MuseImportPreviewViewModel
 
     public async Task CompareMuseFileToWatchListAsync()
     {
-        if (IsBusy) return;
-        IsBusy = true;
+        if (IsComparingMuseFile || !IsFileStep) return;
+        IsComparingMuseFile = true;
+        CompareStatus = string.Empty;
         try
         {
             var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Select Muse Markdown to compare" });
@@ -359,25 +382,35 @@ public partial class MuseImportPreviewViewModel
             await using var stream = await file.OpenReadAsync();
             using var reader = new StreamReader(stream);
             var parsed = new MuseMarkdownParser().Parse(await reader.ReadToEndAsync());
+            if (parsed.Recommendations.Count == 0)
+            {
+                CompareStatus = "No Muse recommendations were recognized. Check that this is the original Muse Markdown export, then try again.";
+                return;
+            }
+
             var unmatched = new MuseUnverifiedImportComparer().FindUnmatched(parsed.Recommendations
                                                                             , _watchListService.GetItemsForImportReview());
+            var warningSummary = parsed.Warnings.Count == 0
+                ? string.Empty
+                : $" {parsed.Warnings.Count} parser warning(s); some entries may not have been read. Check the original Markdown format. ";
             if (unmatched.Count == 0)
             {
-                Status = "Every parsed Muse title exactly matches a saved WatchList title. Nothing was added to Unverified.";
+                CompareStatus = $"Compared {parsed.Recommendations.Count} Muse entries. Every parsed title exactly matches a saved WatchList title. " +
+                                $"Nothing was added to Unverified.{warningSummary}";
                 return;
             }
             var changed = await _watchListService.SaveUnverifiedMuseItemsAsync(unmatched);
-            Status = $"Compared {parsed.Recommendations.Count} Muse entries with the saved WatchList. " +
-                     $"{unmatched.Count} titles had no exact saved-title match; {changed} unverified source entries were added or refreshed. " +
-                     "Review them in the Unverified category.";
+            CompareStatus = $"Compared {parsed.Recommendations.Count} Muse entries. " +
+                            $"{unmatched.Count} titles had no exact saved-title match; {changed} unverified source entries were added or refreshed. " +
+                            $"Review them in the Unverified category.{warningSummary}";
         }
         catch (Exception exception)
         {
-            Status = $"Muse comparison did not complete: {exception.Message}";
+            CompareStatus = $"Muse comparison did not complete: {exception.Message}";
         }
         finally
         {
-            IsBusy = false;
+            IsComparingMuseFile = false;
         }
     }
 }

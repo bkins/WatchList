@@ -10,12 +10,12 @@
     <Grid Padding="16" RowDefinitions="Auto,*,Auto" RowSpacing="12">
         <Label Text="{Binding StepHeading}" FontSize="20" FontAttributes="Bold" AutomationId="MuseWizardStep" />
         <ScrollView x:Name="WizardScroll" Grid.Row="1">
+            <VerticalStackLayout Spacing="12">
             <VerticalStackLayout Spacing="12" IsEnabled="{Binding CanChangeReview}">
                 <VerticalStackLayout IsVisible="{Binding IsFileStep}" Spacing="16">
                     <Label Text="Import recommendations" FontSize="24" FontAttributes="Bold" />
                     <Label Text="Choose a Muse file, then approve each match." />
                     <Button Text="Choose Markdown file" Clicked="ChooseFile" AutomationId="MuseChooseFile" />
-                    <Button Style="{StaticResource SecondaryButtonStyle}" Text="Compare Muse file to WatchList" Clicked="CompareMuseFile" AutomationId="MuseCompareFile" />
                     <Label Text="{Binding FileName}" FontAttributes="Bold" />
                     <Label Text="{Binding FileInformation}" />
                     <Button Text="Start review" Command="{Binding BeginReviewCommand}" IsVisible="{Binding HasFile}" />
@@ -73,6 +73,10 @@
                     <Button Text="View WatchList" Clicked="ViewWatchList" />
                     <Button Style="{StaticResource SecondaryButtonStyle}" Text="Import another file" Clicked="FinishReview" />
                 </VerticalStackLayout>
+            </VerticalStackLayout>
+            <Button Style="{StaticResource SecondaryButtonStyle}" Text="Compare Muse file to WatchList" Clicked="CompareMuseFile"
+                    IsVisible="{Binding IsFileStep}" IsEnabled="{Binding CanCompareMuseFile}" AutomationId="MuseCompareFile" />
+            <Label Text="{Binding CompareStatus}" IsVisible="{Binding HasCompareStatus}" />
             </VerticalStackLayout>
         </ScrollView>
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsReviewStep}">
