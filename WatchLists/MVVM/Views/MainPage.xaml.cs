@@ -11,7 +11,7 @@ namespace WatchLists.MVVM.Views
         {
             ViewModel = App.Current.Services.GetRequiredService<WatchListViewModel>();
             InitializeComponent();
-            VersionLabel.Text = $"Version {AppInfo.Current.VersionString}";
+            VersionLabel.Text = $"Version {WatchListVersion.DisplayVersion}";
             BindingContext = ViewModel;
         }
 

@@ -7,7 +7,7 @@ namespace WatchLists
         public AppShell()
         {
             InitializeComponent();
-            Title = $"WatchList · v{AppInfo.Current.VersionString}";
+            Title = $"WatchList · v{WatchListVersion.DisplayVersion}";
 
             Routing.RegisterRoute(nameof(EditWatchItemPage)
                                 , typeof(EditWatchItemPage));
