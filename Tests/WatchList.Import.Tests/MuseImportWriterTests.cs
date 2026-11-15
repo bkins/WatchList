@@ -93,6 +93,24 @@ public sealed class MuseImportWriterTests
     }
 
     [Fact]
+    public void Apply_UnverifiedOnlyBatch_SavesQueueAndCreatesPreImportBackup()
+    {
+        using var database = new DisposableImportDatabase();
+        var recommendation = new MuseRecommendation("Uncertain movie", 2001, "Needs identity check", "Films",
+            ["https://example.test/muse"], 8);
+        var batch = new MuseImportBatch([], [], [recommendation]);
+        var backupPath = database.CreateBackupPath();
+
+        var receipt = new MuseImportWriter(database.Connection).Apply(batch, backupPath, DateTime.UtcNow);
+
+        Assert.Equal(0, receipt.NewItems);
+        Assert.Equal(0, receipt.NewRecommendations);
+        Assert.Equal("Uncertain movie", Assert.Single(UnverifiedMuseRecommendationStore.ReadExisting(database.Connection)).Title);
+        using var backup = new SQLiteConnection(backupPath);
+        Assert.Empty(UnverifiedMuseRecommendationStore.ReadExisting(backup));
+    }
+
+    [Fact]
     public void Apply_DuplicateProviderIdentity_RollsBackBatchAndPreservesBackup()
     {
         SQLitePCL.Batteries_V2.Init();

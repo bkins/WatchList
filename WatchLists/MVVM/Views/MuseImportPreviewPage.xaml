@@ -15,6 +15,7 @@
                     <Label Text="Import recommendations" FontSize="24" FontAttributes="Bold" />
                     <Label Text="Choose a Muse file, then approve each match." />
                     <Button Text="Choose Markdown file" Clicked="ChooseFile" AutomationId="MuseChooseFile" />
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Text="Compare Muse file to WatchList" Clicked="CompareMuseFile" AutomationId="MuseCompareFile" />
                     <Label Text="{Binding FileName}" FontAttributes="Bold" />
                     <Label Text="{Binding FileInformation}" />
                     <Button Text="Start review" Command="{Binding BeginReviewCommand}" IsVisible="{Binding HasFile}" />
@@ -62,6 +63,7 @@
                     <Button Style="{StaticResource SecondaryButtonStyle}" Text="Skip remaining recommendations" Clicked="SkipRemaining" IsVisible="{Binding HasPending}" />
                     <Button Style="{StaticResource SecondaryButtonStyle}" Text="Back to recommendations" Command="{Binding BeginReviewCommand}" />
                     <Button Text="{Binding ImportAction}" Clicked="ImportApproved" IsEnabled="{Binding CanImport}" AutomationId="MuseImportButton" />
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Text="Import approved + save skipped to Unverified" Clicked="ImportApprovedAndSaveSkipped" IsEnabled="{Binding CanSaveSkippedToUnverified}" AutomationId="MuseImportWithUnverifiedButton" />
                     <Label Text="{Binding Status}" />
                 </VerticalStackLayout>
                 <VerticalStackLayout IsVisible="{Binding IsResultStep}" Spacing="16">

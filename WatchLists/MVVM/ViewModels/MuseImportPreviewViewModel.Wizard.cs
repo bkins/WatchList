@@ -175,6 +175,7 @@ public partial class MuseImportPreviewViewModel
     }
     public bool HasPending => (_review?.GetSummary().PendingRows ?? 0) > 0;
     public bool CanImport => !IsBusy && _review != null && _review.GetSummary() is { PendingRows: 0, ApprovedRows: > 0 };
+    public bool CanSaveSkippedToUnverified => !IsBusy && _review != null && _review.GetSummary() is { PendingRows: 0, SkippedRows: > 0 };
     public string ImportAction => $"Import {_review?.ApprovedCount ?? 0} approved recommendations";
     public string SearchQuery
     {
@@ -251,6 +252,7 @@ public partial class MuseImportPreviewViewModel
                                  , nameof(HasApprovalFeedback), nameof(HasApprovalBlockReason), nameof(ShowSearchAction)
                                  , nameof(HasPrevious), nameof(HasNext), nameof(SearchAction), nameof(SearchProgress), nameof(RowSearchStatus)
                                  , nameof(ReviewProgress), nameof(SummaryCounts), nameof(HasPending), nameof(CanImport), nameof(ImportAction)
+                                 , nameof(CanSaveSkippedToUnverified)
                                  , nameof(IsGroupedRecommendation), nameof(GroupingLabel), nameof(OriginalEntries) })
             OnPropertyChanged(name);
     }
@@ -344,5 +346,38 @@ public partial class MuseImportPreviewViewModel
     {
         if (_searchCancellation != null) StopSuggestions();
         else _ = StartSuggestionsAsync();
+    }
+
+    public async Task CompareMuseFileToWatchListAsync()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            var file = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Select Muse Markdown to compare" });
+            if (file == null) return;
+            await using var stream = await file.OpenReadAsync();
+            using var reader = new StreamReader(stream);
+            var parsed = new MuseMarkdownParser().Parse(await reader.ReadToEndAsync());
+            var unmatched = new MuseUnverifiedImportComparer().FindUnmatched(parsed.Recommendations
+                                                                            , _watchListService.GetItemsForImportReview());
+            if (unmatched.Count == 0)
+            {
+                Status = "Every parsed Muse title exactly matches a saved WatchList title. Nothing was added to Unverified.";
+                return;
+            }
+            var changed = await _watchListService.SaveUnverifiedMuseItemsAsync(unmatched);
+            Status = $"Compared {parsed.Recommendations.Count} Muse entries with the saved WatchList. " +
+                     $"{unmatched.Count} titles had no exact saved-title match; {changed} unverified source entries were added or refreshed. " +
+                     "Review them in the Unverified category.";
+        }
+        catch (Exception exception)
+        {
+            Status = $"Muse comparison did not complete: {exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }

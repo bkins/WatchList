@@ -95,14 +95,24 @@ public sealed class MuseImportReview
 
     public MuseImportBatch CreateFinalBatch()
     {
+        return CreateFinalBatch(false);
+    }
+
+    public MuseImportBatch CreateFinalBatch(bool saveSkippedAsUnverified)
+    {
         if (GetSummary().PendingRows > 0)
         {
             throw new InvalidOperationException("Review or explicitly skip the remaining recommendations before importing.");
         }
-        return CreateBatch();
+        return CreateBatch(saveSkippedAsUnverified);
     }
 
     public MuseImportBatch CreateBatch()
+    {
+        return CreateBatch(false);
+    }
+
+    public MuseImportBatch CreateBatch(bool saveSkippedAsUnverified)
     {
         var entries = new List<RecommendationImportEntry>();
         foreach (var decision in _decisions.Values.Where(IsApproved).OrderBy(decision => decision.RowIndex))
@@ -114,8 +124,13 @@ public sealed class MuseImportReview
             }
         }
 
-        if (entries.Count == 0) throw new InvalidOperationException("No recommendations have been approved.");
-        return new MuseImportBatch(_newItems.Values.ToList(), entries);
+        var unverified = saveSkippedAsUnverified
+            ? _decisions.Values.Where(decision => decision.Status == MuseReviewDecisionStatus.Skipped)
+                               .Select(decision => _recommendations[decision.RowIndex])
+                               .ToList()
+            : [];
+        if (entries.Count == 0 && unverified.Count == 0) throw new InvalidOperationException("No approved or unverified recommendations are ready to save.");
+        return new MuseImportBatch(_newItems.Values.ToList(), entries, unverified);
     }
 
     private static bool IsApproved(MuseReviewDecision decision)

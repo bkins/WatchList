@@ -1,10 +1,24 @@
 using WatchLists.Services;
+using WatchLists.Services.Enums;
 using Xunit;
 
 namespace WatchList.Import.Tests;
 
 public sealed class SettingsServiceTests
 {
+    [Fact]
+    public async Task GetOptionsAsync_ExistingCategories_AddsUnverifiedCategory()
+    {
+        using var database = new DisposableImportDatabase();
+        var settings = new SettingsService(database.DirectoryPath);
+        await settings.SaveOptionsAsync(SettingType.Categories, ["Currently Watching", "Finished Watching", "Consider Watching"]);
+
+        var categories = await settings.GetOptionsAsync(SettingType.Categories);
+
+        Assert.Contains("Unverified", categories);
+        Assert.Equal("Unverified", categories[^1]);
+    }
+
     [Theory]
     [InlineData("null")]
     [InlineData("\"\"")]

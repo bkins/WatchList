@@ -1,4 +1,5 @@
 using WatchLists.MVVM.ViewModels;
+using WatchLists.MVVM.Models;
 
 namespace WatchLists.MVVM.Views
 {
@@ -41,6 +42,20 @@ namespace WatchLists.MVVM.Views
             if (BindingContext is WatchListViewModel vm && vm.IsSelectionMode)
             {
                 vm.ToggleSelectionMode();
+            }
+        }
+
+        private async void OpenUnverifiedSource(object? sender, TappedEventArgs eventArgs)
+        {
+            if (sender is not BindableObject { BindingContext: UnverifiedMuseItem item } ||
+                !Uri.TryCreate(item.SourceUrl, UriKind.Absolute, out var sourceUri)) return;
+            try
+            {
+                await Launcher.OpenAsync(sourceUri);
+            }
+            catch (Exception exception)
+            {
+                await WatchLists.Logger.FileLogger.WriteLogAsync($"Could not open unverified Muse source '{item.SourceUrl}': {exception.Message}");
             }
         }
     }

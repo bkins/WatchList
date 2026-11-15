@@ -131,16 +131,13 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         try
         {
             var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
-            var watchedCategory = await _settingsService.GetWatchedCategoryAsync();
             var selectedCategory = SelectedCategory;
             ImportCategories.Clear();
-            foreach (var category in categories.Where(category => !string.Equals(category, watchedCategory, StringComparison.OrdinalIgnoreCase)))
+            foreach (var category in MuseImportCategories.GetAvailable(categories))
             {
                 ImportCategories.Add(category);
             }
-            SelectedCategory = ImportCategories.Contains(selectedCategory ?? string.Empty)
-                ? selectedCategory
-                : ImportCategories.FirstOrDefault(category => string.Equals(category, "Consider Watching", StringComparison.OrdinalIgnoreCase));
+            SelectedCategory = MuseImportCategories.GetDefault(ImportCategories.ToList(), selectedCategory);
         }
         catch (Exception)
         {
@@ -491,7 +488,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
     }
 
-    public MuseImportBatch? PrepareImport()
+    public MuseImportBatch? PrepareImport(bool saveSkippedAsUnverified = false)
     {
         if (_review == null)
         {
@@ -505,7 +502,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
         try
         {
-            return _review.CreateFinalBatch();
+            return _review.CreateFinalBatch(saveSkippedAsUnverified);
         }
         catch (Exception exception)
         {
@@ -530,6 +527,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             RefreshWizard();
             UpdateSelectedRecommendation(SelectedRecommendation);
             Status = $"Added {receipt.NewItems} new items and {receipt.NewRecommendations} source links. " +
+                     $"Saved {batch.UnverifiedRecommendations?.Count ?? 0} skipped recommendations to Unverified. " +
                      $"{batch.Recommendations.Count - receipt.NewRecommendations} source-link proposals were already present or duplicates. " +
                      $"{skippedRows} recommendations skipped. Cloud sync remains paused.";
         }

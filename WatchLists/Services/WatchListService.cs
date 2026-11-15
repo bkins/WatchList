@@ -166,6 +166,42 @@ public partial class WatchListService : IDisposable
             return Database.Table<WatchItem>().ToList();
     }
 
+    public List<UnverifiedMuseItem> GetUnverifiedMuseItems()
+    {
+        lock (_databaseLock)
+        {
+            var records = UnverifiedMuseRecommendationStore.ReadExisting(Database);
+            return records.Select(record => new UnverifiedMuseItem(record.Title
+                                                                  , record.ReleaseYear
+                                                                  , record.Description
+                                                                  , record.Section
+                                                                  , record.SourceUrl
+                                                                  , record.SourceLineNumber))
+                          .ToList();
+        }
+    }
+
+    public Task<int> SaveUnverifiedMuseItemsAsync(IEnumerable<MuseRecommendation> recommendations)
+    {
+        ArgumentNullException.ThrowIfNull(recommendations);
+        return SyncAndImportGate.RunAsync(() => Task.Run(() =>
+        {
+            int changed;
+            lock (_databaseLock)
+            {
+                if (_settingsService.GetAutoSyncEnabled())
+                    throw new InvalidOperationException("Turn off automatic sync before saving Muse entries. The unverified review queue is local to this device.");
+                var folder = Path.GetDirectoryName(_databasePath) ?? throw new InvalidOperationException("The database directory is unavailable.");
+                Directory.CreateDirectory(Path.Combine(folder, "ImportBackups"));
+                var backupPath = Path.Combine(folder, "ImportBackups", $"watchlist-before-unverified-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
+                Database.Backup(backupPath, "main");
+                changed = new UnverifiedMuseRecommendationStore(Database).AddOrUpdate(recommendations, DateTime.UtcNow);
+            }
+            NotifyAfterDatabaseReplacement();
+            return changed;
+        }));
+    }
+
     public Task<MuseImportReceipt> ApplyMuseImportAsync(MuseImportBatch batch, long? expectedGeneration = null)
     {
         return SyncAndImportGate.RunAsync(() => Task.FromResult(ApplyMuseImport(batch, expectedGeneration)));

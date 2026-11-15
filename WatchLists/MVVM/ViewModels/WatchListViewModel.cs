@@ -40,6 +40,7 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
     public ObservableCollection<WatchItem>      VisibleWatchItems       { get; set; } = new();
     public ObservableCollection<WatchItem>      WatchItems              { get; set; } = new();
+    public ObservableCollection<UnverifiedMuseItem> UnverifiedMuseItems { get; } = new();
 
     public Action? UpdateVisibleItemsAction { get; set; }
 
@@ -218,6 +219,11 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
 
         var allWatchItems = _watchListService.GetWatchItems();
         var groupedItems = allWatchItems.GroupBy(item => item.Category.HasValue() ? item.Category : "Currently Watching").ToList();
+        UnverifiedMuseItems.Clear();
+        foreach (var unverifiedItem in _watchListService.GetUnverifiedMuseItems())
+        {
+            UnverifiedMuseItems.Add(unverifiedItem);
+        }
 
         // Sort groups based on managed category order.
         var sortedGroups = groupedItems.OrderBy(grouping =>
@@ -242,6 +248,21 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
             }
 
             WatchItemGroups.Add(watchItemGroup);
+        }
+
+        if (UnverifiedMuseItems.Count > 0 || managedCategories.Contains("Unverified", StringComparer.OrdinalIgnoreCase))
+        {
+            var unverifiedGroup = WatchItemGroups.FirstOrDefault(group => string.Equals(group.CategoryName, "Unverified", StringComparison.OrdinalIgnoreCase))
+                                 ?? new WatchItemGroup("Unverified");
+            foreach (var item in UnverifiedMuseItems)
+                unverifiedGroup.UnverifiedItems.Add(item);
+            unverifiedGroup.ToggleExpandCommand = new RelayCommand<WatchItemGroup>((_) =>
+            {
+                unverifiedGroup.IsExpanded = !unverifiedGroup.IsExpanded;
+                UpdateVisibleItemsAction?.Invoke();
+            });
+            if (!WatchItemGroups.Contains(unverifiedGroup))
+                WatchItemGroups.Add(unverifiedGroup);
         }
 
         FilterGroups();

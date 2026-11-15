@@ -18,9 +18,10 @@ public sealed class MuseImportWriter
         if (string.IsNullOrWhiteSpace(backupPath)) throw new ArgumentException("A backup path is required.", nameof(backupPath));
         if (File.Exists(backupPath)) throw new IOException("The backup path already exists.");
         if (observedUtc.Kind != DateTimeKind.Utc) throw new ArgumentException("Observation time must be UTC.", nameof(observedUtc));
-        if (batch.NewItems == null || batch.Recommendations == null || batch.Recommendations.Count == 0)
+        if (batch.NewItems == null || batch.Recommendations == null ||
+            batch.Recommendations.Count == 0 && batch.UnverifiedRecommendations?.Count is not > 0)
         {
-            throw new ArgumentException("An approved import must contain recommendation sources.", nameof(batch));
+            throw new ArgumentException("An import must contain approved sources or unverified recommendations.", nameof(batch));
         }
         if (batch.NewItems.Any(item => item == null || !batch.Recommendations.Any(entry => entry.WatchItemId == item.Id)))
         {
@@ -39,7 +40,10 @@ public sealed class MuseImportWriter
                 _connection.Insert(item);
             }
 
-            recommendationCount = store.Apply(batch.Recommendations, observedUtc);
+            if (batch.Recommendations.Count > 0)
+                recommendationCount = store.Apply(batch.Recommendations, observedUtc);
+            if (batch.UnverifiedRecommendations?.Count > 0)
+                _ = new UnverifiedMuseRecommendationStore(_connection).AddOrUpdate(batch.UnverifiedRecommendations, observedUtc);
         });
 
         return new MuseImportReceipt(batch.NewItems.Count, recommendationCount, backupPath);

@@ -221,6 +221,7 @@
                             </Frame>
                         </toolkit:Expander.Header>
                         <toolkit:Expander.Content>
+                            <VerticalStackLayout>
                             <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="models:WatchItem">
@@ -359,6 +360,26 @@
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding UnverifiedItems}" Padding="10,4" Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:UnverifiedMuseItem">
+                                        <Frame Style="{StaticResource CardStyle}" Padding="12" Margin="2,4">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" />
+                                                <Label Text="{Binding ReleaseYear, StringFormat='Year: {0}'}" />
+                                                <Label Text="{Binding Description}" />
+                                                <Label Text="{Binding Section, StringFormat='Muse section: {0}'}" FontSize="11" />
+                                                <Label Text="{Binding SourceUrl}" FontSize="11" TextColor="{StaticResource Primary}" LineBreakMode="MiddleTruncation">
+                                                    <Label.GestureRecognizers>
+                                                        <TapGestureRecognizer Tapped="OpenUnverifiedSource" />
+                                                    </Label.GestureRecognizers>
+                                                </Label>
+                                            </VerticalStackLayout>
+                                        </Frame>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                            </VerticalStackLayout>
                         </toolkit:Expander.Content>
                     </toolkit:Expander>
                 </DataTemplate>

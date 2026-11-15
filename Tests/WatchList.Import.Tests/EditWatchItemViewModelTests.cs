@@ -24,7 +24,7 @@ public sealed class EditWatchItemViewModelTests
         await Task.WhenAll(routeLoad, appearingLoad);
 
         Assert.Same(routeLoad, appearingLoad);
-        Assert.Equal(["Currently Watching", "Finished Watching", "Consider Watching"], editor.Categories);
+        Assert.Equal(["Currently Watching", "Finished Watching", "Consider Watching", "Unverified"], editor.Categories);
         Assert.Contains("Netflix", editor.StreamingServices);
     }
 

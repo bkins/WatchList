@@ -54,6 +54,20 @@ public sealed class MuseImportReviewTests
     }
 
     [Fact]
+    public void CreateFinalBatch_SaveSkippedAsUnverified_IncludesSkippedEntriesSeparately()
+    {
+        var review = CreateReview(2);
+        review.ApproveExisting(0, new WatchItem { Title = "Saved film" });
+        review.Skip(1);
+
+        var batch = review.CreateFinalBatch(saveSkippedAsUnverified: true);
+
+        Assert.Single(batch.Recommendations);
+        Assert.Equal("Film 1", Assert.Single(batch.UnverifiedRecommendations!).Title);
+        Assert.Empty(batch.NewItems);
+    }
+
+    [Fact]
     public void GetDecision_ApprovedNewRow_RetainsIdentityAndCategoryForRevisit()
     {
         var review = CreateReview(1);

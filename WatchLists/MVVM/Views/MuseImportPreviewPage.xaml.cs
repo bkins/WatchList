@@ -55,6 +55,24 @@ public partial class MuseImportPreviewPage : ContentPage
         if (confirmed) await viewModel.ImportConfirmedAsync(batch);
     }
 
+    private async void ImportApprovedAndSaveSkipped(object? sender, EventArgs eventArgs)
+    {
+        if (BindingContext is not MuseImportPreviewViewModel viewModel) return;
+        var batch = viewModel.PrepareImport(saveSkippedAsUnverified: true);
+        if (batch == null) return;
+        var unverifiedCount = batch.UnverifiedRecommendations?.Count ?? 0;
+        if (!await DisplayAlertAsync("Import and save skipped entries?",
+                $"Import the approved recommendations and save {unverifiedCount} skipped Muse entries in the local Unverified review queue? A database backup will be created first. This queue is not synced to other devices.",
+                "Import and save", "Cancel")) return;
+        await viewModel.ImportConfirmedAsync(batch);
+    }
+
+    private async void CompareMuseFile(object? sender, EventArgs eventArgs)
+    {
+        if (BindingContext is MuseImportPreviewViewModel viewModel)
+            await viewModel.CompareMuseFileToWatchListAsync();
+    }
+
     private async void ChooseFile(object? sender, EventArgs eventArgs)
     {
         if (BindingContext is not MuseImportPreviewViewModel viewModel || viewModel.IsBusy) return;

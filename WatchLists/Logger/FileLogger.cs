@@ -29,6 +29,19 @@ public static class FileLogger
         }
     }
 
+    public static void WriteLog(string message)
+    {
+        try
+        {
+            string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+            File.AppendAllText(LogFilePath, logEntry);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error writing log: {exception.Message}");
+        }
+    }
+
     /// <summary>
     /// Reads the log file content.
     /// </summary>

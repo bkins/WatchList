@@ -146,7 +146,8 @@ public class SettingsService
                               {
                                   "Currently Watching"
                                 , "Finished Watching"
-                                , "Consider Watching"
+                                  , "Consider Watching"
+                                  , "Unverified"
                               },
             StreamingFile  => new List<string>
                               {
@@ -226,8 +227,13 @@ public class SettingsService
     public async Task<List<string>> GetOptionsAsync (SettingType setting)
     {
         string fileName = GetSettingTypeFileName(setting);
-
-        return await LoadOptionsAsync(fileName);
+        var options = await LoadOptionsAsync(fileName);
+        if (setting == SettingType.Categories && !options.Contains("Unverified", StringComparer.OrdinalIgnoreCase))
+        {
+            options.Add("Unverified");
+            await SaveOptionsAsync(setting, options);
+        }
+        return options;
     }
 
     private static string GetSettingTypeFileName (SettingType setting)
