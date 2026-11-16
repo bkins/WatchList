@@ -44,6 +44,11 @@ public sealed class MuseImportWriter
                 recommendationCount = store.Apply(batch.Recommendations, observedUtc);
             if (batch.UnverifiedRecommendations?.Count > 0)
                 _ = new UnverifiedMuseRecommendationStore(_connection).AddOrUpdate(batch.UnverifiedRecommendations, observedUtc);
+            if (batch.ResolveUnverifiedId is Guid unverifiedId &&
+                !new UnverifiedMuseRecommendationStore(_connection).Remove(unverifiedId))
+            {
+                throw new InvalidOperationException("The Unverified entry no longer exists. Refresh the list and review it again.");
+            }
         });
 
         return new MuseImportReceipt(batch.NewItems.Count, recommendationCount, backupPath);

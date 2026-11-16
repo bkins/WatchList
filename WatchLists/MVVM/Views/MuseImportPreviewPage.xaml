@@ -74,7 +74,7 @@
                     <Button Style="{StaticResource SecondaryButtonStyle}" Text="Import another file" Clicked="FinishReview" />
                 </VerticalStackLayout>
             </VerticalStackLayout>
-            <Button Style="{StaticResource SecondaryButtonStyle}" Text="Compare Muse file to WatchList" Clicked="CompareMuseFile"
+            <Button Text="Compare Muse file to WatchList" Clicked="CompareMuseFile"
                     IsVisible="{Binding IsFileStep}" IsEnabled="{Binding CanCompareMuseFile}" AutomationId="MuseCompareFile" />
             <Label Text="{Binding CompareStatus}" IsVisible="{Binding HasCompareStatus}" />
             </VerticalStackLayout>

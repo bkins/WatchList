@@ -58,5 +58,15 @@ namespace WatchLists.MVVM.Views
                 await WatchLists.Logger.FileLogger.WriteLogAsync($"Could not open unverified Muse source '{item.SourceUrl}': {exception.Message}");
             }
         }
+
+        private async void ReimportUnverified(object? sender, EventArgs eventArgs)
+        {
+            if (sender is not BindableObject { BindingContext: UnverifiedMuseItem item }) return;
+            var viewModel = App.Current.Services.GetRequiredService<MuseImportPreviewViewModel>();
+            if (viewModel.HasReview &&
+                !await DisplayAlertAsync("Replace current review?", "Starting this focused review will discard the current unsaved Muse review and its decisions.", "Replace", "Cancel")) return;
+            await viewModel.BeginUnverifiedReviewAsync(item);
+            await Shell.Current.GoToAsync(nameof(MuseImportPreviewPage));
+        }
     }
 }

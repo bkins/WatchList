@@ -21,6 +21,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private CancellationTokenSource? _searchCancellation;
     private bool _selectedRowCanBeReviewed;
     private IReadOnlyList<MuseReviewGroup> _reviewGroups = [];
+    private Guid? _resolveUnverifiedId;
 
     public ObservableCollection<MuseRecommendation> Recommendations { get; } = new();
     public ObservableCollection<WatchItem> ExistingMatches { get; } = new();
@@ -145,6 +146,26 @@ public partial class MuseImportPreviewViewModel : ObservableObject
             SelectedCategory = null;
             Status = "Could not load categories. New items cannot be approved until categories are available.";
         }
+    }
+
+    public async Task BeginUnverifiedReviewAsync(UnverifiedMuseItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        AbandonReview();
+        var recommendation = new MuseRecommendation(item.Title, item.ReleaseYear, item.Description, item.Section,
+                                                    string.IsNullOrWhiteSpace(item.SourceUrl) ? [] : [item.SourceUrl],
+                                                    item.SourceLineNumber);
+        _reviewGroups = [new MuseReviewGroup(recommendation, [recommendation])];
+        Recommendations.Add(recommendation);
+        _suggestionSession = new MuseSuggestionSession(Recommendations.ToList());
+        _review = _suggestionSession.Review;
+        _reviewDatabaseGeneration = _watchListService.DatabaseGeneration;
+        _resolveUnverifiedId = item.Id;
+        _fileName = $"Unverified: {item.Title}";
+        _fileInformation = "Focused review of one saved Muse entry. The queue entry is removed only after a successful import.";
+        await LoadCategoriesAsync();
+        SelectedRecommendation = recommendation;
+        _ = StartSuggestionsAsync();
     }
 
     private void UpdateSelectedRecommendation(MuseRecommendation? value)
@@ -311,6 +332,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         _providerSearch = new MuseProviderSearch();
         _review = null;
         _reviewGroups = [];
+        _resolveUnverifiedId = null;
         Recommendations.Clear();
         SelectedRecommendation = null;
         _rowSelections.Clear();
@@ -502,7 +524,13 @@ public partial class MuseImportPreviewViewModel : ObservableObject
         }
         try
         {
-            return _review.CreateFinalBatch(saveSkippedAsUnverified);
+            var batch = _review.CreateFinalBatch(saveSkippedAsUnverified);
+            if (_resolveUnverifiedId.HasValue && batch.Recommendations.Count == 0)
+            {
+                Status = "Approve a saved match or provider identity to resolve this Unverified entry. Skipping keeps it in the queue.";
+                return null;
+            }
+            return batch with { ResolveUnverifiedId = _resolveUnverifiedId };
         }
         catch (Exception exception)
         {

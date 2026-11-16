@@ -84,4 +84,9 @@ public sealed class UnverifiedMuseRecommendationStore
         });
         return changed;
     }
+
+    public bool Remove(Guid id)
+    {
+        return _connection.Delete<UnverifiedMuseRecommendation>(id) > 0;
+    }
 }

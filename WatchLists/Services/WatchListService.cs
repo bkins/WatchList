@@ -171,7 +171,8 @@ public partial class WatchListService : IDisposable
         lock (_databaseLock)
         {
             var records = UnverifiedMuseRecommendationStore.ReadExisting(Database);
-            return records.Select(record => new UnverifiedMuseItem(record.Title
+            return records.Select(record => new UnverifiedMuseItem(record.Id
+                                                                  , record.Title
                                                                   , record.ReleaseYear
                                                                   , record.Description
                                                                   , record.Section

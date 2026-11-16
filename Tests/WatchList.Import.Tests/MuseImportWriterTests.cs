@@ -111,6 +111,37 @@ public sealed class MuseImportWriterTests
     }
 
     [Fact]
+    public void Apply_ResolvedUnverifiedEntry_ImportsAssociationAndRemovesQueueEntryAfterBackup()
+    {
+        using var database = new DisposableImportDatabase();
+        var queuedRecommendation = new MuseRecommendation("Verified film", 2001, "Reason", "Films"
+                                                          , ["https://example.test/muse"]
+                                                          , 8);
+        _ = new UnverifiedMuseRecommendationStore(database.Connection).AddOrUpdate([queuedRecommendation], DateTime.UtcNow);
+        var queuedEntry = Assert.Single(UnverifiedMuseRecommendationStore.ReadExisting(database.Connection));
+        var savedItem = new WatchItem
+                        {
+                            Title     = "Existing film"
+                          , Category  = "Finished Watching"
+                          , IsWatched = true
+                        };
+        database.Connection.Insert(savedItem);
+        var batch = new MuseImportBatch([]
+                                      , [new(savedItem.Id, queuedRecommendation.SourceUrls[0], queuedRecommendation.Description)]
+                                      , ResolveUnverifiedId: queuedEntry.Id);
+        var backupPath = database.CreateBackupPath();
+
+        _ = new MuseImportWriter(database.Connection).Apply(batch, backupPath, DateTime.UtcNow);
+
+        Assert.Empty(UnverifiedMuseRecommendationStore.ReadExisting(database.Connection));
+        Assert.True(database.Connection.Find<WatchItem>(savedItem.Id).IsWatched);
+        Assert.Single(new RecommendationStore(database.Connection).GetAll());
+        using var backup = new SQLiteConnection(backupPath);
+        Assert.Single(UnverifiedMuseRecommendationStore.ReadExisting(backup));
+        Assert.True(backup.Find<WatchItem>(savedItem.Id).IsWatched);
+    }
+
+    [Fact]
     public void Apply_DuplicateProviderIdentity_RollsBackBatchAndPreservesBackup()
     {
         SQLitePCL.Batteries_V2.Init();
