@@ -25,16 +25,6 @@ namespace WatchLists.MVVM.Views
             }
         }
 
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-
-            if (BindingContext is WatchListViewModel vm)
-            {
-                vm.RefreshItemsCommand.Execute(null);
-            }
-        }
-
         protected override void OnDisappearing()
         {
             base.OnDisappearing();

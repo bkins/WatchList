@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WatchLists.ExtensionMethods;
@@ -17,6 +16,11 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     private readonly SettingsService  _settingsService;
     private readonly EventHandler    _onWatchListChanged;
     private bool                      _disposed;
+    private bool                      _loadInProgress;
+    private bool                      _reloadRequested;
+    private ObservableCollection<WatchItemGroup> _watchItemGroups = new();
+    private ObservableCollection<WatchItemGroup> _filteredWatchItemGroups = new();
+    private ObservableCollection<CategoryStatCardItem> _categoryStats = new();
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
@@ -36,20 +40,25 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial int SelectedItemsCount { get; set; }
 
-    public ObservableCollection<WatchItemGroup> WatchItemGroups         { get; set; } = new();
-    public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups { get; set; } = new();
-    public ObservableCollection<WatchItem>      VisibleWatchItems       { get; set; } = new();
-    public ObservableCollection<WatchItem>      WatchItems              { get; set; } = new();
-    public ObservableCollection<UnverifiedMuseItem> UnverifiedMuseItems { get; } = new();
+    [ObservableProperty]
+    public partial bool IsLoadingItems { get; set; } = true;
 
-    public Action? UpdateVisibleItemsAction { get; set; }
+    public ObservableCollection<WatchItemGroup> WatchItemGroups
+    {
+        get => _watchItemGroups;
+        private set => SetProperty(ref _watchItemGroups, value);
+    }
+
+    public ObservableCollection<WatchItemGroup> FilteredWatchItemGroups
+    {
+        get => _filteredWatchItemGroups;
+        private set => SetProperty(ref _filteredWatchItemGroups, value);
+    }
 
     public WatchListViewModel(WatchListService watchListService, SettingsService settingsService)
     {
         _watchListService = watchListService;
         _settingsService  = settingsService;
-        UpdateVisibleItemsAction = UpdateVisibleItems;
-
         _onWatchListChanged = (sender, args) =>
         {
             MainThread.BeginInvokeOnMainThread(async () =>
@@ -204,7 +213,11 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
     }
 
-    public ObservableCollection<CategoryStatCardItem> CategoryStats { get; } = new();
+    public ObservableCollection<CategoryStatCardItem> CategoryStats
+    {
+        get => _categoryStats;
+        private set => SetProperty(ref _categoryStats, value);
+    }
 
     public void Dispose()
     {
@@ -215,86 +228,108 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
 
     private async Task LoadGroupedWatchItemsAsync()
     {
-        var managedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
-
-        var allWatchItems = _watchListService.GetWatchItems();
-        var groupedItems = allWatchItems.GroupBy(item => item.Category.HasValue() ? item.Category : "Currently Watching").ToList();
-        UnverifiedMuseItems.Clear();
-        foreach (var unverifiedItem in _watchListService.GetUnverifiedMuseItems())
+        if (_loadInProgress)
         {
-            UnverifiedMuseItems.Add(unverifiedItem);
+            _reloadRequested = true;
+            return;
         }
 
-        // Sort groups based on managed category order.
-        var sortedGroups = groupedItems.OrderBy(grouping =>
+        _loadInProgress = true;
+        IsLoadingItems = true;
+        try
         {
-            var index = managedCategories.IndexOf(grouping.Key);
-            return index >= 0 ? index : int.MaxValue;
-        });
-
-        WatchItemGroups.Clear();
-        foreach (var group in sortedGroups)
-        {
-            var watchItemGroup = new WatchItemGroup(group.Key);
-            watchItemGroup.ToggleExpandCommand = new RelayCommand<WatchItemGroup>((_) =>
+            do
             {
-                watchItemGroup.IsExpanded = !watchItemGroup.IsExpanded;
-                UpdateVisibleItemsAction?.Invoke();
-            });
+                _reloadRequested = false;
+                await Task.Yield();
+                var managedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
+                var loadedData = await Task.Run(() => BuildGroupedWatchItems(managedCategories));
 
-            foreach (var item in group)
-            {
-                watchItemGroup.Items.Add(item);
+                WatchItemGroups = new ObservableCollection<WatchItemGroup>(loadedData.Groups);
+
+                FilterGroups();
+                TotalCount = loadedData.TotalCount;
+                WatchedCount = loadedData.WatchedCount;
+                UnwatchedCount = TotalCount - WatchedCount;
+                RefreshCategoryStats();
+
+                await FileLogger.WriteLogAsync($"Loaded {loadedData.GroupCount} watch item groups");
             }
-
-            WatchItemGroups.Add(watchItemGroup);
+            while (_reloadRequested);
         }
-
-        if (UnverifiedMuseItems.Count > 0 || managedCategories.Contains("Unverified", StringComparer.OrdinalIgnoreCase))
+        finally
         {
-            var unverifiedGroup = WatchItemGroups.FirstOrDefault(group => string.Equals(group.CategoryName, "Unverified", StringComparison.OrdinalIgnoreCase))
-                                 ?? new WatchItemGroup("Unverified");
-            foreach (var item in UnverifiedMuseItems)
-                unverifiedGroup.UnverifiedItems.Add(item);
-            unverifiedGroup.ToggleExpandCommand = new RelayCommand<WatchItemGroup>((_) =>
+            _loadInProgress = false;
+            IsLoadingItems = false;
+        }
+    }
+
+    private (List<WatchItemGroup> Groups, int TotalCount, int WatchedCount, int GroupCount)
+        BuildGroupedWatchItems(List<string> managedCategories)
+    {
+        var allWatchItems = _watchListService.GetWatchItems();
+        var unverifiedItems = _watchListService.GetUnverifiedMuseItems();
+        var groupedItems = allWatchItems
+            .GroupBy(item => item.Category.HasValue() ? item.Category : "Currently Watching")
+            .OrderBy(grouping =>
             {
-                unverifiedGroup.IsExpanded = !unverifiedGroup.IsExpanded;
-                UpdateVisibleItemsAction?.Invoke();
-            });
-            if (!WatchItemGroups.Contains(unverifiedGroup))
-                WatchItemGroups.Add(unverifiedGroup);
+                var index = managedCategories.IndexOf(grouping.Key);
+                return index >= 0 ? index : int.MaxValue;
+            })
+            .ToList();
+        var groups = new List<WatchItemGroup>();
+
+        foreach (var grouping in groupedItems)
+        {
+            var group = new WatchItemGroup(grouping.Key);
+            foreach (var item in grouping)
+            {
+                group.Items.Add(item);
+            }
+            groups.Add(group);
         }
 
-        FilterGroups();
-        UpdateVisibleItems();
-
-        var allItems = WatchItemGroups.SelectMany(g => g.Items).ToList();
-        TotalCount = allItems.Count;
-        WatchedCount = allItems.Count(i => i.IsWatched);
-        UnwatchedCount = TotalCount - WatchedCount;
-
-        CategoryStats.Clear();
-        CategoryStats.Add(new CategoryStatCardItem
+        if (unverifiedItems.Count > 0 || managedCategories.Contains("Unverified", StringComparer.OrdinalIgnoreCase))
         {
-            CategoryName = "All",
-            Count = TotalCount,
-            IsSelected = true,
-            SelectCommand = new RelayCommand(() => SelectCategoryStat("All"))
+            var unverifiedGroup = groups.FirstOrDefault(group =>
+                string.Equals(group.CategoryName, "Unverified", StringComparison.OrdinalIgnoreCase)) ?? new WatchItemGroup("Unverified");
+            foreach (var item in unverifiedItems)
+            {
+                unverifiedGroup.UnverifiedItems.Add(item);
+            }
+            if (!groups.Contains(unverifiedGroup))
+            {
+                groups.Add(unverifiedGroup);
+            }
+        }
+
+        return (groups, allWatchItems.Count, allWatchItems.Count(item => item.IsWatched), groupedItems.Count);
+    }
+
+    private void RefreshCategoryStats()
+    {
+        var categoryStats = new ObservableCollection<CategoryStatCardItem>();
+        categoryStats.Add(new CategoryStatCardItem
+        {
+            CategoryName = "All"
+          , Count       = TotalCount
+          , IsSelected  = true
+          , SelectCommand = new RelayCommand(() => SelectCategoryStat("All"))
         });
 
-        foreach (var group in WatchItemGroups.Where(g => g.Items.Count > 0))
+        foreach (var group in WatchItemGroups.Where(itemGroup => itemGroup.Items.Count > 0))
         {
-            var catName = group.CategoryName;
-            CategoryStats.Add(new CategoryStatCardItem
+            var categoryName = group.CategoryName;
+            categoryStats.Add(new CategoryStatCardItem
             {
-                CategoryName = catName,
-                Count = group.Items.Count,
-                IsSelected = false,
-                SelectCommand = new RelayCommand(() => SelectCategoryStat(catName))
+                CategoryName = categoryName
+              , Count       = group.Items.Count
+              , IsSelected  = false
+              , SelectCommand = new RelayCommand(() => SelectCategoryStat(categoryName))
             });
         }
 
-        await FileLogger.WriteLogAsync($"Loaded {groupedItems.Count} watch items");
+        CategoryStats = categoryStats;
     }
 
     [RelayCommand]
@@ -320,7 +355,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
             }
         }
 
-        UpdateVisibleItemsAction?.Invoke();
     }
 
     partial void OnSearchTextChanged(string value)
@@ -336,19 +370,15 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
 
     private void FilterGroups()
     {
+        var filteredGroups = new List<WatchItemGroup>();
         if (SearchText.IsEmptyNullOrWhiteSpace())
         {
-            FilteredWatchItemGroups.Clear();
-            foreach (var group in WatchItemGroups)
-            {
-                FilteredWatchItemGroups.Add(group);
-            }
+            filteredGroups.AddRange(WatchItemGroups);
         }
         else
         {
             var query = SearchText.Trim();
             var recommendations = _watchListService.GetRecommendationSearchIndex();
-            var filtered = new ObservableCollection<WatchItemGroup>();
 
             foreach (var group in WatchItemGroups)
             {
@@ -367,32 +397,12 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
                     {
                         newGroup.Items.Add(item);
                     }
-                    filtered.Add(newGroup);
-                }
-            }
-
-            FilteredWatchItemGroups.Clear();
-            foreach (var group in filtered)
-            {
-                FilteredWatchItemGroups.Add(group);
-            }
-        }
-
-        OnPropertyChanged(nameof(FilteredWatchItemGroups));
-    }
-
-    private void UpdateVisibleItems()
-    {
-        VisibleWatchItems.Clear();
-        foreach (var group in WatchItemGroups)
-        {
-            if (!group.IsExpanded)
-            {
-                foreach (var item in group.Items)
-                {
-                    VisibleWatchItems.Add(item);
+                    filteredGroups.Add(newGroup);
                 }
             }
         }
+
+        FilteredWatchItemGroups = new ObservableCollection<WatchItemGroup>(filteredGroups);
     }
+
 }

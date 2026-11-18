@@ -107,6 +107,13 @@ public partial class MuseImportPreviewViewModel
         }
     }
     public string RecommendationDescription => SelectedRecommendation?.Description ?? string.Empty;
+    public bool HasRecommendationDescription => !string.IsNullOrWhiteSpace(RecommendationDescription);
+    public IReadOnlyList<string> RecommendationSourceUrls => SelectedRecommendation?.SourceUrls
+        .Where(sourceUrl => Uri.TryCreate(sourceUrl, UriKind.Absolute, out _))
+        .ToArray() ?? [];
+    public bool HasRecommendationSourceUrls => RecommendationSourceUrls.Count > 0;
+    public bool IsSearchingSuggestions => _searchCancellation != null;
+    public bool IsProcessingMatch => IsBusy || IsSearchingSuggestions;
     public string DecisionState
     {
         get
@@ -269,7 +276,9 @@ public partial class MuseImportPreviewViewModel
     {
         foreach (var name in new[] { nameof(WizardStep), nameof(IsFileStep), nameof(IsReviewStep), nameof(IsSummaryStep), nameof(IsResultStep)
                                  , nameof(HasFile), nameof(CanChangeReview), nameof(CanCompareMuseFile), nameof(StepHeading), nameof(FileName), nameof(FileInformation)
-                                 , nameof(RecommendationPosition), nameof(RecommendationTitle), nameof(RecommendationDescription), nameof(DecisionState)
+                                 , nameof(RecommendationPosition), nameof(RecommendationTitle), nameof(RecommendationDescription)
+                                 , nameof(HasRecommendationDescription), nameof(RecommendationSourceUrls), nameof(HasRecommendationSourceUrls)
+                                 , nameof(IsSearchingSuggestions), nameof(IsProcessingMatch), nameof(DecisionState)
                                  , nameof(MatchTitle), nameof(MatchEffect), nameof(NeedsCategory), nameof(CanApprove), nameof(ApprovalBlockReason)
                                  , nameof(HasApprovalFeedback), nameof(HasApprovalBlockReason), nameof(ShowSearchAction)
                                  , nameof(HasPrevious), nameof(HasNext), nameof(SearchAction), nameof(SearchProgress), nameof(RowSearchStatus)

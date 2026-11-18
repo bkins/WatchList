@@ -32,4 +32,18 @@ public partial class MuseImportMatchPage : ContentPage
         viewModel.SkipAndNextCommand.Execute(null);
         await Navigation.PopModalAsync();
     }
+
+    private async void OpenMuseSource(object? sender, TappedEventArgs eventArgs)
+    {
+        if (sender is not BindableObject { BindingContext: string sourceUrl } ||
+            !Uri.TryCreate(sourceUrl, UriKind.Absolute, out var sourceUri)) return;
+        try
+        {
+            await Launcher.OpenAsync(sourceUri);
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync("Could not open Muse source", exception.Message, "OK");
+        }
+    }
 }

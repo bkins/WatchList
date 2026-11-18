@@ -11,6 +11,27 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Spacing="12">
                 <Label Text="Check title, year and type. Approve on the review screen." />
+                <VerticalStackLayout Spacing="4" IsVisible="{Binding HasRecommendationDescription}">
+                    <Label Text="Muse description" FontAttributes="Bold" />
+                    <Label Text="{Binding RecommendationDescription}" AutomationId="MuseMatchSourceDescription" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="4" IsVisible="{Binding HasRecommendationSourceUrls}">
+                    <Label Text="Muse source" FontAttributes="Bold" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecommendationSourceUrls}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Label Text="{Binding .}"
+                                       TextColor="{StaticResource Primary}"
+                                       TextDecorations="Underline"
+                                       AutomationId="MuseMatchSourceLink">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OpenMuseSource" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
                 <Label Text="Already in your WatchList" FontAttributes="Bold" />
                 <CollectionView HeightRequest="140" ItemsSource="{Binding ExistingMatches}" SelectionMode="Single" SelectedItem="{Binding SelectedExisting}">
                     <CollectionView.EmptyView><Label Text="No saved match found." /></CollectionView.EmptyView>
@@ -40,6 +61,13 @@
             </VerticalStackLayout>
         </ScrollView>
         <VerticalStackLayout Grid.Row="2" Spacing="8">
+            <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsProcessingMatch}">
+                <ActivityIndicator IsRunning="{Binding IsProcessingMatch}"
+                                   WidthRequest="24"
+                                   HeightRequest="24"
+                                   Color="{StaticResource Primary}" />
+                <Label Text="Searching provider suggestions..." VerticalOptions="Center" />
+            </HorizontalStackLayout>
             <Button Text="Use selected match" Clicked="UseMatch" IsEnabled="{Binding CanChangeReview}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button Text="Back to review" Clicked="BackToReview" AutomationId="MuseMatchBack" />
