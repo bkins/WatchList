@@ -47,7 +47,7 @@ namespace WatchLists.MVVM.Views
             {
                 if (expander.BindingContext is WatchItemGroup categoryGroup)
                 {
-                    _ = categoryGroup.ToggleExpandedAfterRenderAsync();
+                    _ = categoryGroup.ToggleExpandedAsync();
                 }
             };
         }

@@ -218,6 +218,8 @@ public partial class EditWatchItemViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshStreamingServices()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (EditableItem == null) return;
 
         var titleToSearch = MovieTitle.HasValue() ? MovieTitle : EditableItem.Title;
@@ -327,6 +329,8 @@ public partial class EditWatchItemViewModel : ObservableObject
 
     private async Task LoadOptionsAsync()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var categoriesList = await _settingsService.GetOptionsAsync(SettingType.Categories);
         Categories.Clear();
         foreach (var item in categoriesList)
@@ -379,6 +383,8 @@ public partial class EditWatchItemViewModel : ObservableObject
     [RelayCommand]
     public async Task Save()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await FileLogger.WriteLogAsync("Save command invoked.");
 
         if (EditableItem.MovieId > 0)
@@ -430,11 +436,15 @@ public partial class EditWatchItemViewModel : ObservableObject
     [RelayCommand]
     public async Task OpenSearch()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync(nameof(SearchPage));
     }
 
     public async Task OnStreamingServiceSelectedAsync (string streamingService)
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (streamingService.HasValue()
             && StreamingServices.DoesNotContains(streamingService))
         {
@@ -447,6 +457,8 @@ public partial class EditWatchItemViewModel : ObservableObject
 
     public async Task OnCategorySelectedAsync (string category)
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         // If the category doesn't exist yet, add it and persist in settings.
         if (category.HasValue()
          && Categories.DoesNotContains(category))
@@ -473,6 +485,8 @@ public partial class EditWatchItemViewModel : ObservableObject
     {
         if (_isLoaded) return;
         _isLoaded = true;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         _databaseGeneration = _watchListService.DatabaseGeneration;
 
         await InitializeAsync(); // Ensure categories and streaming services are loaded first

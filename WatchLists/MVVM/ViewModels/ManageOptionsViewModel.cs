@@ -30,6 +30,8 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
 
         public async void ApplyQueryAttributes(IDictionary<string, object> query)
         {
+            using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+            await BusyOperationTracker.Current.WaitForOverlayAsync();
             if (! query.TryGetValue("optionKey"
                                   , out var key)) return;
 
@@ -56,6 +58,8 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
 
         private async Task LoadOptionsAsync()
         {
+            using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+            await BusyOperationTracker.Current.WaitForOverlayAsync();
             var optionsList = await _settingsService.GetOptionsAsync(OptionSetting);
             Options.Clear();
             foreach (string item in optionsList)
@@ -120,6 +124,8 @@ public partial class ManageOptionsViewModel  : ObservableObject, IQueryAttributa
         [RelayCommand]
         private async Task SaveOptions()
         {
+            using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+            await BusyOperationTracker.Current.WaitForOverlayAsync();
             if (NewOption.HasValue())
             {
                 AddOption();

@@ -382,6 +382,8 @@ public partial class MuseImportPreviewViewModel
     public async Task CompareMuseFileToWatchListAsync()
     {
         if (IsComparingMuseFile || !IsFileStep) return;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         IsComparingMuseFile = true;
         CompareStatus = string.Empty;
         try

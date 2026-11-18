@@ -9,7 +9,6 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
 {
     private static readonly SemaphoreSlim TransitionLogLock = new(1, 1);
     private bool _isTransitioning;
-    private long _transitionSequence;
 
     public string CategoryName { get; private set; }
 
@@ -24,46 +23,36 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
         set
         {
             if (_isExpanded == value) return;
-            var startedUtc = DateTime.UtcNow;
-            var transition = BeginTransition(value, startedUtc);
-            SetExpandedState(value);
-            _ = ClearTransitionIndicatorAsync(transition.Sequence, transition.ProgressSequence, value, startedUtc);
-        }
-    }
-
-    public bool IsTransitioning
-    {
-        get => _isTransitioning;
-        private set
-        {
-            if (_isTransitioning == value) return;
-            _isTransitioning = value;
-            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsTransitioning)));
+            _isExpanded = value;
+            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
         }
     }
 
     public int ItemCount => Items.Count + UnverifiedItems.Count;
 
-    public async Task ToggleExpandedAfterRenderAsync()
+    public async Task ToggleExpandedAsync()
     {
-        if (IsTransitioning)
+        if (_isTransitioning)
         {
             return;
         }
 
-        var expanded = !IsExpanded;
+        _isTransitioning = true;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
         var startedUtc = DateTime.UtcNow;
-        var transition = BeginTransition(expanded, startedUtc);
+        var expanded = !IsExpanded;
+        WriteTransitionLog($"Category transition requested: category='{CategoryName}', expanded={expanded}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}, startedUtc={startedUtc:O}.");
 
-        await Task.Delay(TimeSpan.FromMilliseconds(120));
-
-        if (Interlocked.Read(ref _transitionSequence) != transition.Sequence)
+        try
         {
-            return;
+            await BusyOperationTracker.Current.WaitForOverlayAsync();
+            IsExpanded = expanded;
         }
-
-        SetExpandedState(expanded);
-        await ClearTransitionIndicatorAsync(transition.Sequence, transition.ProgressSequence, expanded, startedUtc);
+        finally
+        {
+            _isTransitioning = false;
+            WriteTransitionLog($"Category transition completed: category='{CategoryName}', expanded={expanded}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
+        }
     }
 
     public WatchItemGroup(string categoryName) : base()
@@ -83,38 +72,6 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
             finally
             {
                 TransitionLogLock.Release();
-            }
-        });
-    }
-
-    private (long Sequence, long ProgressSequence) BeginTransition(bool expanded, DateTime startedUtc)
-    {
-        IsTransitioning = true;
-        var transitionSequence = Interlocked.Increment(ref _transitionSequence);
-        var progressSequence = UiProgressState.Current.Show($"Updating {CategoryName}...");
-        WriteTransitionLog($"Category transition requested: category='{CategoryName}', expanded={expanded}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}, startedUtc={startedUtc:O}.");
-        return (transitionSequence, progressSequence);
-    }
-
-    private void SetExpandedState(bool expanded)
-    {
-        _isExpanded = expanded;
-        OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
-    }
-
-    private async Task ClearTransitionIndicatorAsync(
-        long transitionSequence,
-        long progressSequence,
-        bool expanded,
-        DateTime startedUtc)
-    {
-        await UiProgressState.Current.HideAfterAsync(progressSequence, 1200);
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            if (Interlocked.Read(ref _transitionSequence) == transitionSequence)
-            {
-                IsTransitioning = false;
-                WriteTransitionLog($"Category transition feedback completed: category='{CategoryName}', expanded={expanded}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
             }
         });
     }

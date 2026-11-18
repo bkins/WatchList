@@ -18,7 +18,16 @@ namespace WatchLists
         public new static App Current => Application.Current as App
             ?? throw new InvalidOperationException("WatchList has not been initialized.");
 
-        protected override Window CreateWindow(IActivationState? activationState) => new(new AppShell());
+        protected override Window CreateWindow(IActivationState? activationState)
+        {
+            var window = new Window(new AppShell());
+            window.Created += (sender, eventArgs) =>
+            {
+                window.AddOverlay(new UniversalBusyOverlay(window, BusyOperationTracker.Current));
+            };
+
+            return window;
+        }
 
         protected override async void OnStart()
         {
@@ -49,6 +58,8 @@ namespace WatchLists
                     var syncService = Services.GetService<Services.SyncService>();
                     if (syncService != null)
                     {
+                        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+                        await BusyOperationTracker.Current.WaitForOverlayAsync();
                         await syncService.SyncAutomaticallyAsync();
                     }
                 }

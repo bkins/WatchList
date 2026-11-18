@@ -129,6 +129,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     public async Task LoadCategoriesAsync()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         try
         {
             var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
@@ -150,6 +152,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
 
     public async Task BeginUnverifiedReviewAsync(UnverifiedMuseItem item)
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         ArgumentNullException.ThrowIfNull(item);
         AbandonReview();
         var recommendation = new MuseRecommendation(item.Title, item.ReleaseYear, item.Description, item.Section,
@@ -216,6 +220,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenFileAsync()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (_suggestionSession != null)
         {
             Status = "End the current review before opening another file.";
@@ -256,6 +262,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     [RelayCommand]
     private async Task StartSuggestionsAsync()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var session = _suggestionSession;
         if (session == null || _searchCancellation != null) return;
         var cancellation = new CancellationTokenSource();
@@ -347,6 +355,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private async Task SearchProviderAsync()
     {
         if (SelectedRecommendation == null || IsBusy) return;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var row = SelectedRecommendation;
         IsBusy = true;
         try
@@ -384,6 +394,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     private async Task SearchShowsAsync()
     {
         if (SelectedRecommendation == null || IsBusy) return;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var row = SelectedRecommendation;
         IsBusy = true;
         try
@@ -541,6 +553,8 @@ public partial class MuseImportPreviewViewModel : ObservableObject
     public async Task ImportConfirmedAsync(MuseImportBatch batch)
     {
         if (IsBusy) return;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         IsBusy = true;
         try
         {

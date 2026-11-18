@@ -48,6 +48,8 @@ public partial class ApiTestViewModel : ObservableObject
     [RelayCommand]
     public async Task ExecuteApiCall()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         try
         {
             var response = await GetApiResponse();

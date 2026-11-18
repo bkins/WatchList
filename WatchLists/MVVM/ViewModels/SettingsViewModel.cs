@@ -83,6 +83,8 @@ public partial class SettingsViewModel : ObservableObject
 
     public async Task LoadSettingsAsync()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var streaming  = await _settingsService.GetOptionsAsync(SettingType.StreamingServices);
         var categories = await _settingsService.GetOptionsAsync(SettingType.Categories);
         var types      = await _settingsService.GetOptionsAsync(SettingType.Types);
@@ -190,6 +192,9 @@ public partial class SettingsViewModel : ObservableObject
                     return;
                 }
 
+                using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+                await BusyOperationTracker.Current.WaitForOverlayAsync();
+
                 RestoreStatus = "Restoring and reopening the WatchList…";
                 var receipt = await _watchListService.RestoreBackupAsync(prepared);
                 RestoreStatus = $"Restored {receipt.Summary.Items} active items and {receipt.Summary.Recommendations} recommendation links. "
@@ -226,6 +231,8 @@ public partial class SettingsViewModel : ObservableObject
 
     private async Task SaveAutomaticAsync(bool enabled)
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var result = await _syncService!.SetAutomaticAsync(enabled);
         _loadingSyncSettings = true;
         AutoSyncEnabled = _settingsService.GetAutoSyncEnabled();
@@ -313,6 +320,8 @@ public partial class SettingsViewModel : ObservableObject
     private async Task RunSyncAsync(Func<SyncService, CancellationToken, Task<SyncAttempt>> action)
     {
         if (_syncService is null || !CanEditSync) return;
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         using var cancellation = new CancellationTokenSource();
         _syncCancellation = cancellation;
         IsSyncBusy = true;
@@ -387,6 +396,8 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     public async Task NavigateToManageOptions (string optionKey)
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync($"ManageOptionsPage?optionKey={optionKey}");
     }
 }

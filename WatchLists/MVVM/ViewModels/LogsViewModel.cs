@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using WatchLists.Logger;
@@ -21,6 +21,8 @@ public class LogsViewModel : BindableObject
 
     public async void LoadLogs()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         Logs.Clear();
         var fileContents = await FileLogger.ReadLogAsync();
         var lines = fileContents.Split(Environment.NewLine);
@@ -36,6 +38,8 @@ public class LogsViewModel : BindableObject
 
     private async Task ClearLogs()
     {
+        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
+        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (File.Exists(LogConfig.LogFilePath))
         {
             File.Delete(LogConfig.LogFilePath);

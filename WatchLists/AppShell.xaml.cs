@@ -4,7 +4,7 @@ namespace WatchLists
 {
     public partial class AppShell : Shell
     {
-        private long _navigationProgressSequence;
+        private IDisposable? _navigationOperation;
 
         public AppShell()
         {
@@ -40,20 +40,24 @@ namespace WatchLists
 
         private async void HandleNavigating(object? sender, ShellNavigatingEventArgs eventArgs)
         {
-            _navigationProgressSequence = UiProgressState.Current.Show("Switching screens...");
+            _navigationOperation?.Dispose();
+            _navigationOperation = BusyOperationTracker.Current.BeginOperation();
             var navigationDeferral = eventArgs.GetDeferral();
             if (navigationDeferral is null)
             {
+                _navigationOperation.Dispose();
+                _navigationOperation = null;
                 return;
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(120));
+            await BusyOperationTracker.Current.WaitForOverlayAsync();
             navigationDeferral.Complete();
         }
 
         private void HandleNavigated(object? sender, ShellNavigatedEventArgs eventArgs)
         {
-            _ = UiProgressState.Current.HideAfterAsync(_navigationProgressSequence, 1200);
+            _navigationOperation?.Dispose();
+            _navigationOperation = null;
         }
     }
 }
