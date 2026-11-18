@@ -412,5 +412,10 @@
                        TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
             </HorizontalStackLayout>
         </Border>
+        <views:ProgressBanner Grid.RowSpan="3"
+                              VerticalOptions="Start"
+                              HorizontalOptions="Center"
+                              ZIndex="20"
+                              InputTransparent="True" />
     </Grid>
 </ContentPage>

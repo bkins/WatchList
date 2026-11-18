@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:WatchLists"
+             x:Class="WatchLists.MVVM.Views.ProgressBanner"
+             x:DataType="local:UiProgressState"
+             IsVisible="{Binding IsVisible}">
+    <Frame Padding="12,8"
+           Margin="4"
+           HasShadow="True"
+           CornerRadius="8"
+           BackgroundColor="{StaticResource Primary}"
+           HorizontalOptions="Center"
+           VerticalOptions="Start">
+        <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+            <ActivityIndicator IsRunning="True"
+                               IsVisible="True"
+                               WidthRequest="22"
+                               HeightRequest="22"
+                               Color="White"
+                               AutomationId="VisibleProgressIndicator" />
+            <Label Text="{Binding StatusText}"
+                   TextColor="White"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   AutomationId="ProgressStatusText" />
+        </HorizontalStackLayout>
+    </Frame>
+</ContentView>

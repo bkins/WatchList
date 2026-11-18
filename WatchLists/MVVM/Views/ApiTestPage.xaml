@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
              xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             xmlns:views="clr-namespace:WatchLists.MVVM.Views"
              x:DataType="viewmodels:ApiTestViewModel"
              x:Class="WatchLists.MVVM.Views.ApiTestPage"
              Title="API Diagnostics">
@@ -60,5 +61,10 @@
             </Grid>
         </Frame>
 
+        <views:ProgressBanner Grid.RowSpan="2"
+                              VerticalOptions="Start"
+                              HorizontalOptions="Center"
+                              ZIndex="20"
+                              InputTransparent="True" />
     </Grid>
 </ContentPage>

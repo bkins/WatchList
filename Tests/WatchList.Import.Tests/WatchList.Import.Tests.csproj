@@ -33,6 +33,7 @@
     <Compile Include="..\..\WatchLists\MVVM\ViewModels\EditWatchItemViewModel.cs" Link="EditWatchItemViewModel.cs" />
     <Compile Include="..\..\WatchLists\Messaging\MovieSelectedMessage.cs" Link="MovieSelectedMessage.cs" />
     <Compile Include="..\..\WatchLists\MVVM\Views\WatchListLayout.cs" Link="WatchListLayout.cs" />
+    <Compile Include="..\..\WatchLists\UiProgressState.cs" Link="UiProgressState.cs" />
     <Compile Include="..\..\WatchLists\Services\CloudApiSyncProvider.cs" Link="CloudApiSyncProvider.cs" />
     <Compile Include="..\..\WatchLists\Services\SettingsService.cs" Link="SettingsService.cs" />
     <Compile Include="..\..\WatchLists\Services\WatchListService.cs" Link="WatchListService.cs" />

@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
              xmlns:models="clr-namespace:WatchLists.MVVM.Models"
+             xmlns:views="clr-namespace:WatchLists.MVVM.Views"
              x:DataType="viewmodels:LogsViewModel"
              x:Class="WatchLists.MVVM.Views.LogsPage"
              Title="System Logs">
@@ -48,5 +49,10 @@
             </CollectionView>
         </Frame>
 
+        <views:ProgressBanner Grid.RowSpan="3"
+                              VerticalOptions="Start"
+                              HorizontalOptions="Center"
+                              ZIndex="20"
+                              InputTransparent="True" />
     </Grid>
 </ContentPage>

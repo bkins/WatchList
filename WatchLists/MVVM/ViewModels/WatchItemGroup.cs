@@ -27,11 +27,10 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
             var startedUtc = DateTime.UtcNow;
             IsTransitioning = true;
             var transitionSequence = Interlocked.Increment(ref _transitionSequence);
-            _ = ClearTransitionIndicatorAsync(transitionSequence);
-            WriteTransitionLog($"Category expander transition started: category='{CategoryName}', expanded={value}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}.");
+            var progressSequence = UiProgressState.Current.Show($"Updating {CategoryName}...");
+            _ = ClearTransitionIndicatorAsync(transitionSequence, progressSequence, value, startedUtc);
             _isExpanded = value;
             OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
-            WriteTransitionLog($"Category expander transition completed: category='{CategoryName}', expanded={value}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
         }
     }
 
@@ -69,15 +68,21 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
         });
     }
 
-    private async Task ClearTransitionIndicatorAsync(long transitionSequence)
+    private async Task ClearTransitionIndicatorAsync(
+        long transitionSequence,
+        long progressSequence,
+        bool expanded,
+        DateTime startedUtc)
     {
-        await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+        await UiProgressState.Current.HideAfterAsync(progressSequence, 1200);
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             if (Interlocked.Read(ref _transitionSequence) == transitionSequence)
             {
                 IsTransitioning = false;
+                WriteTransitionLog($"Category transition feedback completed: category='{CategoryName}', expanded={expanded}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
             }
         });
     }
+
 }

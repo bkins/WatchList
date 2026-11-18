@@ -190,5 +190,10 @@
                 </Frame>
             </CollectionView.Footer>
         </CollectionView>
+        <views:ProgressBanner Grid.RowSpan="3"
+                              VerticalOptions="Start"
+                              HorizontalOptions="Center"
+                              ZIndex="20"
+                              InputTransparent="True" />
     </Grid>
 </ContentPage>

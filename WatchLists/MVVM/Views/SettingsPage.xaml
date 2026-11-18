@@ -5,12 +5,14 @@
              xmlns:viewmodels="clr-namespace:WatchLists.MVVM.ViewModels"
              xmlns:models="clr-namespace:WatchLists.MVVM.Models"
              xmlns:backup="clr-namespace:WatchLists.Services.Restoration"
+             xmlns:views="clr-namespace:WatchLists.MVVM.Views"
              x:DataType="viewmodels:SettingsViewModel"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:converters="clr-namespace:WatchLists.Converters"
              x:Class="WatchLists.MVVM.Views.SettingsPage"
              Title="Settings">
 
+    <Grid>
     <ScrollView Padding="12,10">
         <StackLayout Spacing="14">
 
@@ -173,4 +175,10 @@
 
         </StackLayout>
     </ScrollView>
+    <views:ProgressBanner
+        VerticalOptions="Start"
+        HorizontalOptions="Center"
+        ZIndex="20"
+        InputTransparent="True" />
+    </Grid>
 </ContentPage>
