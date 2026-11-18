@@ -202,8 +202,7 @@ public partial class MuseImportPreviewViewModel : ObservableObject
                 ? "No saved associations for these source URLs."
                 : string.Join(Environment.NewLine, associations.Select(association =>
                     $"{association.SourceUrl} → {association.ItemTitle}" + (association.IsDeleted ? " (deleted)" : string.Empty)));
-            Details = $"{value.Section} · line {value.LineNumber}\n{value.Description}\nSources: {string.Join(", ", value.SourceUrls)}\n" +
-                      $"Saved source associations (review identity):\n{savedDetails}";
+            Details = savedDetails;
             _selectedRowCanBeReviewed = true;
         }
         catch (Exception exception)

@@ -1,12 +1,36 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Shell
     x:Class="WatchLists.AppShell"
+    x:Name="AppShellRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:WatchLists"
     xmlns:views="clr-namespace:WatchLists.MVVM.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="WatchList">
+
+    <Shell.TitleView>
+        <Grid x:DataType="local:AppShell"
+              ColumnDefinitions="*,Auto,Auto"
+              ColumnSpacing="8"
+              Padding="8,0">
+            <Label Text="{Binding PageTitle, Source={x:Reference AppShellRoot}}"
+                   VerticalOptions="Center"
+                   FontAttributes="Bold"
+                   AutomationId="ShellPageTitle" />
+            <ActivityIndicator Grid.Column="1"
+                               IsRunning="{Binding IsNavigationPending, Source={x:Reference AppShellRoot}}"
+                               IsVisible="{Binding IsNavigationPending, Source={x:Reference AppShellRoot}}"
+                               WidthRequest="22"
+                               HeightRequest="22"
+                               Color="{StaticResource Primary}"
+                               AutomationId="ShellNavigationIndicator" />
+            <Label Grid.Column="2"
+                   Text="Switching..."
+                   VerticalOptions="Center"
+                   IsVisible="{Binding IsNavigationPending, Source={x:Reference AppShellRoot}}" />
+        </Grid>
+    </Shell.TitleView>
 
     <TabBar>
         <Tab Title="WatchList">

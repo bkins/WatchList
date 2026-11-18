@@ -171,7 +171,7 @@
                             <Frame Style="{StaticResource CardStyle}"
                                    Padding="12,10"
                                    Margin="0,4">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
                                     <Label Grid.Column="0"
                                            Text="{StaticResource VideoLibraryIcon}"
                                            FontFamily="MaterialIcons"
@@ -217,6 +217,13 @@
                                             </DataTrigger>
                                         </Label.Triggers>
                                     </Label>
+                                    <ActivityIndicator Grid.Column="4"
+                                                       IsRunning="{Binding IsTransitioning}"
+                                                       IsVisible="{Binding IsTransitioning}"
+                                                       WidthRequest="22"
+                                                       HeightRequest="22"
+                                                       Color="{StaticResource Primary}"
+                                                       AutomationId="CategoryTransitionIndicator" />
                                 </Grid>
                             </Frame>
                         </toolkit:Expander.Header>

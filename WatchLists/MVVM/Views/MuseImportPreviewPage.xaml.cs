@@ -98,8 +98,15 @@ public partial class MuseImportPreviewPage : ContentPage
 
     private async void ShowDetails(object? sender, EventArgs eventArgs)
     {
-        if (BindingContext is MuseImportPreviewViewModel viewModel)
-            await DisplayAlertAsync("Recommendation details", viewModel.Details, "Close");
+        await ShowRecommendationDetailsAsync();
+    }
+
+    private async Task ShowRecommendationDetailsAsync()
+    {
+        if (BindingContext is MuseImportPreviewViewModel viewModel && viewModel.SelectedRecommendation is { } recommendation)
+        {
+            await Navigation.PushModalAsync(new NavigationPage(new MuseRecommendationDetailsPage(recommendation, viewModel.Details)));
+        }
     }
 
     private async void SkipRemaining(object? sender, EventArgs eventArgs)
@@ -113,7 +120,7 @@ public partial class MuseImportPreviewPage : ContentPage
     {
         if (BindingContext is not MuseImportPreviewViewModel viewModel || viewModel.IsBusy) return;
         var choice = await DisplayActionSheetAsync("Review options", "Keep reviewing", null, "Recommendation details", "Mark recommendation pending", "Keep review and leave", "Discard review");
-        if (choice == "Recommendation details") ShowDetails(sender, eventArgs);
+        if (choice == "Recommendation details") await ShowRecommendationDetailsAsync();
         else if (choice == "Mark recommendation pending" && viewModel.IsReviewStep) viewModel.ClearApprovalCommand.Execute(null);
         else if (choice == "Keep review and leave")
         {

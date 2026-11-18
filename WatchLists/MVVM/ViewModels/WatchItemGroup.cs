@@ -8,6 +8,8 @@ namespace WatchLists.MVVM.ViewModels;
 public class WatchItemGroup : ObservableCollection<WatchItem>
 {
     private static readonly SemaphoreSlim TransitionLogLock = new(1, 1);
+    private bool _isTransitioning;
+    private long _transitionSequence;
 
     public string CategoryName { get; private set; }
 
@@ -23,10 +25,24 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
         {
             if (_isExpanded == value) return;
             var startedUtc = DateTime.UtcNow;
+            IsTransitioning = true;
+            var transitionSequence = Interlocked.Increment(ref _transitionSequence);
+            _ = ClearTransitionIndicatorAsync(transitionSequence);
             WriteTransitionLog($"Category expander transition started: category='{CategoryName}', expanded={value}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}.");
             _isExpanded = value;
             OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
             WriteTransitionLog($"Category expander transition completed: category='{CategoryName}', expanded={value}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
+        }
+    }
+
+    public bool IsTransitioning
+    {
+        get => _isTransitioning;
+        private set
+        {
+            if (_isTransitioning == value) return;
+            _isTransitioning = value;
+            OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsTransitioning)));
         }
     }
 
@@ -49,6 +65,18 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
             finally
             {
                 TransitionLogLock.Release();
+            }
+        });
+    }
+
+    private async Task ClearTransitionIndicatorAsync(long transitionSequence)
+    {
+        await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+        await MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            if (Interlocked.Read(ref _transitionSequence) == transitionSequence)
+            {
+                IsTransitioning = false;
             }
         });
     }
