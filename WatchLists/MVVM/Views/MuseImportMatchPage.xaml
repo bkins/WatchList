@@ -61,13 +61,6 @@
             </VerticalStackLayout>
         </ScrollView>
         <VerticalStackLayout Grid.Row="2" Spacing="8">
-            <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsProcessingMatch}">
-                <ActivityIndicator IsRunning="{Binding IsProcessingMatch}"
-                                   WidthRequest="24"
-                                   HeightRequest="24"
-                                   Color="{StaticResource Primary}" />
-                <Label Text="Searching provider suggestions..." VerticalOptions="Center" />
-            </HorizontalStackLayout>
             <Button Text="Use selected match" Clicked="UseMatch" IsEnabled="{Binding CanChangeReview}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button Text="Back to review" Clicked="BackToReview" AutomationId="MuseMatchBack" />

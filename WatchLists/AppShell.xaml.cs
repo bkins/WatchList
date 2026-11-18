@@ -4,14 +4,10 @@ namespace WatchLists
 {
     public partial class AppShell : Shell
     {
-        private IDisposable? _navigationOperation;
-
         public AppShell()
         {
             InitializeComponent();
             Title = $"WatchList · v{WatchListVersion.DisplayVersion}";
-            Navigating += HandleNavigating;
-            Navigated += HandleNavigated;
 
             Routing.RegisterRoute(nameof(EditWatchItemPage)
                                 , typeof(EditWatchItemPage));
@@ -36,28 +32,6 @@ namespace WatchLists
 
             Routing.RegisterRoute(nameof(LogsPage)
                                 , typeof(LogsPage));
-        }
-
-        private async void HandleNavigating(object? sender, ShellNavigatingEventArgs eventArgs)
-        {
-            _navigationOperation?.Dispose();
-            _navigationOperation = BusyOperationTracker.Current.BeginOperation();
-            var navigationDeferral = eventArgs.GetDeferral();
-            if (navigationDeferral is null)
-            {
-                _navigationOperation.Dispose();
-                _navigationOperation = null;
-                return;
-            }
-
-            await BusyOperationTracker.Current.WaitForOverlayAsync();
-            navigationDeferral.Complete();
-        }
-
-        private void HandleNavigated(object? sender, ShellNavigatedEventArgs eventArgs)
-        {
-            _navigationOperation?.Dispose();
-            _navigationOperation = null;
         }
     }
 }

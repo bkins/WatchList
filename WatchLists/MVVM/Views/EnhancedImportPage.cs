@@ -1,5 +1,4 @@
 using System.Text;
-using WatchLists;
 using WatchLists.Services;
 using WatchLists.Services.MuseImport;
 
@@ -167,8 +166,6 @@ internal sealed class EnhancedImportPage : ContentPage
         if (!await DisplayAlertAsync("Apply enhanced recommendations?", _summary.Text + "\n\nUnmatched and unreviewed rows will be skipped. WatchList will make a local backup.", "Apply", "Cancel"))
             return;
 
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var receipt = await _service.ApplyEnhancedImportAsync(approvals, _generation);
         var unchanged = _entries.Count(row => row.Target is not null && !row.HasChanges()) + receipt.Unchanged;
         var conflicts = _entries.Count(NeedsConflictReview);

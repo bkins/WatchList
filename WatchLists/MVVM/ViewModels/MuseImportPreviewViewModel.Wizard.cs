@@ -112,8 +112,6 @@ public partial class MuseImportPreviewViewModel
         .Where(sourceUrl => Uri.TryCreate(sourceUrl, UriKind.Absolute, out _))
         .ToArray() ?? [];
     public bool HasRecommendationSourceUrls => RecommendationSourceUrls.Count > 0;
-    public bool IsSearchingSuggestions => _searchCancellation != null;
-    public bool IsProcessingMatch => IsBusy || IsSearchingSuggestions;
     public string DecisionState
     {
         get
@@ -278,7 +276,7 @@ public partial class MuseImportPreviewViewModel
                                  , nameof(HasFile), nameof(CanChangeReview), nameof(CanCompareMuseFile), nameof(StepHeading), nameof(FileName), nameof(FileInformation)
                                  , nameof(RecommendationPosition), nameof(RecommendationTitle), nameof(RecommendationDescription)
                                  , nameof(HasRecommendationDescription), nameof(RecommendationSourceUrls), nameof(HasRecommendationSourceUrls)
-                                 , nameof(IsSearchingSuggestions), nameof(IsProcessingMatch), nameof(DecisionState)
+                                 , nameof(DecisionState)
                                  , nameof(MatchTitle), nameof(MatchEffect), nameof(NeedsCategory), nameof(CanApprove), nameof(ApprovalBlockReason)
                                  , nameof(HasApprovalFeedback), nameof(HasApprovalBlockReason), nameof(ShowSearchAction)
                                  , nameof(HasPrevious), nameof(HasNext), nameof(SearchAction), nameof(SearchProgress), nameof(RowSearchStatus)
@@ -382,8 +380,6 @@ public partial class MuseImportPreviewViewModel
     public async Task CompareMuseFileToWatchListAsync()
     {
         if (IsComparingMuseFile || !IsFileStep) return;
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         IsComparingMuseFile = true;
         CompareStatus = string.Empty;
         try

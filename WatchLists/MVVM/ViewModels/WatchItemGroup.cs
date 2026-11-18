@@ -8,7 +8,6 @@ namespace WatchLists.MVVM.ViewModels;
 public class WatchItemGroup : ObservableCollection<WatchItem>
 {
     private static readonly SemaphoreSlim TransitionLogLock = new(1, 1);
-    private bool _isTransitioning;
 
     public string CategoryName { get; private set; }
 
@@ -23,37 +22,15 @@ public class WatchItemGroup : ObservableCollection<WatchItem>
         set
         {
             if (_isExpanded == value) return;
+            var startedUtc = DateTime.UtcNow;
+            WriteTransitionLog($"Category expander transition started: category='{CategoryName}', expanded={value}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}.");
             _isExpanded = value;
             OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(IsExpanded)));
+            WriteTransitionLog($"Category expander transition state updated: category='{CategoryName}', expanded={value}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
         }
     }
 
     public int ItemCount => Items.Count + UnverifiedItems.Count;
-
-    public async Task ToggleExpandedAsync()
-    {
-        if (_isTransitioning)
-        {
-            return;
-        }
-
-        _isTransitioning = true;
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        var startedUtc = DateTime.UtcNow;
-        var expanded = !IsExpanded;
-        WriteTransitionLog($"Category transition requested: category='{CategoryName}', expanded={expanded}, watchItems={Items.Count}, unverifiedItems={UnverifiedItems.Count}, startedUtc={startedUtc:O}.");
-
-        try
-        {
-            await BusyOperationTracker.Current.WaitForOverlayAsync();
-            IsExpanded = expanded;
-        }
-        finally
-        {
-            _isTransitioning = false;
-            WriteTransitionLog($"Category transition completed: category='{CategoryName}', expanded={expanded}, elapsedMs={(DateTime.UtcNow - startedUtc).TotalMilliseconds:F0}.");
-        }
-    }
 
     public WatchItemGroup(string categoryName) : base()
     {

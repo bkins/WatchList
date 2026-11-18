@@ -62,8 +62,6 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     // This method is called when the page is navigated to with query parameters.
     public async void ApplyQueryAttributes (IDictionary<string, object> query)
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (query.TryGetValue("SearchResult", out var searchResultObj) && searchResultObj is MovieSearchResult searchResult)
         {
             MovieDetail = new MovieDetail
@@ -123,8 +121,6 @@ public partial class MovieDetailsViewModel : ObservableObject, IQueryAttributabl
     [RelayCommand]
     private async Task SelectMovie()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var databaseGeneration = _watchListService.DatabaseGeneration;
         if (MovieDetail == null)
         {

@@ -32,8 +32,6 @@ public partial class SearchViewModel : ObservableObject
     [RelayCommand]
     public async Task Search ()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await FileLogger.WriteLogAsync($"[Search] Search command invoked. SearchQuery: '{SearchQuery}'");
         ErrorMessage = string.Empty;
         HasError     = false;
@@ -105,8 +103,6 @@ public partial class SearchViewModel : ObservableObject
     [RelayCommand]
     private async Task NavigateToDetails(object param)
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (param is MovieSearchResult searchResult)
         {
             if (searchResult.PrimarySourceApi == "Google" && searchResult.WebUrl.HasValue())
@@ -138,8 +134,6 @@ public partial class SearchViewModel : ObservableObject
     [RelayCommand]
     public async Task SearchWikipedia()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var query = SearchQuery.HasValue() ? SearchQuery.Trim() : "movies";
         var wikiUrl = $"https://en.wikipedia.org/w/index.php?search={Uri.EscapeDataString(query)}";
         await FileLogger.WriteLogAsync($"[SearchViewModel] Opening Wikipedia search for '{query}'");
@@ -156,8 +150,6 @@ public partial class SearchViewModel : ObservableObject
     [RelayCommand]
     public async Task SearchGoogle()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var query = SearchQuery.HasValue() ? SearchQuery.Trim() : "movies";
         var googleUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query + " movie show")}";
         await FileLogger.WriteLogAsync($"[SearchViewModel] Opening Google search for '{query}'");
@@ -174,8 +166,6 @@ public partial class SearchViewModel : ObservableObject
     [RelayCommand]
     public async Task AddCustomItem()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         var navParams = new Dictionary<string, object>
         {
             { "PreFilledTitle", SearchQuery ?? string.Empty }

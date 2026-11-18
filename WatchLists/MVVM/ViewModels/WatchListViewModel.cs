@@ -40,9 +40,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial int SelectedItemsCount { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsLoadingItems { get; set; } = true;
-
     public ObservableCollection<WatchItemGroup> WatchItemGroups
     {
         get => _watchItemGroups;
@@ -76,40 +73,30 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task RefreshItems()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await LoadGroupedWatchItemsAsync();
     }
 
     [RelayCommand]
     private async Task AddItem()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync(nameof(EditWatchItemPage));
     }
 
     [RelayCommand]
     public async Task NavigateToSettings()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync(nameof(SettingsPage));
     }
 
     [RelayCommand]
     private async Task NavigateToLogs()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync(nameof(LogsPage));
     }
 
     [RelayCommand]
     private async Task NavigateToApiTest()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         await Shell.Current.GoToAsync(nameof(ApiTestPage));
     }
 
@@ -185,8 +172,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task OpenDeepLink(WatchItem item)
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (item == null || item.DeepLinkUri.IsEmptyNullOrWhiteSpace())
             return;
 
@@ -220,8 +205,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task EditItem(WatchItem item)
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (item == null) return;
 
         await Shell.Current.GoToAsync($"EditWatchItemPage?watchItemId={item.Id}");
@@ -242,8 +225,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
 
     private async Task LoadGroupedWatchItemsAsync()
     {
-        using var busyOperation = BusyOperationTracker.Current.BeginOperation();
-        await BusyOperationTracker.Current.WaitForOverlayAsync();
         if (_loadInProgress)
         {
             _reloadRequested = true;
@@ -251,13 +232,12 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
         }
 
         _loadInProgress = true;
-        IsLoadingItems = true;
         try
         {
             do
             {
                 _reloadRequested = false;
-                await BusyOperationTracker.Current.WaitForOverlayAsync();
+                await Task.Yield();
                 var managedCategories = await _settingsService.GetOptionsAsync(SettingType.Categories);
                 var loadedData = await Task.Run(() => BuildGroupedWatchItems(managedCategories));
 
@@ -276,7 +256,6 @@ public partial class WatchListViewModel : ObservableObject, IDisposable
         finally
         {
             _loadInProgress = false;
-            IsLoadingItems = false;
         }
     }
 

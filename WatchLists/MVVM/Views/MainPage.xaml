@@ -165,8 +165,7 @@
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="viewmodels:WatchItemGroup">
-                    <toolkit:Expander IsExpanded="{Binding IsExpanded}"
-                                      Loaded="ConfigureCategoryExpander">
+                    <toolkit:Expander IsExpanded="{Binding IsExpanded}">
                         <toolkit:Expander.Header>
                             <!-- Category Header Card -->
                             <Frame Style="{StaticResource CardStyle}"
@@ -387,24 +386,5 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <Border Grid.Row="2"
-                HorizontalOptions="Center"
-                VerticalOptions="Start"
-                Margin="0,8"
-                Padding="12,6"
-                StrokeThickness="0"
-                InputTransparent="True"
-                IsVisible="{Binding IsLoadingItems}"
-                AutomationId="WatchListLoadingIndicator">
-            <HorizontalStackLayout Spacing="8">
-                <ActivityIndicator IsRunning="{Binding IsLoadingItems}"
-                                   WidthRequest="24"
-                                   HeightRequest="24"
-                                   Color="{StaticResource Primary}" />
-                <Label Text="Updating WatchList..."
-                       VerticalOptions="Center"
-                       TextColor="{AppThemeBinding Light={StaticResource LightTextPrimary}, Dark={StaticResource DarkTextPrimary}}" />
-            </HorizontalStackLayout>
-        </Border>
     </Grid>
 </ContentPage>

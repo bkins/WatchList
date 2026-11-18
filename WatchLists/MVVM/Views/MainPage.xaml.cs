@@ -1,6 +1,5 @@
 using WatchLists.MVVM.ViewModels;
 using WatchLists.MVVM.Models;
-using CommunityToolkit.Maui.Views;
 
 namespace WatchLists.MVVM.Views
 {
@@ -34,22 +33,6 @@ namespace WatchLists.MVVM.Views
             {
                 vm.ToggleSelectionMode();
             }
-        }
-
-        private void ConfigureCategoryExpander(object? sender, EventArgs eventArgs)
-        {
-            if (sender is not Expander expander)
-            {
-                return;
-            }
-
-            expander.HandleHeaderTapped = tappedEventArgs =>
-            {
-                if (expander.BindingContext is WatchItemGroup categoryGroup)
-                {
-                    _ = categoryGroup.ToggleExpandedAsync();
-                }
-            };
         }
 
         private async void OpenUnverifiedSource(object? sender, TappedEventArgs eventArgs)
