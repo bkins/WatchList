@@ -165,7 +165,8 @@
             </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="viewmodels:WatchItemGroup">
-                    <toolkit:Expander IsExpanded="{Binding IsExpanded}">
+                    <toolkit:Expander IsExpanded="{Binding IsExpanded}"
+                                      Loaded="ConfigureCategoryExpander">
                         <toolkit:Expander.Header>
                             <!-- Category Header Card -->
                             <Frame Style="{StaticResource CardStyle}"

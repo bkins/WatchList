@@ -38,9 +38,17 @@ namespace WatchLists
                                 , typeof(LogsPage));
         }
 
-        private void HandleNavigating(object? sender, ShellNavigatingEventArgs eventArgs)
+        private async void HandleNavigating(object? sender, ShellNavigatingEventArgs eventArgs)
         {
             _navigationProgressSequence = UiProgressState.Current.Show("Switching screens...");
+            var navigationDeferral = eventArgs.GetDeferral();
+            if (navigationDeferral is null)
+            {
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(120));
+            navigationDeferral.Complete();
         }
 
         private void HandleNavigated(object? sender, ShellNavigatedEventArgs eventArgs)

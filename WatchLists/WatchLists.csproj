@@ -23,7 +23,7 @@
 
 		<!-- Display name -->
 		<ApplicationTitle>WatchLists</ApplicationTitle>
-    <VersionPrefix>1.9.5</VersionPrefix>
+    <VersionPrefix>1.9.6</VersionPrefix>
 		<Version>$(VersionPrefix)</Version>
 
 		<!-- App Identifier -->
